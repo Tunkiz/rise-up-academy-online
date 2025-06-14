@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LessonIcon } from "./LessonIcon";
 import type { Tables } from "@/integrations/supabase/types";
+import { Badge } from "@/components/ui/badge";
 
 interface LessonListItemProps {
   lesson: Tables<"lessons">;
@@ -31,6 +32,7 @@ export const LessonListItem = ({
       <Link to={`/subject/${subjectId}/topic/${topicId}/lesson/${lesson.id}`} className="flex-grow hover:underline">
         {lesson.title}
       </Link>
+      <Badge variant="outline" className="capitalize">{lesson.lesson_type}</Badge>
       <Checkbox
         id={`lesson-${lesson.id}`}
         checked={isCompleted}

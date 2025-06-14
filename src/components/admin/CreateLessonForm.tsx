@@ -306,7 +306,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                 <FormField control={lessonForm.control} name="content" render={({ field }) => (
                   <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/embed/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={lessonForm.control} name="attachment" render={({ field: { onChange, ...fieldProps } }) => (
+                <FormField control={lessonForm.control} name="attachment" render={({ field: { value, onChange, ...fieldProps } }) => (
                     <FormItem>
                         <FormLabel>Upload Notes (PDF, DOC, optional)</FormLabel>
                         <FormControl><Input type="file" {...fieldProps} onChange={(e) => onChange(e.target.files?.[0])} /></FormControl>
@@ -321,7 +321,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
               )} />
             )}
             {lessonType === 'document' && (
-              <FormField control={lessonForm.control} name="content" render={({ field: { onChange, ...fieldProps } }) => (
+              <FormField control={lessonForm.control} name="content" render={({ field: { value, onChange, ...fieldProps } }) => (
                   <FormItem>
                     <FormLabel>Document File</FormLabel>
                     <FormControl><Input type="file" {...fieldProps} onChange={(e) => onChange(e.target.files?.[0])} /></FormControl>
