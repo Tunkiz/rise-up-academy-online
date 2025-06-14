@@ -15,6 +15,7 @@ import ResourceLibrary from "./pages/ResourceLibrary";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
+import AdminPage from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/exam-assistance" element={<ExamAssistance />} />
               <Route path="/study-planner" element={<StudyPlanner />} />
               <Route path="/resource-library" element={<ResourceLibrary />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

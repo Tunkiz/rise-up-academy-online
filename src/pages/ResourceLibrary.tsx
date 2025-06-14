@@ -1,8 +1,83 @@
 
-const ResourceLibrary = () => (
-  <div className="container py-10">
-    <h1 className="text-4xl font-bold">Resource Library</h1>
-    <p className="text-muted-foreground mt-2">Find all your study materials here. This feature is coming soon!</p>
-  </div>
-);
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tables } from "@/integrations/supabase/types";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthProvider";
+
+type Resource = Tables<'resources'> & { subjects: { name: string } | null };
+
+const ResourceLibrary = () => {
+  const { isAdmin } = useAuth();
+  const { data: resources, isLoading } = useQuery({
+    queryKey: ['resources'],
+    queryFn: async (): Promise<Resource[]> => {
+      const { data, error } = await supabase.from('resources').select('*, subjects(name)');
+      if (error) throw new Error(error.message);
+      return data as Resource[] || [];
+    }
+  });
+
+  return (
+    <div className="container py-10">
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+        <div>
+          <h1 className="text-4xl font-bold">Resource Library</h1>
+          <p className="text-muted-foreground mt-2">Find all your study materials here.</p>
+        </div>
+        {isAdmin && (
+          <Button asChild>
+            <Link to="/admin">Go to Admin Panel</Link>
+          </Button>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-48" />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && resources && resources.length > 0 && (
+        <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
+          {resources.map(resource => (
+            <Card key={resource.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle>{resource.title}</CardTitle>
+                <CardDescription>{resource.subjects?.name || 'General'}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow flex flex-col justify-between">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-3 h-[60px]">
+                  {resource.description || "No description provided."}
+                </p>
+                <Button asChild className="w-full mt-auto">
+                  <a href={resource.file_url || '#'} target="_blank" rel="noopener noreferrer" download>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && (!resources || resources.length === 0) && (
+        <div className="text-center py-12 border-2 border-dashed rounded-lg mt-8">
+          <h2 className="text-2xl font-semibold">No Resources Found</h2>
+          <p className="text-muted-foreground mt-2">
+            It looks like there are no resources available yet.
+            {isAdmin ? " You can add some in the admin panel." : " Please check back later."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 export default ResourceLibrary;
