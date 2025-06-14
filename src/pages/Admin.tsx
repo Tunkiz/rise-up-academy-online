@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2, Upload, PlusCircle, Trash2 } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
+import { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -25,6 +25,44 @@ const resourceFormSchema = z.object({
   subject_id: z.string().uuid("Please select a subject."),
   file: z.instanceof(File).refine(file => file.size > 0, "A file is required."),
 });
+
+const lessonFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters."),
+  subject_id: z.string().uuid("Please select a subject."),
+  topic_id: z.string().uuid("Please select a topic."),
+  lesson_type: z.enum(['quiz', 'video', 'notes'], { required_error: "Please select a lesson type."}),
+  content: z.string().optional(),
+  pass_mark: z.coerce.number().min(0).max(100).optional(),
+}).superRefine((data, ctx) => {
+    if (data.lesson_type === 'quiz') {
+        if (data.pass_mark === undefined || data.pass_mark === null) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Pass mark (0-100) is required for quizzes.",
+                path: ['pass_mark'],
+            });
+        }
+    }
+    if (data.lesson_type === 'video') {
+        if (!data.content || !z.string().url().safeParse(data.content).success) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "A valid video URL is required.",
+                path: ['content'],
+            });
+        }
+    }
+    if (data.lesson_type === 'notes') {
+        if (!data.content || data.content.trim().length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Content is required for notes.",
+                path: ['content'],
+            });
+        }
+    }
+});
+
 
 const quizQuestionFormSchema = z.object({
   subject_id: z.string().uuid("Please select a subject."),
@@ -41,8 +79,10 @@ const quizQuestionFormSchema = z.object({
 
 
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
+type LessonFormValues = z.infer<typeof lessonFormSchema>;
 type QuizQuestionFormValues = z.infer<typeof quizQuestionFormSchema>;
 type Subject = Tables<'subjects'>;
+type Topic = Pick<Tables<'topics'>, 'id' | 'name'>;
 type Lesson = Tables<'lessons'>;
 type QuizLessonOption = Pick<Lesson, 'id' | 'title'>;
 
@@ -51,6 +91,7 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedQuizSubjectId, setSelectedQuizSubjectId] = useState<string | null>(null);
+  const [selectedLessonSubjectId, setSelectedLessonSubjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -62,6 +103,18 @@ const AdminPage = () => {
   const form = useForm<ResourceFormValues>({
     resolver: zodResolver(resourceFormSchema),
   });
+
+  const lessonForm = useForm<LessonFormValues>({
+    resolver: zodResolver(lessonFormSchema),
+    defaultValues: {
+        title: "",
+        subject_id: "",
+        topic_id: "",
+        content: "",
+        pass_mark: 70
+    },
+  });
+  const lessonType = lessonForm.watch('lesson_type');
 
   const quizForm = useForm<QuizQuestionFormValues>({
     resolver: zodResolver(quizQuestionFormSchema),
@@ -88,6 +141,20 @@ const AdminPage = () => {
       if (error) throw new Error(error.message);
       return data || [];
     },
+  });
+
+  const { data: topics, isLoading: isLoadingTopics } = useQuery({
+    queryKey: ['topics', selectedLessonSubjectId],
+    queryFn: async (): Promise<Topic[]> => {
+      if (!selectedLessonSubjectId) return [];
+      const { data, error } = await supabase
+        .from('topics')
+        .select('id, name')
+        .eq('subject_id', selectedLessonSubjectId);
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!selectedLessonSubjectId,
   });
 
   const { data: quizLessons, isLoading: isLoadingQuizLessons } = useQuery({
@@ -131,6 +198,32 @@ const AdminPage = () => {
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
+    },
+  });
+
+  const { mutate: createLesson, isPending: isCreatingLesson } = useMutation({
+    mutationFn: async (values: LessonFormValues) => {
+      const { title, topic_id, lesson_type, content, pass_mark } = values;
+
+      const lessonData: TablesInsert<'lessons'> = {
+        title,
+        topic_id,
+        lesson_type,
+        content: (lesson_type === 'video' || lesson_type === 'notes') ? content : null,
+        pass_mark: lesson_type === 'quiz' ? pass_mark : null,
+      };
+
+      const { error } = await supabase.from('lessons').insert(lessonData);
+      if (error) throw new Error(`Failed to create lesson: ${error.message}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Lesson created successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['quizLessons'] });
+      lessonForm.reset();
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Creation Failed", description: error.message });
     },
   });
 
@@ -185,6 +278,10 @@ const AdminPage = () => {
   const onSubmit = (values: ResourceFormValues) => {
     uploadResource(values);
   };
+
+  const onCreateLesson = (values: LessonFormValues) => {
+    createLesson(values);
+  };
   
   const onQuizSubmit = (values: QuizQuestionFormValues) => {
     addQuizQuestion(values);
@@ -212,44 +309,111 @@ const AdminPage = () => {
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Upload New Resource</CardTitle>
-            <CardDescription>Add a new study material to the Resource Library.</CardDescription>
+            <CardTitle>Create New Lesson</CardTitle>
+            <CardDescription>Add a new quiz, video, or notes lesson.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField control={form.control} name="title" render={({ field }) => (
-                  <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Algebra Cheatsheet" {...field} /></FormControl><FormMessage /></FormItem>
+            <Form {...lessonForm}>
+              <form onSubmit={lessonForm.handleSubmit(onCreateLesson)} className="space-y-6">
+                <FormField control={lessonForm.control} name="title" render={({ field }) => (
+                  <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Introduction to Algebra" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A brief summary of the resource." {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="subject_id" render={({ field }) => (
+                 <FormField
+                  control={lessonForm.control}
+                  name="subject_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setSelectedLessonSubjectId(value);
+                          lessonForm.resetField("topic_id");
+                        }}
+                        defaultValue={field.value}
+                        disabled={isLoadingSubjects}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {subjects?.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={lessonForm.control} name="topic_id" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subject</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubjects}>
+                    <FormLabel>Topic</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoadingTopics || !selectedLessonSubjectId}>
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !selectedLessonSubjectId
+                                ? "Select a subject first"
+                                : isLoadingTopics
+                                ? "Loading..."
+                                : "Select a topic"
+                            }
+                          />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {subjects?.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
+                        {topics?.map(topic => <SelectItem key={topic.id} value={topic.id}>{topic.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="file" render={({ field: { value, onChange, ...fieldProps } }) => (
-                  <FormItem>
-                    <FormLabel>Resource File</FormLabel>
-                    <FormControl>
-                      <Input id="file-input" type="file" {...fieldProps} onChange={(e) => onChange(e.target.files?.[0])} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="submit" disabled={isPending} className="w-full">
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Upload Resource
+                <FormField
+                  control={lessonForm.control}
+                  name="lesson_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lesson Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a lesson type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="quiz">Quiz</SelectItem>
+                          <SelectItem value="video">Video</SelectItem>
+                          <SelectItem value="notes">Notes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {lessonType === 'quiz' && (
+                  <FormField control={lessonForm.control} name="pass_mark" render={({ field }) => (
+                    <FormItem><FormLabel>Pass Mark (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 70" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                )}
+                {lessonType === 'video' && (
+                  <FormField control={lessonForm.control} name="content" render={({ field }) => (
+                    <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/embed/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                )}
+                {lessonType === 'notes' && (
+                  <FormField control={lessonForm.control} name="content" render={({ field }) => (
+                    <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Enter lesson content here..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                )}
+                <Button type="submit" disabled={isCreatingLesson} className="w-full">
+                  {isCreatingLesson ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                  Create Lesson
                 </Button>
               </form>
             </Form>
@@ -390,6 +554,51 @@ const AdminPage = () => {
                 <Button type="submit" disabled={isAddingQuestion} className="w-full">
                   {isAddingQuestion ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                   Add Question
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload New Resource</CardTitle>
+            <CardDescription>Add a new study material to the Resource Library.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField control={form.control} name="title" render={({ field }) => (
+                  <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Algebra Cheatsheet" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="description" render={({ field }) => (
+                  <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A brief summary of the resource." {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="subject_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubjects}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {subjects?.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="file" render={({ field: { value, onChange, ...fieldProps } }) => (
+                  <FormItem>
+                    <FormLabel>Resource File</FormLabel>
+                    <FormControl>
+                      <Input id="file-input" type="file" {...fieldProps} onChange={(e) => onChange(e.target.files?.[0])} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Button type="submit" disabled={isPending} className="w-full">
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                  Upload Resource
                 </Button>
               </form>
             </Form>

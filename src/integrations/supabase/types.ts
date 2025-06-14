@@ -92,6 +92,7 @@ export type Database = {
           id: string
           lesson_type: string
           order: number
+          pass_mark: number | null
           title: string
           topic_id: string
         }
@@ -100,6 +101,7 @@ export type Database = {
           id?: string
           lesson_type: string
           order?: number
+          pass_mark?: number | null
           title: string
           topic_id: string
         }
@@ -108,6 +110,7 @@ export type Database = {
           id?: string
           lesson_type?: string
           order?: number
+          pass_mark?: number | null
           title?: string
           topic_id?: string
         }
@@ -135,6 +138,41 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          lesson_id: string
+          passed: boolean
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson_id: string
+          passed: boolean
+          score: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          passed?: boolean
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_options: {
         Row: {
