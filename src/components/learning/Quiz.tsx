@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useToast } from "@/components/ui/use-toast";
 
 type QuizQuestionWithOptions = Tables<'quiz_questions'> & {
   quiz_options: Tables<'quiz_options'>[];
@@ -16,9 +17,10 @@ type QuizQuestionWithOptions = Tables<'quiz_questions'> & {
 
 interface QuizProps {
   lessonId: string;
+  passMark: number | null;
 }
 
-const Quiz = ({ lessonId }: QuizProps) => {
+const Quiz = ({ lessonId, passMark }: QuizProps) => {
   const { data: questions, isLoading } = useQuery({
     queryKey: ['quiz', lessonId],
     queryFn: async (): Promise<QuizQuestionWithOptions[]> => {
@@ -45,6 +47,57 @@ const Quiz = ({ lessonId }: QuizProps) => {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [isResultSaved, setIsResultSaved] = useState(false);
+  
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const saveQuizAttemptMutation = useMutation({
+    mutationFn: async ({ score, passed }: { score: number; passed: boolean }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // 1. Save quiz attempt
+      const { error: attemptError } = await supabase.from("quiz_attempts").insert({
+        user_id: user.id,
+        lesson_id: lessonId,
+        score,
+        passed,
+      });
+      if (attemptError) throw attemptError;
+
+      // 2. If passed, mark lesson as complete
+      if (passed) {
+        const { error: completionError } = await supabase
+          .from("lesson_completions")
+          .upsert({ user_id: user.id, lesson_id: lessonId });
+        if (completionError) throw completionError;
+      }
+    },
+    onSuccess: (_, { passed }) => {
+      queryClient.invalidateQueries({ queryKey: ['quiz_attempts', user?.id, lessonId] });
+      if (passed) {
+        toast({
+          title: "Quiz Passed!",
+          description: "Lesson marked as complete.",
+        });
+        queryClient.invalidateQueries({ queryKey: ["lesson_completions"] });
+        queryClient.invalidateQueries({ queryKey: ["topics"] });
+      } else {
+        toast({
+          title: "Quiz Submitted",
+          description: "You didn't pass this time. Feel free to retake the quiz.",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to save quiz result: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -86,9 +139,19 @@ const Quiz = ({ lessonId }: QuizProps) => {
     setCorrectAnswers(0);
     setSelectedOptionId(null);
     setIsSubmitted(false);
+    setIsResultSaved(false);
   }
 
   if (currentQuestionIndex >= questions.length) {
+    useEffect(() => {
+      if (!isResultSaved && questions && questions.length > 0 && user) {
+        const score = Math.round((correctAnswers / questions.length) * 100);
+        const passed = score >= (passMark ?? 70); // Default to 70 if not set
+        saveQuizAttemptMutation.mutate({ score, passed });
+        setIsResultSaved(true);
+      }
+    }, [isResultSaved, questions, correctAnswers, passMark, user, saveQuizAttemptMutation]);
+
     return (
       <div className="not-prose">
         <Card>
@@ -97,7 +160,7 @@ const Quiz = ({ lessonId }: QuizProps) => {
           </CardHeader>
           <CardContent>
             <p className="mb-2">You answered {correctAnswers} out of {questions.length} questions correctly.</p>
-            <p className="text-2xl font-bold">Score: {Math.round((correctAnswers / questions.length) * 100)}%</p>
+            <p className="text-2xl font-bold">Score: {Math.round((correctAnswers / (questions.length || 1)) * 100)}%</p>
           </CardContent>
           <CardFooter>
             <Button onClick={handleRetake}>

@@ -56,7 +56,7 @@ const LessonPage = () => {
               <p className="text-muted-foreground mb-4">Lesson Type: {lesson.lesson_type}</p>
               <div className="prose dark:prose-invert max-w-none">
                 {lesson.lesson_type === 'quiz' ? (
-                  <Quiz lessonId={lesson.id} />
+                  <Quiz lessonId={lesson.id} passMark={lesson.pass_mark} />
                 ) : lesson.content ? (
                   lesson.lesson_type === 'video' ? (
                     <div className="not-prose relative w-full" style={{ paddingTop: '56.25%' }}>
