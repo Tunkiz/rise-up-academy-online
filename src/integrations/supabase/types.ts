@@ -429,6 +429,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+        }[]
+      }
       get_quiz_lessons_by_subject: {
         Args: { p_subject_id: string }
         Returns: {
@@ -442,7 +452,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "learner" | "tutor" | "parent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -558,7 +568,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "learner", "tutor", "parent"],
     },
   },
 } as const

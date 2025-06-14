@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,6 +19,8 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CreateLessonForm } from "@/components/admin/CreateLessonForm";
+import UserManagementTable from "@/components/admin/UserManagementTable";
+import { Users } from "lucide-react";
 
 const resourceFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -183,6 +186,21 @@ const AdminPage = () => {
                 </Button>
               </form>
             </Form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              User Management
+            </CardTitle>
+            <CardDescription>View, search, and manage user accounts.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <UserManagementTable />
           </CardContent>
         </Card>
       </div>
