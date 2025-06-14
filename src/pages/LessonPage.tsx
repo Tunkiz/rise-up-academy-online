@@ -55,7 +55,20 @@ const LessonPage = () => {
               <p className="text-muted-foreground mb-4">Lesson Type: {lesson.lesson_type}</p>
               <div className="prose dark:prose-invert max-w-none">
                 {lesson.content ? (
-                  <p>{lesson.content}</p>
+                  lesson.lesson_type === 'video' ? (
+                    <div className="not-prose relative w-full" style={{ paddingTop: '56.25%' }}>
+                      <iframe
+                        src={lesson.content}
+                        title={lesson.title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="absolute top-0 left-0 w-full h-full rounded-md"
+                      ></iframe>
+                    </div>
+                  ) : (
+                    <p>{lesson.content}</p>
+                  )
                 ) : (
                   <p className="text-muted-foreground">No content available for this lesson yet.</p>
                 )}
