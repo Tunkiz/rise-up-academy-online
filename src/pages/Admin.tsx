@@ -1,4 +1,3 @@
-
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,7 +14,7 @@ import { Loader2, Upload, PlusCircle, Trash2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -28,6 +27,7 @@ const resourceFormSchema = z.object({
 });
 
 const quizQuestionFormSchema = z.object({
+  subject_id: z.string().uuid("Please select a subject."),
   lesson_id: z.string().uuid("Please select a quiz lesson."),
   question_text: z.string().min(3, "Question must be at least 3 characters."),
   options: z.array(z.object({
@@ -50,6 +50,7 @@ const AdminPage = () => {
   const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [selectedQuizSubjectId, setSelectedQuizSubjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -65,6 +66,7 @@ const AdminPage = () => {
   const quizForm = useForm<QuizQuestionFormValues>({
     resolver: zodResolver(quizQuestionFormSchema),
     defaultValues: {
+      subject_id: "",
       lesson_id: "",
       question_text: "",
       options: [
@@ -89,15 +91,16 @@ const AdminPage = () => {
   });
 
   const { data: quizLessons, isLoading: isLoadingQuizLessons } = useQuery({
-    queryKey: ['quizLessons'],
+    queryKey: ['quizLessons', selectedQuizSubjectId],
     queryFn: async (): Promise<QuizLessonOption[]> => {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('id, title')
-        .eq('lesson_type', 'quiz');
+      if (!selectedQuizSubjectId) return [];
+      const { data, error } = await supabase.rpc('get_quiz_lessons_by_subject', {
+        p_subject_id: selectedQuizSubjectId,
+      });
       if (error) throw new Error(error.message);
       return data || [];
     },
+    enabled: !!selectedQuizSubjectId,
   });
 
   const { mutate: uploadResource, isPending } = useMutation({
@@ -163,13 +166,16 @@ const AdminPage = () => {
       toast({ title: "Quiz question added!" });
       queryClient.invalidateQueries({ queryKey: ['quiz_questions', 'quiz_options'] });
       quizForm.reset({
+        subject_id: quizForm.getValues().subject_id,
         lesson_id: quizForm.getValues().lesson_id,
         question_text: "",
         options: [
-          { option_text: "", is_correct: true },
+          { option_text: "", is_correct: false },
           { option_text: "", is_correct: false },
         ],
       });
+      // Set first option to correct after reset
+      quizForm.setValue('options.0.is_correct', true);
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "An error occurred", description: error.message });
@@ -257,12 +263,54 @@ const AdminPage = () => {
           <CardContent>
             <Form {...quizForm}>
               <form onSubmit={quizForm.handleSubmit(onQuizSubmit)} className="space-y-6">
+                <FormField
+                  control={quizForm.control}
+                  name="subject_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setSelectedQuizSubjectId(value);
+                          quizForm.resetField("lesson_id");
+                        }}
+                        defaultValue={field.value}
+                        disabled={isLoadingSubjects}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {subjects?.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField control={quizForm.control} name="lesson_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quiz Lesson</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingQuizLessons}>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoadingQuizLessons || !selectedQuizSubjectId}>
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder={isLoadingQuizLessons ? "Loading..." : "Select a quiz"} /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !selectedQuizSubjectId
+                                ? "Select a subject first"
+                                : isLoadingQuizLessons
+                                ? "Loading..."
+                                : "Select a quiz"
+                            }
+                          />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {quizLessons?.map(lesson => <SelectItem key={lesson.id} value={lesson.id}>{lesson.title}</SelectItem>)}
@@ -301,7 +349,15 @@ const AdminPage = () => {
                               <FormControl>
                                 <Checkbox
                                   checked={field.value}
-                                  onCheckedChange={field.onChange}
+                                  onCheckedChange={(checked) => {
+                                    if(checked) {
+                                      quizForm.getValues().options.forEach((_, i) => {
+                                        quizForm.setValue(`options.${i}.is_correct`, i === index);
+                                      });
+                                    } else {
+                                      field.onChange(false);
+                                    }
+                                  }}
                                   id={`is-correct-${index}`}
                                 />
                               </FormControl>
@@ -317,6 +373,7 @@ const AdminPage = () => {
                       </div>
                     ))}
                     <FormMessage>{quizForm.formState.errors.options?.root?.message}</FormMessage>
+                    <FormMessage>{quizForm.formState.errors.options?.message}</FormMessage>
                   </div>
                    <Button
                       type="button"

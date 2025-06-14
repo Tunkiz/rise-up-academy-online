@@ -379,6 +379,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_quiz_lessons_by_subject: {
+        Args: { p_subject_id: string }
+        Returns: {
+          id: string
+          title: string
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
