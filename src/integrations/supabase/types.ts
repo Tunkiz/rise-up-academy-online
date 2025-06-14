@@ -88,29 +88,38 @@ export type Database = {
       }
       lessons: {
         Row: {
+          attachment_url: string | null
           content: string | null
+          description: string | null
           id: string
           lesson_type: string
           order: number
           pass_mark: number | null
+          time_limit: number | null
           title: string
           topic_id: string
         }
         Insert: {
+          attachment_url?: string | null
           content?: string | null
+          description?: string | null
           id?: string
           lesson_type: string
           order?: number
           pass_mark?: number | null
+          time_limit?: number | null
           title: string
           topic_id: string
         }
         Update: {
+          attachment_url?: string | null
           content?: string | null
+          description?: string | null
           id?: string
           lesson_type?: string
           order?: number
           pass_mark?: number | null
+          time_limit?: number | null
           title?: string
           topic_id?: string
         }
@@ -205,18 +214,21 @@ export type Database = {
       }
       quiz_questions: {
         Row: {
+          explanation: string | null
           id: string
           lesson_id: string
           order: number
           question_text: string
         }
         Insert: {
+          explanation?: string | null
           id?: string
           lesson_id: string
           order?: number
           question_text: string
         }
         Update: {
+          explanation?: string | null
           id?: string
           lesson_id?: string
           order?: number
