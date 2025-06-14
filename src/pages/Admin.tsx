@@ -213,14 +213,33 @@ const AdminPage = () => {
         pass_mark: lesson_type === 'quiz' ? pass_mark : null,
       };
 
-      const { error } = await supabase.from('lessons').insert(lessonData);
-      if (error) throw new Error(`Failed to create lesson: ${error.message}`);
+      const { data, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
+      if (error) {
+        throw new Error(`Failed to create lesson: ${error.message}`);
+      }
+      
+      return { newLessonId: data.id, subjectId: values.subject_id, lessonType: values.lesson_type };
     },
-    onSuccess: () => {
+    onSuccess: ({ newLessonId, subjectId, lessonType }) => {
       toast({ title: "Lesson created successfully!" });
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
-      queryClient.invalidateQueries({ queryKey: ['quizLessons'] });
       lessonForm.reset();
+      
+      if (lessonType === 'quiz') {
+        // Invalidate the query to refetch the list of quiz lessons for the subject
+        queryClient.invalidateQueries({ queryKey: ['quizLessons', subjectId] }).then(() => {
+          // Pre-fill the "Add Quiz Question" form
+          setSelectedQuizSubjectId(subjectId);
+          quizForm.setValue('subject_id', subjectId, { shouldValidate: true });
+          quizForm.setValue('lesson_id', newLessonId, { shouldValidate: true });
+          
+          // Scroll to the "Add Quiz Question" card
+          document.getElementById('add-quiz-question-card')?.scrollIntoView({ behavior: 'smooth' });
+        });
+      } else {
+        // Invalidate all quiz lessons if another lesson type was created, just in case
+        queryClient.invalidateQueries({ queryKey: ['quizLessons'] });
+      }
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Creation Failed", description: error.message });
@@ -419,7 +438,7 @@ const AdminPage = () => {
             </Form>
           </CardContent>
         </Card>
-        <Card>
+        <Card id="add-quiz-question-card">
           <CardHeader>
             <CardTitle>Add Quiz Question</CardTitle>
             <CardDescription>Create a new question for a quiz lesson.</CardDescription>
