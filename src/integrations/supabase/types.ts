@@ -30,6 +30,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exams: {
+        Row: {
+          description: string | null
+          exam_date: string
+          id: string
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+        }
+        Insert: {
+          description?: string | null
+          exam_date: string
+          id?: string
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+        }
+        Update: {
+          description?: string | null
+          exam_date?: string
+          id?: string
+          name?: string
+          registration_end_date?: string
+          registration_start_date?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           full_name: string | null
