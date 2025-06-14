@@ -173,7 +173,9 @@ const TopicPage = () => {
                 className="flex items-center space-x-4 p-4 border rounded-md"
               >
                 <LessonIcon type={lesson.lesson_type} className="h-5 w-5 text-muted-foreground" />
-                <span className="flex-grow">{lesson.title}</span>
+                <Link to={`/subject/${subjectId}/topic/${topicId}/lesson/${lesson.id}`} className="flex-grow hover:underline">
+                  {lesson.title}
+                </Link>
                 <Checkbox
                   id={`lesson-${lesson.id}`}
                   checked={completedLessonIds.has(lesson.id)}
