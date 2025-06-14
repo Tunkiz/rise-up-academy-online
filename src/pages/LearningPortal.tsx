@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
+import { Link } from "react-router-dom";
 
 type Subject = Tables<"subjects">;
 type StudentProgress = Pick<Tables<"student_progress">, "subject_id" | "progress">;
@@ -73,23 +74,26 @@ const LearningPortal = () => {
           ))}
         {!isLoading &&
           combinedData?.map((subject) => (
-            <Card
+            <Link
+              to={`/subject/${subject.id}`}
               key={subject.id}
-              className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+              className="no-underline text-current"
             >
-              <CardHeader>
-                <CardTitle>{subject.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Your progress:
-                </p>
-                <Progress value={subject.progress} className="w-full" />
-                <p className="text-right text-sm text-muted-foreground mt-1">
-                  {subject.progress}%
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="hover:shadow-lg transition-shadow duration-200 h-full">
+                <CardHeader>
+                  <CardTitle>{subject.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Your progress:
+                  </p>
+                  <Progress value={subject.progress} className="w-full" />
+                  <p className="text-right text-sm text-muted-foreground mt-1">
+                    {subject.progress}%
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         {!isLoading && (!combinedData || combinedData.length === 0) && (
           <div className="text-center py-12 md:col-span-2 lg:col-span-3">

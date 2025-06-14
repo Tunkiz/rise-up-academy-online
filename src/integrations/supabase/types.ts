@@ -208,6 +208,32 @@ export type Database = {
         }
         Relationships: []
       }
+      topics: {
+        Row: {
+          id: string
+          name: string
+          subject_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          subject_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
