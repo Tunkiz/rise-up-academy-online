@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Tables } from "@/integrations/supabase/types";
+import Quiz from "@/components/learning/Quiz";
 
 type Lesson = Tables<"lessons">;
 
@@ -54,7 +55,9 @@ const LessonPage = () => {
             <CardContent>
               <p className="text-muted-foreground mb-4">Lesson Type: {lesson.lesson_type}</p>
               <div className="prose dark:prose-invert max-w-none">
-                {lesson.content ? (
+                {lesson.lesson_type === 'quiz' ? (
+                  <Quiz lessonId={lesson.id} />
+                ) : lesson.content ? (
                   lesson.lesson_type === 'video' ? (
                     <div className="not-prose relative w-full" style={{ paddingTop: '56.25%' }}>
                       <iframe
