@@ -1,5 +1,5 @@
 
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -138,21 +138,22 @@ const SubjectDashboard = () => {
           ))}
         {!isLoading &&
           topicsWithProgress?.map((topic) => (
-            <Card
-              key={topic.id}
-              className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-            >
-              <CardHeader>
-                <CardTitle>{topic.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-muted-foreground">Progress</p>
-                  <p className="text-sm font-medium">{topic.progress ?? 0}%</p>
-                </div>
-                <Progress value={topic.progress ?? 0} />
-              </CardContent>
-            </Card>
+            <Link to={`/subject/${subjectId}/topic/${topic.id}`} key={topic.id}>
+              <Card
+                className="hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full"
+              >
+                <CardHeader>
+                  <CardTitle>{topic.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Progress</p>
+                    <p className="text-sm font-medium">{topic.progress ?? 0}%</p>
+                  </div>
+                  <Progress value={topic.progress ?? 0} />
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         {!isLoading && (!topicsWithProgress || topicsWithProgress.length === 0) && (
           <div className="text-center py-12 md:col-span-2 lg:col-span-3">

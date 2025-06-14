@@ -17,6 +17,7 @@ import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
 import SubjectDashboard from "./pages/SubjectDashboard";
+import TopicPage from "./pages/TopicPage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/learning-portal" element={<LearningPortal />} />
               <Route path="/subject/:subjectId" element={<SubjectDashboard />} />
+              <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
               <Route path="/exam-assistance" element={<ExamAssistance />} />
               <Route path="/study-planner" element={<StudyPlanner />} />
               <Route path="/resource-library" element={<ResourceLibrary />} />
