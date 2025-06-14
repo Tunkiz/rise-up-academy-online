@@ -1,13 +1,34 @@
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Book, Calendar, Bell } from "lucide-react";
+import { Book, Calendar, Bell, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
-const Dashboard = () => (
+const Dashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  return (
   <div className="container py-10">
-    <h1 className="text-3xl font-bold">Welcome back, Student!</h1>
-    <p className="text-muted-foreground mt-2 mb-8">Here's a snapshot of your learning journey.</p>
+    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
+      <div>
+        <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata.full_name || 'Student'}!</h1>
+        <p className="text-muted-foreground mt-2">Here's a snapshot of your learning journey.</p>
+      </div>
+      <Button onClick={handleLogout} variant="outline">
+        <LogOut className="mr-2 h-4 w-4" />
+        Logout
+      </Button>
+    </div>
 
     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       {/* My Progress Card */}
@@ -122,5 +143,6 @@ const Dashboard = () => (
       </Card>
     </div>
   </div>
-);
+  )
+};
 export default Dashboard;

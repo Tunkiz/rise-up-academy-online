@@ -14,6 +14,7 @@ import StudyPlanner from "./pages/StudyPlanner";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import { AuthProvider } from "./contexts/AuthProvider";
 
 const queryClient = new QueryClient();
 
@@ -23,19 +24,21 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route element={<MainLayout />}>
+        <AuthProvider>
+          <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/learning-portal" element={<LearningPortal />} />
-            <Route path="/exam-assistance" element={<ExamAssistance />} />
-            <Route path="/study-planner" element={<StudyPlanner />} />
-            <Route path="/resource-library" element={<ResourceLibrary />} />
-          </Route>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/learning-portal" element={<LearningPortal />} />
+              <Route path="/exam-assistance" element={<ExamAssistance />} />
+              <Route path="/study-planner" element={<StudyPlanner />} />
+              <Route path="/resource-library" element={<ResourceLibrary />} />
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
