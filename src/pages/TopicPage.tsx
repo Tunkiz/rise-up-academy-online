@@ -3,35 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Book, BookOpen, BookText, Video } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { LessonList } from "@/components/learning/LessonList";
 
 type Topic = Tables<"topics">;
 type Lesson = Tables<"lessons">;
 type LessonCompletionInsert = TablesInsert<"lesson_completions">;
-
-const LessonIcon = ({
-  type,
-  className,
-}: {
-  type: string;
-  className?: string;
-}) => {
-  switch (type) {
-    case "video":
-      return <Video className={className} />;
-    case "notes":
-      return <BookOpen className={className} />;
-    case "quiz":
-      return <BookText className={className} />;
-    default:
-      return <Book className={className} />;
-  }
-};
 
 const TopicPage = () => {
   const { subjectId, topicId } = useParams<{ subjectId: string; topicId: string }>();
@@ -157,44 +138,16 @@ const TopicPage = () => {
           <CardTitle>Lessons</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {isLoading && Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 p-4 border rounded-md">
-                <Skeleton className="h-6 w-6" />
-                <Skeleton className="h-5 w-4/5" />
-                <div className="ml-auto">
-                  <Skeleton className="h-5 w-5" />
-                </div>
-              </div>
-            ))}
-            {!isLoading && lessons?.map((lesson) => (
-              <div
-                key={lesson.id}
-                className="flex items-center space-x-4 p-4 border rounded-md"
-              >
-                <LessonIcon type={lesson.lesson_type} className="h-5 w-5 text-muted-foreground" />
-                <Link to={`/subject/${subjectId}/topic/${topicId}/lesson/${lesson.id}`} className="flex-grow hover:underline">
-                  {lesson.title}
-                </Link>
-                <Checkbox
-                  id={`lesson-${lesson.id}`}
-                  checked={completedLessonIds.has(lesson.id)}
-                  onCheckedChange={(checked) => {
-                    toggleLessonMutation.mutate({
-                      lessonId: lesson.id,
-                      completed: !!checked,
-                    });
-                  }}
-                  disabled={!user || toggleLessonMutation.isPending}
-                />
-              </div>
-            ))}
-            {!isLoading && (!lessons || lessons.length === 0) && (
-              <p className="text-muted-foreground text-center py-4">
-                No lessons found for this topic yet.
-              </p>
-            )}
-          </div>
+          <LessonList
+            lessons={lessons}
+            subjectId={subjectId!}
+            topicId={topicId!}
+            completedLessonIds={completedLessonIds}
+            onToggleLesson={toggleLessonMutation.mutate}
+            isToggling={toggleLessonMutation.isPending}
+            isUserLoggedIn={!!user}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
     </div>
