@@ -34,6 +34,17 @@ const lessonFormSchema = z.object({
   lesson_type: z.enum(['quiz', 'video', 'notes', 'document'], { required_error: "Please select a lesson type."}),
   content: z.any().optional(),
   pass_mark: z.coerce.number().min(0).max(100).optional(),
+  questions: z.array(z.object({
+    question_text: z.string().min(3, "Question text must be at least 3 characters."),
+    options: z.array(z.object({
+        option_text: z.string().min(1, "Option text cannot be empty."),
+        is_correct: z.boolean().default(false),
+    })).min(2, "At least two options are required.")
+    .refine(options => options.some(opt => opt.is_correct), {
+        message: "At least one option must be marked as correct.",
+        path: ["root"],
+    })
+  })).optional(),
 }).superRefine((data, ctx) => {
     if (data.lesson_type === 'quiz') {
         if (data.pass_mark === undefined || data.pass_mark === null) {
@@ -41,6 +52,13 @@ const lessonFormSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: "Pass mark (0-100) is required for quizzes.",
                 path: ['pass_mark'],
+            });
+        }
+        if (!data.questions || data.questions.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "A quiz must have at least one question.",
+                path: ['questions'],
             });
         }
     }
@@ -74,33 +92,15 @@ const lessonFormSchema = z.object({
 });
 
 
-const quizQuestionFormSchema = z.object({
-  subject_id: z.string().uuid("Please select a subject."),
-  lesson_id: z.string().uuid("Please select a quiz lesson."),
-  question_text: z.string().min(3, "Question must be at least 3 characters."),
-  options: z.array(z.object({
-    option_text: z.string().min(1, "Option text cannot be empty."),
-    is_correct: z.boolean().default(false),
-  })).min(2, "At least two options are required."),
-}).refine(data => data.options.some(opt => opt.is_correct), {
-  message: "At least one option must be correct.",
-  path: ["options"],
-});
-
-
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
 type LessonFormValues = z.infer<typeof lessonFormSchema>;
-type QuizQuestionFormValues = z.infer<typeof quizQuestionFormSchema>;
 type Subject = Tables<'subjects'>;
 type Topic = Pick<Tables<'topics'>, 'id' | 'name'>;
-type Lesson = Tables<'lessons'>;
-type QuizLessonOption = Pick<Lesson, 'id' | 'title'>;
 
 const AdminPage = () => {
   const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedQuizSubjectId, setSelectedQuizSubjectId] = useState<string | null>(null);
   const [selectedLessonSubjectId, setSelectedLessonSubjectId] = useState<string | null>(null);
   const [isCreateLessonOpen, setIsCreateLessonOpen] = useState(false);
 
@@ -122,27 +122,15 @@ const AdminPage = () => {
         subject_id: "",
         topic_id: "",
         content: "",
-        pass_mark: 70
+        pass_mark: 70,
+        questions: [{ question_text: "", options: [{option_text: "", is_correct: true}, {option_text: "", is_correct: false}] }]
     },
   });
   const lessonType = lessonForm.watch('lesson_type');
 
-  const quizForm = useForm<QuizQuestionFormValues>({
-    resolver: zodResolver(quizQuestionFormSchema),
-    defaultValues: {
-      subject_id: "",
-      lesson_id: "",
-      question_text: "",
-      options: [
-        { option_text: "", is_correct: true },
-        { option_text: "", is_correct: false },
-      ],
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: quizForm.control,
-    name: "options",
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: lessonForm.control,
+    name: "questions",
   });
 
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
@@ -166,19 +154,6 @@ const AdminPage = () => {
       return data || [];
     },
     enabled: !!selectedLessonSubjectId,
-  });
-
-  const { data: quizLessons, isLoading: isLoadingQuizLessons } = useQuery({
-    queryKey: ['quizLessons', selectedQuizSubjectId],
-    queryFn: async (): Promise<QuizLessonOption[]> => {
-      if (!selectedQuizSubjectId) return [];
-      const { data, error } = await supabase.rpc('get_quiz_lessons_by_subject', {
-        p_subject_id: selectedQuizSubjectId,
-      });
-      if (error) throw new Error(error.message);
-      return data || [];
-    },
-    enabled: !!selectedQuizSubjectId,
   });
 
   const { mutate: uploadResource, isPending } = useMutation({
@@ -214,7 +189,7 @@ const AdminPage = () => {
 
   const { mutate: createLesson, isPending: isCreatingLesson } = useMutation({
     mutationFn: async (values: LessonFormValues) => {
-      const { title, topic_id, lesson_type, pass_mark } = values;
+      const { title, topic_id, lesson_type, pass_mark, questions } = values;
 
       let contentToInsert: string | null = null;
       if (values.content) {
@@ -240,87 +215,55 @@ const AdminPage = () => {
         pass_mark: lesson_type === 'quiz' ? pass_mark : null,
       };
 
-      const { data, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
+      const { data: newLesson, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
       if (error) {
         throw new Error(`Failed to create lesson: ${error.message}`);
       }
       
-      return { newLessonId: data.id, subjectId: values.subject_id, lessonType: values.lesson_type };
+      if (lesson_type === 'quiz' && questions) {
+          for (const question of questions) {
+              const { data: newQuestion, error: questionError } = await supabase
+                .from('quiz_questions')
+                .insert({ lesson_id: newLesson.id, question_text: question.question_text })
+                .select('id')
+                .single();
+
+              if (questionError) {
+                // Attempt to clean up the created lesson if question fails
+                await supabase.from('lessons').delete().eq('id', newLesson.id);
+                throw new Error(`Question creation failed: ${questionError.message}`);
+              }
+
+              const optionsToInsert = question.options.map(opt => ({
+                question_id: newQuestion.id,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+              }));
+
+              const { error: optionsError } = await supabase.from('quiz_options').insert(optionsToInsert);
+
+              if (optionsError) {
+                  // Attempt to clean up
+                  await supabase.from('quiz_questions').delete().eq('id', newQuestion.id);
+                  await supabase.from('lessons').delete().eq('id', newLesson.id);
+                  throw new Error(`Options creation failed: ${optionsError.message}`);
+              }
+          }
+      }
     },
-    onSuccess: ({ newLessonId, subjectId, lessonType }) => {
+    onSuccess: () => {
       setIsCreateLessonOpen(false);
       toast({ title: "Lesson created successfully!" });
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz_questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz_options'] });
       lessonForm.reset();
-      
-      if (lessonType === 'quiz') {
-        // Invalidate the query to refetch the list of quiz lessons for the subject
-        queryClient.invalidateQueries({ queryKey: ['quizLessons', subjectId] }).then(() => {
-          // Pre-fill the "Add Quiz Question" form
-          setSelectedQuizSubjectId(subjectId);
-          quizForm.setValue('subject_id', subjectId, { shouldValidate: true });
-          quizForm.setValue('lesson_id', newLessonId, { shouldValidate: true });
-          
-          // Scroll to the "Add Quiz Question" card
-          document.getElementById('add-quiz-question-card')?.scrollIntoView({ behavior: 'smooth' });
-        });
-      } else {
-        // Invalidate all quiz lessons if another lesson type was created, just in case
-        queryClient.invalidateQueries({ queryKey: ['quizLessons'] });
-      }
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Creation Failed", description: error.message });
     },
   });
 
-  const { mutate: addQuizQuestion, isPending: isAddingQuestion } = useMutation({
-    mutationFn: async (values: QuizQuestionFormValues) => {
-      const { data: questionData, error: questionError } = await supabase
-        .from('quiz_questions')
-        .insert({
-          lesson_id: values.lesson_id,
-          question_text: values.question_text,
-        })
-        .select('id')
-        .single();
-
-      if (questionError) throw new Error(`Question creation failed: ${questionError.message}`);
-      
-      const question_id = questionData.id;
-      
-      const optionsToInsert = values.options.map(opt => ({
-        question_id,
-        option_text: opt.option_text,
-        is_correct: opt.is_correct,
-      }));
-
-      const { error: optionsError } = await supabase.from('quiz_options').insert(optionsToInsert);
-
-      if (optionsError) {
-        await supabase.from('quiz_questions').delete().eq('id', question_id);
-        throw new Error(`Options creation failed: ${optionsError.message}`);
-      }
-    },
-    onSuccess: () => {
-      toast({ title: "Quiz question added!" });
-      queryClient.invalidateQueries({ queryKey: ['quiz_questions', 'quiz_options'] });
-      quizForm.reset({
-        subject_id: quizForm.getValues().subject_id,
-        lesson_id: quizForm.getValues().lesson_id,
-        question_text: "",
-        options: [
-          { option_text: "", is_correct: false },
-          { option_text: "", is_correct: false },
-        ],
-      });
-      // Set first option to correct after reset
-      quizForm.setValue('options.0.is_correct', true);
-    },
-    onError: (error) => {
-      toast({ variant: "destructive", title: "An error occurred", description: error.message });
-    },
-  });
 
   const onSubmit = (values: ResourceFormValues) => {
     uploadResource(values);
@@ -330,10 +273,6 @@ const AdminPage = () => {
     createLesson(values);
   };
   
-  const onQuizSubmit = (values: QuizQuestionFormValues) => {
-    addQuizQuestion(values);
-  };
-
   if (authLoading || !isAdmin) {
     return (
       <div className="container py-10">
@@ -367,7 +306,7 @@ const AdminPage = () => {
                   Create New Lesson
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Lesson</DialogTitle>
                   <DialogDescription>
@@ -459,10 +398,41 @@ const AdminPage = () => {
                       )}
                     />
                     {lessonType === 'quiz' && (
-                  <FormField control={lessonForm.control} name="pass_mark" render={({ field }) => (
-                    <FormItem><FormLabel>Pass Mark (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 70" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                )}
+                        <>
+                            <FormField control={lessonForm.control} name="pass_mark" render={({ field }) => (
+                                <FormItem><FormLabel>Pass Mark (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 70" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            
+                            <div className="space-y-4 rounded-md border p-4">
+                               <div className="flex justify-between items-center">
+                                <Label className="text-lg">Questions</Label>
+                                 <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => appendQuestion({ question_text: "", options: [{ option_text: "", is_correct: true }, { option_text: "", is_correct: false }] })}
+                                >
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Add Question
+                                </Button>
+                               </div>
+                                {questionFields.map((questionItem, questionIndex) => (
+                                    <div key={questionItem.id} className="space-y-3 rounded-md border p-3 relative">
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeQuestion(questionIndex)} disabled={questionFields.length <= 1}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                        <FormField control={lessonForm.control} name={`questions.${questionIndex}.question_text`} render={({ field }) => (
+                                            <FormItem><FormLabel>Question {questionIndex + 1}</FormLabel><FormControl><Textarea placeholder="e.g., What is 2+2?" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        
+                                        <OptionsFieldArray questionIndex={questionIndex} />
+                                         <FormMessage>{lessonForm.formState.errors.questions?.[questionIndex]?.options?.root?.message}</FormMessage>
+                                    </div>
+                                ))}
+                                <FormMessage>{lessonForm.formState.errors.questions?.root?.message || lessonForm.formState.errors.questions?.message}</FormMessage>
+                            </div>
+                        </>
+                    )}
                     {lessonType === 'video' && (
                       <FormField control={lessonForm.control} name="content" render={({ field }) => (
                         <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/embed/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
@@ -498,146 +468,7 @@ const AdminPage = () => {
             </Dialog>
           </CardContent>
         </Card>
-        <Card id="add-quiz-question-card">
-          <CardHeader>
-            <CardTitle>Add Quiz Question</CardTitle>
-            <CardDescription>Create a new question for a quiz lesson.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...quizForm}>
-              <form onSubmit={quizForm.handleSubmit(onQuizSubmit)} className="space-y-6">
-                <FormField
-                  control={quizForm.control}
-                  name="subject_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          setSelectedQuizSubjectId(value);
-                          quizForm.resetField("lesson_id");
-                        }}
-                        defaultValue={field.value}
-                        disabled={isLoadingSubjects}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {subjects?.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                              {subject.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField control={quizForm.control} name="lesson_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quiz Lesson</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoadingQuizLessons || !selectedQuizSubjectId}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              !selectedQuizSubjectId
-                                ? "Select a subject first"
-                                : isLoadingQuizLessons
-                                ? "Loading..."
-                                : "Select a quiz"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {quizLessons?.map(lesson => <SelectItem key={lesson.id} value={lesson.id}>{lesson.title}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={quizForm.control} name="question_text" render={({ field }) => (
-                  <FormItem><FormLabel>Question</FormLabel><FormControl><Textarea placeholder="e.g., What is the capital of France?" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-
-                <div>
-                  <Label>Options</Label>
-                  <div className="space-y-2 mt-2">
-                    {fields.map((item, index) => (
-                      <div key={item.id} className="flex items-center space-x-2">
-                        <FormField
-                          control={quizForm.control}
-                          name={`options.${index}.option_text`}
-                          render={({ field }) => (
-                            <FormItem className="flex-grow">
-                              <FormControl>
-                                <Input placeholder={`Option ${index + 1}`} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={quizForm.control}
-                          name={`options.${index}.is_correct`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-2 pt-2">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={(checked) => {
-                                    if(checked) {
-                                      quizForm.getValues().options.forEach((_, i) => {
-                                        quizForm.setValue(`options.${i}.is_correct`, i === index);
-                                      });
-                                    } else {
-                                      field.onChange(false);
-                                    }
-                                  }}
-                                  id={`is-correct-${index}`}
-                                />
-                              </FormControl>
-                              <Label htmlFor={`is-correct-${index}`} className="text-sm font-normal shrink-0">
-                                Correct
-                              </Label>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 2}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <FormMessage>{quizForm.formState.errors.options?.root?.message}</FormMessage>
-                    <FormMessage>{quizForm.formState.errors.options?.message}</FormMessage>
-                  </div>
-                   <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => append({ option_text: "", is_correct: false })}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Option
-                    </Button>
-                </div>
-
-                <Button type="submit" disabled={isAddingQuestion} className="w-full">
-                  {isAddingQuestion ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                  Add Question
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+        
         <Card>
           <CardHeader>
             <CardTitle>Upload New Resource</CardTitle>
@@ -687,5 +518,64 @@ const AdminPage = () => {
     </div>
   );
 };
+
+const OptionsFieldArray = ({ questionIndex }: { questionIndex: number }) => {
+    const { control, getValues, setValue } = useFormContext<LessonFormValues>();
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `questions.${questionIndex}.options`
+    });
+
+    return (
+        <div className="space-y-2 pl-4">
+            <Label className="text-sm">Options</Label>
+            {fields.map((item, optionIndex) => (
+                <div key={item.id} className="flex items-start space-x-2">
+                    <FormField
+                        control={control}
+                        name={`questions.${questionIndex}.options.${optionIndex}.option_text`}
+                        render={({ field }) => (
+                            <FormItem className="flex-grow"><FormControl><Input placeholder={`Option ${optionIndex + 1}`} {...field} /></FormControl><FormMessage /></FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={control}
+                        name={`questions.${questionIndex}.options.${optionIndex}.is_correct`}
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 pt-2">
+                                <FormControl>
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={(checked) => {
+                                            // Uncheck all other options for this question
+                                            getValues(`questions.${questionIndex}.options`).forEach((_, i) => {
+                                                setValue(`questions.${questionIndex}.options.${i}.is_correct`, i === optionIndex ? !!checked : false);
+                                            });
+                                        }}
+                                        id={`is-correct-${questionIndex}-${optionIndex}`}
+                                    />
+                                </FormControl>
+                                <Label htmlFor={`is-correct-${questionIndex}-${optionIndex}`} className="text-sm font-normal shrink-0">Correct</Label>
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(optionIndex)} disabled={fields.length <= 2}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+            ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => append({ option_text: "", is_correct: false })}
+            >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Option
+            </Button>
+        </div>
+    )
+}
 
 export default AdminPage;
