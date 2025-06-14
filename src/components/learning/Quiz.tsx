@@ -99,6 +99,15 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
     },
   });
 
+  useEffect(() => {
+    if (currentQuestionIndex >= (questions?.length ?? 0) && !isResultSaved && questions && questions.length > 0 && user) {
+      const score = Math.round((correctAnswers / questions.length) * 100);
+      const passed = score >= (passMark ?? 70); // Default to 70 if not set
+      saveQuizAttemptMutation.mutate({ score, passed });
+      setIsResultSaved(true);
+    }
+  }, [currentQuestionIndex, questions, isResultSaved, correctAnswers, passMark, user, saveQuizAttemptMutation]);
+
   if (isLoading) {
     return (
       <div className="not-prose space-y-4">
@@ -117,17 +126,6 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
     return <p className="text-muted-foreground">No quiz questions available for this lesson yet.</p>;
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const selectedOption = currentQuestion?.quiz_options.find(o => o.id === selectedOptionId);
-
-  const handleSubmit = () => {
-    if (!selectedOption) return;
-    setIsSubmitted(true);
-    if (selectedOption.is_correct) {
-      setCorrectAnswers(correctAnswers + 1);
-    }
-  };
-
   const handleNext = () => {
     setIsSubmitted(false);
     setSelectedOptionId(null);
@@ -143,15 +141,6 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
   }
 
   if (currentQuestionIndex >= questions.length) {
-    useEffect(() => {
-      if (!isResultSaved && questions && questions.length > 0 && user) {
-        const score = Math.round((correctAnswers / questions.length) * 100);
-        const passed = score >= (passMark ?? 70); // Default to 70 if not set
-        saveQuizAttemptMutation.mutate({ score, passed });
-        setIsResultSaved(true);
-      }
-    }, [isResultSaved, questions, correctAnswers, passMark, user, saveQuizAttemptMutation]);
-
     return (
       <div className="not-prose">
         <Card>
@@ -171,6 +160,17 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
       </div>
     );
   }
+  
+  const currentQuestion = questions[currentQuestionIndex];
+  const selectedOption = currentQuestion?.quiz_options.find(o => o.id === selectedOptionId);
+  
+  const handleSubmit = () => {
+    if (!selectedOption) return;
+    setIsSubmitted(true);
+    if (selectedOption.is_correct) {
+      setCorrectAnswers(correctAnswers + 1);
+    }
+  };
   
   return (
     <div className="not-prose">
