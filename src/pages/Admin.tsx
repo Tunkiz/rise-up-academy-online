@@ -1,5 +1,4 @@
-
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, PlusCircle, Trash2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const resourceFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -25,8 +26,23 @@ const resourceFormSchema = z.object({
   file: z.instanceof(File).refine(file => file.size > 0, "A file is required."),
 });
 
+const quizQuestionFormSchema = z.object({
+  lesson_id: z.string().uuid("Please select a quiz lesson."),
+  question_text: z.string().min(3, "Question must be at least 3 characters."),
+  options: z.array(z.object({
+    option_text: z.string().min(1, "Option text cannot be empty."),
+    is_correct: z.boolean().default(false),
+  })).min(2, "At least two options are required."),
+}).refine(data => data.options.some(opt => opt.is_correct), {
+  message: "At least one option must be correct.",
+  path: ["options"],
+});
+
+
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
+type QuizQuestionFormValues = z.infer<typeof quizQuestionFormSchema>;
 type Subject = Tables<'subjects'>;
+type Lesson = Tables<'lessons'>;
 
 const AdminPage = () => {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -44,10 +60,39 @@ const AdminPage = () => {
     resolver: zodResolver(resourceFormSchema),
   });
 
+  const quizForm = useForm<QuizQuestionFormValues>({
+    resolver: zodResolver(quizQuestionFormSchema),
+    defaultValues: {
+      lesson_id: "",
+      question_text: "",
+      options: [
+        { option_text: "", is_correct: true },
+        { option_text: "", is_correct: false },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: quizForm.control,
+    name: "options",
+  });
+
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
     queryKey: ['subjects'],
     queryFn: async (): Promise<Subject[]> => {
       const { data, error } = await supabase.from('subjects').select('*');
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+  });
+
+  const { data: quizLessons, isLoading: isLoadingQuizLessons } = useQuery({
+    queryKey: ['quizLessons'],
+    queryFn: async (): Promise<Lesson[]> => {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('id, title')
+        .eq('lesson_type', 'quiz');
       if (error) throw new Error(error.message);
       return data || [];
     },
@@ -84,8 +129,57 @@ const AdminPage = () => {
     },
   });
 
+  const { mutate: addQuizQuestion, isPending: isAddingQuestion } = useMutation({
+    mutationFn: async (values: QuizQuestionFormValues) => {
+      const { data: questionData, error: questionError } = await supabase
+        .from('quiz_questions')
+        .insert({
+          lesson_id: values.lesson_id,
+          question_text: values.question_text,
+        })
+        .select('id')
+        .single();
+
+      if (questionError) throw new Error(`Question creation failed: ${questionError.message}`);
+      
+      const question_id = questionData.id;
+      
+      const optionsToInsert = values.options.map(opt => ({
+        question_id,
+        option_text: opt.option_text,
+        is_correct: opt.is_correct,
+      }));
+
+      const { error: optionsError } = await supabase.from('quiz_options').insert(optionsToInsert);
+
+      if (optionsError) {
+        await supabase.from('quiz_questions').delete().eq('id', question_id);
+        throw new Error(`Options creation failed: ${optionsError.message}`);
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Quiz question added!" });
+      queryClient.invalidateQueries({ queryKey: ['quiz_questions', 'quiz_options'] });
+      quizForm.reset({
+        lesson_id: quizForm.getValues().lesson_id,
+        question_text: "",
+        options: [
+          { option_text: "", is_correct: true },
+          { option_text: "", is_correct: false },
+        ],
+      });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "An error occurred", description: error.message });
+    },
+  });
+
   const onSubmit = (values: ResourceFormValues) => {
     uploadResource(values);
+  };
+  
+  const onQuizSubmit = (values: QuizQuestionFormValues) => {
+    addQuizQuestion(values);
   };
 
   if (authLoading || !isAdmin) {
@@ -148,6 +242,95 @@ const AdminPage = () => {
                 <Button type="submit" disabled={isPending} className="w-full">
                   {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                   Upload Resource
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Quiz Question</CardTitle>
+            <CardDescription>Create a new question for a quiz lesson.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...quizForm}>
+              <form onSubmit={quizForm.handleSubmit(onQuizSubmit)} className="space-y-6">
+                <FormField control={quizForm.control} name="lesson_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quiz Lesson</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingQuizLessons}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder={isLoadingQuizLessons ? "Loading..." : "Select a quiz"} /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {quizLessons?.map(lesson => <SelectItem key={lesson.id} value={lesson.id}>{lesson.title}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={quizForm.control} name="question_text" render={({ field }) => (
+                  <FormItem><FormLabel>Question</FormLabel><FormControl><Textarea placeholder="e.g., What is the capital of France?" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+
+                <div>
+                  <Label>Options</Label>
+                  <div className="space-y-2 mt-2">
+                    {fields.map((item, index) => (
+                      <div key={item.id} className="flex items-center space-x-2">
+                        <FormField
+                          control={quizForm.control}
+                          name={`options.${index}.option_text`}
+                          render={({ field }) => (
+                            <FormItem className="flex-grow">
+                              <FormControl>
+                                <Input placeholder={`Option ${index + 1}`} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={quizForm.control}
+                          name={`options.${index}.is_correct`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 pt-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  id={`is-correct-${index}`}
+                                />
+                              </FormControl>
+                              <Label htmlFor={`is-correct-${index}`} className="text-sm font-normal shrink-0">
+                                Correct
+                              </Label>
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 2}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <FormMessage>{quizForm.formState.errors.options?.root?.message}</FormMessage>
+                  </div>
+                   <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => append({ option_text: "", is_correct: false })}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Option
+                    </Button>
+                </div>
+
+                <Button type="submit" disabled={isAddingQuestion} className="w-full">
+                  {isAddingQuestion ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                  Add Question
                 </Button>
               </form>
             </Form>
