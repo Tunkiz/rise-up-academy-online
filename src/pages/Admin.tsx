@@ -1,3 +1,4 @@
+
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,6 +44,7 @@ type ResourceFormValues = z.infer<typeof resourceFormSchema>;
 type QuizQuestionFormValues = z.infer<typeof quizQuestionFormSchema>;
 type Subject = Tables<'subjects'>;
 type Lesson = Tables<'lessons'>;
+type QuizLessonOption = Pick<Lesson, 'id' | 'title'>;
 
 const AdminPage = () => {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -88,7 +90,7 @@ const AdminPage = () => {
 
   const { data: quizLessons, isLoading: isLoadingQuizLessons } = useQuery({
     queryKey: ['quizLessons'],
-    queryFn: async (): Promise<Lesson[]> => {
+    queryFn: async (): Promise<QuizLessonOption[]> => {
       const { data, error } = await supabase
         .from('lessons')
         .select('id, title')
