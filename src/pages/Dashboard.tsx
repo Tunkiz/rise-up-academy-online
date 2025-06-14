@@ -7,6 +7,8 @@ import { Book, Calendar, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -16,6 +18,54 @@ const Dashboard = () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
+
+  const { data: progressData, isLoading: isProgressLoading } = useQuery({
+    queryKey: ['progress', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('student_progress')
+        .select(`progress, subjects (name)`)
+        .eq('user_id', user.id);
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: deadlinesData, isLoading: isDeadlinesLoading } = useQuery({
+    queryKey: ['deadlines', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('deadlines')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: activityData, isLoading: isActivityLoading } = useQuery({
+    queryKey: ['activity', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('recent_activity')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(5);
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+  });
 
   return (
   <div className="container py-10">
@@ -42,27 +92,20 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Mathematics</span>
-                <span className="text-sm text-muted-foreground">75%</span>
-              </div>
-              <Progress value={75} />
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Physical Sciences</span>
-                <span className="text-sm text-muted-foreground">60%</span>
-              </div>
-              <Progress value={60} />
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">English</span>
-                <span className="text-sm text-muted-foreground">88%</span>
-              </div>
-              <Progress value={88} />
-            </div>
+            {isProgressLoading ? <p>Loading progress...</p> : null}
+            {progressData && progressData.length > 0 ? (
+              progressData.map((item, index) => (
+                <div key={index}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">{item.subjects?.name || 'Unnamed Subject'}</span>
+                    <span className="text-sm text-muted-foreground">{item.progress}%</span>
+                  </div>
+                  <Progress value={item.progress} />
+                </div>
+              ))
+            ) : !isProgressLoading && (
+              <p className="text-muted-foreground text-sm">No progress tracked yet. Complete a lesson to see your progress!</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -77,29 +120,22 @@ const Dashboard = () => {
           <CardDescription>Don't miss these important dates.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-3">
-            <li className="flex items-start">
-              <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
-              <div>
-                <p className="font-medium">Maths Assignment 5</p>
-                <p className="text-sm text-muted-foreground">Due: 2025-06-20</p>
-              </div>
-            </li>
-            <li className="flex items-start">
-              <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
-              <div>
-                <p className="font-medium">Exam Registration</p>
-                <p className="text-sm text-muted-foreground">Closes: 2025-07-01</p>
-              </div>
-            </li>
-            <li className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
-                <div>
-                  <p className="font-medium">Science Project Proposal</p>
-                  <p className="text-sm text-muted-foreground">Due: 2025-06-18</p>
-                </div>
-            </li>
-          </ul>
+          {isDeadlinesLoading ? <p>Loading deadlines...</p> : null}
+          {deadlinesData && deadlinesData.length > 0 ? (
+            <ul className="space-y-3">
+              {deadlinesData.map((deadline) => (
+                <li key={deadline.id} className="flex items-start">
+                  <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium">{deadline.title}</p>
+                    <p className="text-sm text-muted-foreground">Due: {format(new Date(deadline.due_date), 'PPP')}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : !isDeadlinesLoading && (
+            <p className="text-muted-foreground text-sm">No upcoming deadlines. You're all caught up!</p>
+          )}
         </CardContent>
       </Card>
 
@@ -113,32 +149,29 @@ const Dashboard = () => {
           <CardDescription>What's new in your courses.</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Course</TableHead>
-                <TableHead>Activity</TableHead>
-                <TableHead className="text-right">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">English</TableCell>
-                <TableCell>New quiz available: "Shakespeare's Sonnets"</TableCell>
-                <TableCell className="text-right text-muted-foreground">2 days ago</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Mathematics</TableCell>
-                <TableCell>Lesson "Algebra II" completed</TableCell>
-                <TableCell className="text-right text-muted-foreground">3 days ago</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Physical Sciences</TableCell>
-                <TableCell>Grade received for "Lab Report 3"</TableCell>
-                <TableCell className="text-right text-muted-foreground">4 days ago</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {isActivityLoading ? <p className="text-center py-4">Loading activity...</p> : null}
+          {activityData && activityData.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead className="text-right">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activityData.map((activity) => (
+                  <TableRow key={activity.id}>
+                    <TableCell className="font-medium">{activity.course}</TableCell>
+                    <TableCell>{activity.activity}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{formatDistanceToNow(new Date(activity.date), { addSuffix: true })}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : !isActivityLoading && (
+            <p className="text-muted-foreground text-sm text-center py-4">No recent activity.</p>
+          )}
         </CardContent>
       </Card>
     </div>

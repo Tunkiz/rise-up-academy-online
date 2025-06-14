@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      deadlines: {
+        Row: {
+          due_date: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          due_date: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          due_date?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           full_name: string | null
@@ -21,6 +42,74 @@ export type Database = {
         Update: {
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      recent_activity: {
+        Row: {
+          activity: string
+          course: string
+          date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity: string
+          course: string
+          date?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity?: string
+          course?: string
+          date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_progress: {
+        Row: {
+          id: string
+          progress: number
+          subject_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          progress: number
+          subject_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          progress?: number
+          subject_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_progress_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
         }
         Relationships: []
       }
