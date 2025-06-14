@@ -2,6 +2,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
 import { LessonListItem } from "./LessonListItem";
+import { BookOpen, BookText } from "lucide-react";
 
 interface LessonListProps {
     lessons: Tables<"lessons">[] | undefined;
@@ -48,22 +49,60 @@ export const LessonList = ({
         );
     }
 
+    const quizLessons = lessons.filter((lesson) => lesson.lesson_type === 'quiz');
+    const otherLessons = lessons.filter((lesson) => lesson.lesson_type !== 'quiz');
+
     return (
-        <div className="space-y-4">
-            {lessons.map((lesson) => (
-                <LessonListItem
-                    key={lesson.id}
-                    lesson={lesson}
-                    subjectId={subjectId}
-                    topicId={topicId}
-                    isCompleted={completedLessonIds.has(lesson.id)}
-                    onToggleCompletion={(completed) => {
-                        onToggleLesson({ lessonId: lesson.id, completed });
-                    }}
-                    isToggling={isToggling}
-                    isUserLoggedIn={isUserLoggedIn}
-                />
-            ))}
+        <div className="space-y-8">
+            {quizLessons.length > 0 && (
+                <div>
+                    <h3 className="text-2xl font-semibold mb-4 flex items-center border-b pb-2">
+                        <BookText className="mr-3 h-6 w-6 text-primary" />
+                        Quizzes
+                    </h3>
+                    <div className="space-y-4">
+                        {quizLessons.map((lesson) => (
+                            <LessonListItem
+                                key={lesson.id}
+                                lesson={lesson}
+                                subjectId={subjectId}
+                                topicId={topicId}
+                                isCompleted={completedLessonIds.has(lesson.id)}
+                                onToggleCompletion={(completed) => {
+                                    onToggleLesson({ lessonId: lesson.id, completed });
+                                }}
+                                isToggling={isToggling}
+                                isUserLoggedIn={isUserLoggedIn}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            {otherLessons.length > 0 && (
+                <div>
+                    <h3 className="text-2xl font-semibold mb-4 flex items-center border-b pb-2">
+                        <BookOpen className="mr-3 h-6 w-6 text-primary" />
+                        Lessons
+                    </h3>
+                    <div className="space-y-4">
+                        {otherLessons.map((lesson) => (
+                            <LessonListItem
+                                key={lesson.id}
+                                lesson={lesson}
+                                subjectId={subjectId}
+                                topicId={topicId}
+                                isCompleted={completedLessonIds.has(lesson.id)}
+                                onToggleCompletion={(completed) => {
+                                    onToggleLesson({ lessonId: lesson.id, completed });
+                                }}
+                                isToggling={isToggling}
+                                isUserLoggedIn={isUserLoggedIn}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
