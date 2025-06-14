@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Book, BookOpen, BookText, Video } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Topic = Tables<"topics">;
 type Lesson = Tables<"lessons">;
-type LessonCompletionInsert = Tables<"lesson_completions", "Insert">;
+type LessonCompletionInsert = TablesInsert<"lesson_completions">;
 
 const LessonIcon = ({
   type,
