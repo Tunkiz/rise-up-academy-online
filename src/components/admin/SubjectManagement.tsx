@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,9 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { EditSubjectDialog } from "./EditSubjectDialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import TopicList from "./TopicList";
+import { ChevronsUpDown } from "lucide-react";
 
 type Subject = Tables<'subjects'>;
 
@@ -113,35 +115,47 @@ const SubjectManagement = () => {
               ) : (
                 <ul className="divide-y">
                   {subjects?.map((subject) => (
-                    <li key={subject.id} className="flex items-center justify-between p-3 hover:bg-muted/50">
-                      <span className="font-medium">{subject.name}</span>
-                      <div className="space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(subject)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                    <Collapsible asChild key={subject.id}>
+                      <li className="list-none">
+                        <div className="flex items-center justify-between p-3 hover:bg-muted/50">
+                          <CollapsibleTrigger asChild>
+                            <button className="flex items-center gap-2 flex-grow text-left">
+                               <ChevronsUpDown className="h-4 w-4" />
+                               <span className="font-medium">{subject.name}</span>
+                            </button>
+                           </CollapsibleTrigger>
+                          <div className="space-x-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(subject)}>
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the subject. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </li>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the subject and all its topics. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                         <CollapsibleContent>
+                           <TopicList subjectId={subject.id} />
+                         </CollapsibleContent>
+                      </li>
+                    </Collapsible>
                   ))}
                 </ul>
               )}
