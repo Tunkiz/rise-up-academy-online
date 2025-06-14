@@ -36,7 +36,7 @@ import { Loader2 } from 'lucide-react';
 type User = Database['public']['Functions']['get_all_users']['Returns'][number];
 type AppRole = Database['public']['Enums']['app_role'];
 
-const ROLES: AppRole[] = ['admin', 'learner', 'tutor', 'parent'];
+const ROLES = ['admin', 'learner', 'tutor', 'parent'] as const;
 
 const editRoleSchema = z.object({
   role: z.enum(ROLES, {
