@@ -73,7 +73,9 @@ const StudyPlanner = () => {
       if (!generatedPlan || !user || !currentPlanDetails) throw new Error("No plan to save.");
       const { error } = await supabase.from('study_plans').insert({
         user_id: user.id,
-        ...currentPlanDetails,
+        goal: currentPlanDetails.goal,
+        timeframe: currentPlanDetails.timeframe,
+        hours_per_week: currentPlanDetails.hours_per_week,
         plan_content: generatedPlan,
       });
       if (error) throw error;
