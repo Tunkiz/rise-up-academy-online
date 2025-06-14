@@ -39,7 +39,7 @@ export const LessonListItem = ({
         onCheckedChange={(checked) => {
           onToggleCompletion(!!checked);
         }}
-        disabled={!isUserLoggedIn || isToggling}
+        disabled={!isUserLoggedIn || isToggling || isCompleted || lesson.lesson_type === 'quiz'}
       />
     </div>
   );
