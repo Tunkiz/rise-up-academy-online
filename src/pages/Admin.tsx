@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CreateLessonForm } from "@/components/admin/CreateLessonForm";
 import UserManagementTable from "@/components/admin/UserManagementTable";
+import SubjectManagement from "@/components/admin/SubjectManagement";
 import { Users } from "lucide-react";
 
 const resourceFormSchema = z.object({
@@ -188,6 +188,10 @@ const AdminPage = () => {
             </Form>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-8">
+        <SubjectManagement />
       </div>
 
       <div className="mt-8">
