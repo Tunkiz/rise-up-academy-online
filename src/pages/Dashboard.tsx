@@ -1,12 +1,11 @@
-import { Button } from "@/components/ui/button";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Book, Calendar, Bell, LogOut, User } from "lucide-react";
+import { Book, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   ChartContainer,
@@ -25,11 +24,6 @@ const chartConfig = {
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
 
   const { data: progressData, isLoading: isProgressLoading } = useQuery({
     queryKey: ['progress', user?.id],
@@ -63,23 +57,6 @@ const Dashboard = () => {
         console.error("Error fetching lesson deadlines:", error);
         throw new Error(error.message);
       }
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const { data: activityData, isLoading: isActivityLoading } = useQuery({
-    queryKey: ['activity', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('recent_activity')
-        .select('*')
-        .or(`user_id.eq.${user.id},user_id.is.null`)
-        .order('date', { ascending: false })
-        .limit(5);
-
-      if (error) throw new Error(error.message);
       return data;
     },
     enabled: !!user,
@@ -160,42 +137,6 @@ const Dashboard = () => {
             </ul>
           ) : !isDeadlinesLoading && (
             <p className="text-muted-foreground text-sm">No upcoming deadlines. You're all caught up!</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity Card */}
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Bell className="mr-2 h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>What's new in your courses.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {isActivityLoading ? <p className="text-center py-4">Loading activity...</p> : null}
-          {activityData && activityData.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activityData.map((activity) => (
-                  <TableRow key={activity.id}>
-                    <TableCell className="font-medium">{activity.course}</TableCell>
-                    <TableCell>{activity.activity}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatDistanceToNow(new Date(activity.date), { addSuffix: true })}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : !isActivityLoading && (
-            <p className="text-muted-foreground text-sm text-center py-4">No recent activity.</p>
           )}
         </CardContent>
       </Card>
