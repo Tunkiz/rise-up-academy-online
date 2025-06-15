@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +13,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
+import UserStatsCard from '@/components/admin/UserStatsCard';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -47,7 +49,7 @@ const AdminUserProfilePage = () => {
           Back to Admin Panel
         </Link>
       </Button>
-      <div className="max-w-2xl mx-auto grid gap-6">
+      <div className="max-w-5xl mx-auto grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -147,7 +149,12 @@ const AdminUserProfilePage = () => {
           )}
         </Card>
 
-        {user && !isLoading && <RecentActivityFeed userId={user.id} />}
+        {user && !isLoading && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <UserStatsCard userId={user.id} />
+            <RecentActivityFeed userId={user.id} />
+          </div>
+        )}
       </div>
       {user && (
         <>

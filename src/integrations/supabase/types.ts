@@ -467,6 +467,14 @@ export type Database = {
           banned_until: string
         }[]
       }
+      get_user_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          lessons_completed_count: number
+          quizzes_attempted_count: number
+          average_quiz_score: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
