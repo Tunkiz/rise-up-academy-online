@@ -3,14 +3,13 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
-  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
-
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY is not set in environment variables.')
     }
@@ -40,7 +39,7 @@ serve(async (req) => {
 
 Please generate the study plan now.`
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${GEMINI_API_KEY}`
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -83,4 +82,3 @@ Please generate the study plan now.`
     })
   }
 })
-
