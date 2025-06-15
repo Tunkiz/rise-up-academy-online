@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,7 +83,7 @@ export const EditLessonDialog = ({ isOpen, onOpenChange, lesson }: EditLessonDia
         .update({ 
           title, 
           description, 
-          due_date: due_date ? due_date.toISOString() : null,
+          due_date: lesson.lesson_type === 'quiz' ? (due_date ? due_date.toISOString() : null) : null,
           grade: grade && grade !== 'all' ? parseInt(grade, 10) : null,
           content: ['video', 'notes'].includes(lesson.lesson_type) ? content : undefined,
           pass_mark: lesson.lesson_type === 'quiz' ? pass_mark : undefined,
@@ -144,44 +143,46 @@ export const EditLessonDialog = ({ isOpen, onOpenChange, lesson }: EditLessonDia
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="due_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Due Date (Optional)</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {lesson.lesson_type === 'quiz' && (
+              <FormField
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Due Date (Optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="grade"

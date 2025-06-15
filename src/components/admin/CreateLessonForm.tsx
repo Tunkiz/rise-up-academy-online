@@ -279,44 +279,6 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                 <FormMessage />
               </FormItem>
             )} />
-            <FormField
-              control={lessonForm.control}
-              name="due_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Due Date (Optional)</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField control={lessonForm.control} name="lesson_type" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Lesson Type</FormLabel>
@@ -328,6 +290,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                         lessonForm.setValue('questions', undefined);
                         lessonForm.setValue('pass_mark', undefined);
                         lessonForm.setValue('time_limit', undefined);
+                        lessonForm.setValue('due_date', undefined);
 
                         if (value === 'quiz') {
                             lessonForm.setValue('pass_mark', 70);
@@ -358,6 +321,44 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                      <FormField control={lessonForm.control} name="time_limit" render={({ field }) => (
                         <FormItem><FormLabel>Time Limit (minutes, optional)</FormLabel><FormControl><Input type="number" min="0" placeholder="e.g., 30" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                     )} />
+                    <FormField
+                      control={lessonForm.control}
+                      name="due_date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Due Date (Optional)</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="space-y-4 rounded-md border p-4">
                         <div className="flex justify-between items-center">
                             <Label className="text-lg">Questions</Label>
