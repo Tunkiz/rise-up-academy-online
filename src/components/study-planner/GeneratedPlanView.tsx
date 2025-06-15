@@ -16,12 +16,11 @@ interface GeneratedPlanViewProps {
   onCheckboxToggle: (lineIndex: number, currentChecked: boolean) => void;
 }
 
-// Define a type for the custom `li` component's props, which includes the `checked` 
-// property added by remark-gfm for task list items.
+// Define a type for the custom `li` component's props.
+// `checked` is the key property from remark-gfm for task lists.
 type CustomLiProps = ComponentProps<'li'> & {
   node?: any; // The `node` object from remark
   checked?: boolean | null; // `checked` is boolean for task lists, null for regular lists
-  'data-task-list-item'?: boolean;
 };
 
 export const GeneratedPlanView = ({
@@ -62,23 +61,30 @@ export const GeneratedPlanView = ({
               remarkPlugins={[remarkGfm]}
               components={{
                 li: ({ node, children, checked, ...props }: CustomLiProps) => {
-                  const isTaskListItem = props['data-task-list-item'];
+                  const isTaskListItem = typeof checked === 'boolean';
 
-                  if (isTaskListItem && typeof checked === 'boolean') {
-                    if (node?.position) {
-                      const lineIndex = node.position.start.line - 1;
-                      return (
-                        <li className="flex items-start list-none my-1" {...props}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
-                            className="mr-2 translate-y-px"
-                          />
-                          <span className="flex-1">{React.Children.toArray(children).slice(1)}</span>
-                        </li>
-                      );
-                    }
+                  if (isTaskListItem && node?.position) {
+                    const lineIndex = node.position.start.line - 1;
+                    return (
+                      // We render a custom `li` for task list items.
+                      // `list-none` removes the default bullet point.
+                      <li className="flex items-start list-none my-1" {...props}>
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
+                          className="mr-2 translate-y-px"
+                        />
+                        {/* 
+                          We render the original children from react-markdown,
+                          but hide the first element (the disabled checkbox) with Tailwind CSS.
+                          This is more robust than slicing the children array.
+                        */}
+                        <span className="flex-1 [&>*:first-child]:hidden">{children}</span>
+                      </li>
+                    );
                   }
+                  
+                  // For regular list items, render them as they are.
                   return <li {...props}>{children}</li>;
                 },
               }}
@@ -99,4 +105,3 @@ export const GeneratedPlanView = ({
     </Card>
   );
 };
-
