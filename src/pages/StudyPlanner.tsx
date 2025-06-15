@@ -14,6 +14,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const formSchema = z.object({
   goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
@@ -29,6 +30,7 @@ const StudyPlanner = () => {
   const queryClient = useQueryClient();
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<FormValues | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<StudyPlan | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -176,7 +178,7 @@ const StudyPlanner = () => {
             <div className="space-y-4">
               <h2 className="text-2xl font-bold">Your Past Plans</h2>
               {pastPlans.map(plan => (
-                 <Card key={plan.id}>
+                 <Card key={plan.id} onClick={() => setSelectedPlan(plan)} className="cursor-pointer transition-colors hover:bg-muted/50">
                     <CardHeader>
                         <CardTitle className="text-lg">{plan.goal}</CardTitle>
                         <CardDescription>Created on {format(new Date(plan.created_at), 'PPP')}</CardDescription>
@@ -216,6 +218,23 @@ const StudyPlanner = () => {
           </Card>
         </div>
       </div>
+      <Dialog open={!!selectedPlan} onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}>
+        <DialogContent className="max-w-3xl">
+            {selectedPlan && (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>{selectedPlan.goal}</DialogTitle>
+                        <DialogDescription>
+                            Created on {format(new Date(selectedPlan.created_at), 'PPP')} &middot; {selectedPlan.timeframe} &middot; {selectedPlan.hours_per_week} hours/week
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto pr-4">
+                        <pre className="whitespace-pre-wrap font-sans text-sm">{selectedPlan.plan_content}</pre>
+                    </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
