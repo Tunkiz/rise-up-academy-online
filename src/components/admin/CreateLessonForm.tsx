@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -106,11 +105,10 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
     resolver: zodResolver(lessonFormSchema),
     defaultValues: {
         title: "",
+        description: "",
         subject_id: "",
         topic_id: "",
-        content: "",
-        pass_mark: 70,
-        questions: [{ question_text: "", options: [{option_text: "", is_correct: true}, {option_text: "", is_correct: false}], explanation: "" }]
+        grade: "",
     },
   });
   const lessonType = lessonForm.watch('lesson_type');
@@ -278,7 +276,24 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
             <FormField control={lessonForm.control} name="lesson_type" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Lesson Type</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); lessonForm.resetField("content"); lessonForm.resetField("attachment"); }} defaultValue={field.value}>
+                    <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        
+                        lessonForm.setValue('content', undefined);
+                        lessonForm.setValue('attachment', undefined);
+                        lessonForm.setValue('questions', undefined);
+                        lessonForm.setValue('pass_mark', undefined);
+                        lessonForm.setValue('time_limit', undefined);
+
+                        if (value === 'quiz') {
+                            lessonForm.setValue('pass_mark', 70);
+                            lessonForm.setValue('questions', [{ question_text: "", options: [{ option_text: "", is_correct: true }, { option_text: "", is_correct: false }], explanation: "" }]);
+                        } else if (value === 'video' || value === 'notes') {
+                            lessonForm.setValue('content', '');
+                        } else if (value === 'document') {
+                            lessonForm.setValue('content', null);
+                        }
+                    }} defaultValue={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a lesson type" /></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="quiz">Quiz</SelectItem>
