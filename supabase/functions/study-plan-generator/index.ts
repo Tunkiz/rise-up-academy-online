@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -39,7 +40,7 @@ serve(async (req) => {
 
 Please generate the study plan now.`
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${GEMINI_API_KEY}`
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -82,3 +83,4 @@ Please generate the study plan now.`
     })
   }
 })
+
