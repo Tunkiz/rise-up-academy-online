@@ -21,6 +21,7 @@ const lessonFormSchema = z.object({
   subject_id: z.string().uuid("Please select a subject."),
   topic_id: z.string().uuid("Please select a topic."),
   lesson_type: z.enum(['quiz', 'video', 'notes', 'document'], { required_error: "Please select a lesson type."}),
+  grade: z.string().optional(),
   content: z.any().optional(),
   attachment: z.instanceof(File).optional(),
   pass_mark: z.coerce.number().min(0).max(100).optional(),
@@ -132,7 +133,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
 
   const { mutate: createLesson, isPending: isCreatingLesson } = useMutation({
     mutationFn: async (values: LessonFormValues) => {
-      const { title, topic_id, lesson_type, pass_mark, questions, description, time_limit, attachment } = values;
+      const { title, topic_id, lesson_type, pass_mark, questions, description, time_limit, attachment, grade } = values;
 
       let contentToInsert: string | null = null;
       if (values.content) {
@@ -169,6 +170,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
         attachment_url: attachmentUrlToInsert,
         pass_mark: lesson_type === 'quiz' ? pass_mark : null,
         time_limit: (lesson_type === 'quiz' && time_limit) ? time_limit : null,
+        grade: grade && grade !== 'all' ? parseInt(grade, 10) : null,
       };
 
       const { data: newLesson, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
@@ -250,6 +252,25 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                     </Select>
                     <FormMessage />
                 </FormItem>
+            )} />
+            <FormField control={lessonForm.control} name="grade" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Grade</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder="For all grades" /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="all">All Grades</SelectItem>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
+                      <SelectItem key={g} value={String(g)}>
+                        Grade {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
             )} />
             <FormField control={lessonForm.control} name="lesson_type" render={({ field }) => (
                 <FormItem>
