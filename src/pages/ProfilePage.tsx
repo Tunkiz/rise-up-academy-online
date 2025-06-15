@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import AvatarUpload from "@/components/profile/AvatarUpload";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
@@ -27,7 +27,7 @@ const ProfilePage = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, avatar_url')
         .eq('id', user.id)
         .single();
       
@@ -89,35 +89,44 @@ const ProfilePage = () => {
             <User />
             User Profile
           </CardTitle>
-          <CardDescription>Manage your personal information.</CardDescription>
+          <CardDescription>Manage your personal information and avatar.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                  <Skeleton className="h-32 w-32 rounded-full" />
+              </div>
               <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24 self-start" />
             </div>
           ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <FormField
-                  control={form.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" disabled={updateProfileMutation.isPending}>
-                  {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-              </form>
-            </Form>
+            <div className="flex flex-col items-center gap-8">
+              <AvatarUpload 
+                initialUrl={profile?.avatar_url}
+                fullName={profile?.full_name || user?.user_metadata?.full_name}
+              />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+                  <FormField
+                    control={form.control}
+                    name="full_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>
+                    {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
           )}
         </CardContent>
       </Card>

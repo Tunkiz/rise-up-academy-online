@@ -135,14 +135,17 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           full_name: string | null
           id: string
         }
         Insert: {
+          avatar_url?: string | null
           full_name?: string | null
           id: string
         }
         Update: {
+          avatar_url?: string | null
           full_name?: string | null
           id?: string
         }
@@ -438,6 +441,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           created_at: string
           banned_until: string
+          avatar_url: string
         }[]
       }
       get_quiz_lessons_by_subject: {
@@ -465,6 +469,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           created_at: string
           banned_until: string
+          avatar_url: string
         }[]
       }
       get_user_stats: {
