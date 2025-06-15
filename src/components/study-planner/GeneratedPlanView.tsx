@@ -55,16 +55,22 @@ export const GeneratedPlanView = ({
               components={{
                 input: (props) => {
                   const { node, ...rest } = props;
-                  if (rest.type === 'checkbox' && node?.position) {
-                    const lineIndex = node.position.start.line - 1;
-                    return (
-                      <Checkbox
-                        checked={!!rest.checked}
-                        onCheckedChange={() => onCheckboxToggle(lineIndex, !!rest.checked)}
-                        className="mr-2 translate-y-px"
-                      />
-                    );
+                  // GFM task list items are rendered as inputs with this specific class.
+                  if (rest.className === 'task-list-item-checkbox') {
+                    if (node?.position) {
+                      const lineIndex = node.position.start.line - 1;
+                      return (
+                        <Checkbox
+                          checked={!!rest.checked}
+                          onCheckedChange={() => onCheckboxToggle(lineIndex, !!rest.checked)}
+                          className="mr-2 translate-y-px"
+                        />
+                      );
+                    }
+                    // Render a disabled one if we can't get position info
+                    return <Checkbox checked={!!rest.checked} disabled className="mr-2 translate-y-px" />;
                   }
+                  // Render other inputs as-is
                   return <input {...rest} />;
                 },
               }}
