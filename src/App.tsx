@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,8 @@ import LessonPage from "./pages/LessonPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminUserProfilePage from "./pages/AdminUserProfilePage";
 import TutorNotes from "./pages/TutorNotes";
+import { TourProvider } from "./components/tour/TourProvider";
+import { TourGuide } from "./components/tour/TourGuide";
 
 const queryClient = new QueryClient();
 
@@ -32,26 +33,29 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/learning-portal" element={<LearningPortal />} />
-              <Route path="/subject/:subjectId" element={<SubjectDashboard />} />
-              <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
-              <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
-              <Route path="/exam-assistance" element={<ExamAssistance />} />
-              <Route path="/tutor-notes" element={<TutorNotes />} />
-              <Route path="/study-planner" element={<StudyPlanner />} />
-              <Route path="/resource-library" element={<ResourceLibrary />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-            </Route>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <TourProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route element={<MainLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/learning-portal" element={<LearningPortal />} />
+                <Route path="/subject/:subjectId" element={<SubjectDashboard />} />
+                <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
+                <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
+                <Route path="/exam-assistance" element={<ExamAssistance />} />
+                <Route path="/tutor-notes" element={<TutorNotes />} />
+                <Route path="/study-planner" element={<StudyPlanner />} />
+                <Route path="/resource-library" element={<ResourceLibrary />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <TourGuide />
+          </TourProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
