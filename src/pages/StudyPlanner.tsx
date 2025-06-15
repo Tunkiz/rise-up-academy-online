@@ -77,7 +77,7 @@ const StudyPlanner = () => {
       toast({
         variant: "destructive",
         title: "Error Generating Plan",
-        description: error.message || "An unexpected error occurred. Please ensure your Perplexity API key is set correctly in your Supabase secrets.",
+        description: error.message || "An unexpected error occurred. Please ensure your AI provider API key is set correctly in your Supabase secrets.",
       });
     },
   });

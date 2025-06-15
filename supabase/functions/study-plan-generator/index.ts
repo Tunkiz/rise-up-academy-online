@@ -2,8 +2,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const PPLX_API_KEY = Deno.env.get('PERPLEXITY_API_KEY')
-const PPLX_API_URL = 'https://api.perplexity.ai/chat/completions'
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 
 serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
@@ -12,8 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!PPLX_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY is not set in environment variables.')
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not set in environment variables.')
     }
     
     const { goal, timeframe, hours_per_week } = await req.json()
@@ -25,34 +24,52 @@ serve(async (req) => {
       })
     }
 
-    const systemPrompt = `You are an expert study planner. Create a detailed, actionable study plan based on the user's goal. Break it down into weekly and daily tasks. Provide specific topics to cover, recommended resources (if applicable, like websites or concepts), and suggest a schedule. The plan should be structured in Markdown format for readability and be easy to follow.`
+    const fullPrompt = `You are an expert study planner. Your task is to create a detailed, actionable study plan based on the user's goal.
+    
+**Instructions for the plan:**
+- Break it down into weekly and daily tasks.
+- Provide specific topics to cover.
+- Recommend resources if applicable (e.g., websites, concepts to master).
+- Suggest a clear, easy-to-follow schedule.
+- Structure the entire plan in Markdown format for readability.
 
-    const userPrompt = `My goal is: "${goal}". I have ${timeframe} to prepare, and I can study for ${hours_per_week} hours per week. Please generate a study plan for me.`
+**User's Goal and Constraints:**
+- **Goal:** "${goal}"
+- **Timeframe:** ${timeframe}
+- **Study hours per week:** ${hours_per_week}
 
-    const response = await fetch(PPLX_API_URL, {
+Please generate the study plan now.`
+
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`
+
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PPLX_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }]
       }),
     })
 
     if (!response.ok) {
       const errorBody = await response.text()
-      console.error('Perplexity API error:', errorBody)
-      throw new Error(`Perplexity API request failed with status ${response.status}`)
+      console.error('Google Gemini API error:', errorBody)
+      throw new Error(`Google Gemini API request failed with status ${response.status}: ${errorBody}`)
     }
 
     const completion = await response.json()
-    const planContent = completion.choices[0].message.content
+    
+    if (!completion.candidates || completion.candidates.length === 0 || !completion.candidates[0].content?.parts[0]?.text) {
+        console.error('Invalid response structure from Gemini API:', completion);
+        throw new Error('Failed to parse plan from Gemini API response.');
+    }
+      
+    const planContent = completion.candidates[0].content.parts[0].text
 
     return new Response(JSON.stringify({ plan: planContent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
