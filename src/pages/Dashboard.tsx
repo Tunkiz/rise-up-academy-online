@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -92,16 +91,6 @@ const Dashboard = () => {
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata.full_name || 'Student'}!</h1>
         <p className="text-muted-foreground mt-2">Here's a snapshot of your learning journey.</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button onClick={() => navigate('/profile')} variant="outline">
-          <User className="mr-2 h-4 w-4" />
-          Profile
-        </Button>
-        <Button onClick={handleLogout} variant="outline">
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
       </div>
     </div>
 
