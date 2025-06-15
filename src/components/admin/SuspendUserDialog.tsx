@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +46,9 @@ export const SuspendUserDialog: React.FC<SuspendUserDialogProps> = ({ user, isOp
     onSuccess: () => {
       toast({ title: `User ${action === 'suspend' ? 'suspended' : 'unsuspended'} successfully!` });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['user-details', user.id] });
+      }
       onOpenChange(false);
     },
     onError: (error: Error) => {

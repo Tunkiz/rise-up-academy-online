@@ -1,16 +1,24 @@
 
+```tsx
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, ArrowLeft, Mail, Calendar, Shield, AlertTriangle } from 'lucide-react';
+import { User, ArrowLeft, Mail, Calendar, Shield, AlertTriangle, Edit, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthProvider';
+import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
+import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
+  const { user: currentUser } = useAuth();
+  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const [isSuspendUserOpen, setIsSuspendUserOpen] = useState(false);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user-details', userId],
@@ -30,6 +38,7 @@ const AdminUserProfilePage = () => {
   });
 
   const isSuspended = user?.banned_until && (user.banned_until.toLowerCase() === 'infinity' || new Date(user.banned_until) > new Date());
+  const isOwnProfile = currentUser?.id === userId;
 
   return (
     <div className="container py-10">
@@ -45,7 +54,7 @@ const AdminUserProfilePage = () => {
             <User />
             User Profile
           </CardTitle>
-          <CardDescription>Viewing user's detailed information.</CardDescription>
+          <CardDescription>Viewing user's detailed information and managing their account.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -118,9 +127,42 @@ const AdminUserProfilePage = () => {
              <p>User profile not found.</p>
           )}
         </CardContent>
+        {user && (
+          <CardFooter className="border-t bg-muted/20 px-6 py-4">
+            <div className="flex w-full justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
+                <Edit />
+                Edit Role
+              </Button>
+              <Button
+                variant={isSuspended ? 'secondary' : 'destructive'}
+                onClick={() => setIsSuspendUserOpen(true)}
+                disabled={isOwnProfile}
+              >
+                <Ban />
+                {isSuspended ? 'Unsuspend User' : 'Suspend User'}
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
+      {user && (
+        <>
+          <EditRoleDialog
+            user={user}
+            isOpen={isEditRoleOpen}
+            onOpenChange={setIsEditRoleOpen}
+          />
+          <SuspendUserDialog
+            user={user}
+            isOpen={isSuspendUserOpen}
+            onOpenChange={setIsSuspendUserOpen}
+          />
+        </>
+      )}
     </div>
   );
 };
 
 export default AdminUserProfilePage;
+```

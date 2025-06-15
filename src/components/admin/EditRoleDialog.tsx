@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -78,6 +77,9 @@ export const EditRoleDialog: React.FC<EditRoleDialogProps> = ({ user, isOpen, on
     onSuccess: () => {
       toast({ title: 'Role updated successfully!' });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['user-details', user.id] });
+      }
       onOpenChange(false);
     },
     onError: (error: Error) => {
