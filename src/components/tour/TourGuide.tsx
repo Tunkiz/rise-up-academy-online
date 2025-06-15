@@ -23,7 +23,7 @@ export const TourGuide = () => {
           // Hiding the popover for now. A retry mechanism could be implemented for more robustness.
           setTargetElement(null);
         }
-      }, 100);
+      }, 300);
 
       return () => clearTimeout(timer);
     } else {

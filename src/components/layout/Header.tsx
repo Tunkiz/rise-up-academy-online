@@ -1,3 +1,4 @@
+
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -24,7 +25,7 @@ const navLinks = [
   { to: "/resource-library", label: "Resource Library" },
 ];
 
-const NavLinkItem = ({ to, label, onClick }: { to: string; label: string, onClick: () => void; }) => (
+const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, onClick: () => void; id?: string; }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
@@ -33,6 +34,7 @@ const NavLinkItem = ({ to, label, onClick }: { to: string; label: string, onClic
       }`
     }
     onClick={onClick}
+    id={id}
   >
     {label}
   </NavLink>
@@ -67,7 +69,7 @@ export function Header() {
         </Link>
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navLinks.map((link) => (
-            <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => {}} />
+            <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => {}} id={`nav${link.to.replace(/\//g, '-')}`} />
           ))}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">

@@ -64,7 +64,7 @@ const tourSteps = [
     placement: "bottom" as const,
   },
   {
-    target: 'a[href="/register"]',
+    target: '#get-started-link-hero',
     title: 'Get Started',
     content: 'Ready to start? Sign up for free to unlock all these features!',
     placement: 'top' as const,
@@ -122,7 +122,7 @@ const Index = () => {
             </p>
             <div className="space-y-4 md:space-y-0 md:space-x-4 animate-fade-in-up [animation-delay:0.4s]">
               <Button className="w-full md:w-1/3" asChild>
-                  <Link to="/register">Get Started</Link>
+                  <Link to="/register" id="get-started-link-hero">Get Started</Link>
               </Button>
               <Button variant="outline" className="w-full md:w-1/3" asChild>
                   <Link to="/learning-portal">Explore Lessons <ArrowRight className="ml-2 h-4 w-4" /></Link>
