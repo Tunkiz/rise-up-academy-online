@@ -61,11 +61,7 @@ const StudyPlanner = () => {
       if (data.error) throw new Error(data.error);
       return data.plan as string;
     },
-    onSuccess: (data) => {
-      setInteractivePlan(data);
-      setCurrentPlanDetails(form.getValues());
-      toast({ title: "Study plan generated successfully!" });
-    },
+    // onSuccess is now handled in the onSubmit function to correctly capture form values.
     onError: (error) => {
       toast({
         variant: "destructive",
@@ -134,7 +130,13 @@ const StudyPlanner = () => {
       finalGoal = `${values.goal}\n\nFor context, here is my current progress in my subjects:\n${progressString}\n\nPlease create a study plan that helps me achieve my main goal, and pay special attention to my weaker subjects (those with lower progress percentages).`;
     }
 
-    generatePlan({ ...values, goal: finalGoal });
+    generatePlan({ ...values, goal: finalGoal }, {
+      onSuccess: (data) => {
+        setInteractivePlan(data);
+        setCurrentPlanDetails(values);
+        toast({ title: "Study plan generated successfully!" });
+      },
+    });
   };
 
   const handleCheckboxToggle = (lineIndex: number, currentChecked: boolean) => {
