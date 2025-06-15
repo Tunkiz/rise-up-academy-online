@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,24 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 type Lesson = Tables<'lessons'>;
 
-const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/;
-
-const editLessonSchema = z.object({
-  title: z.string().min(2, "Lesson title must be at least 2 characters."),
-  description: z.string().optional(),
-  due_date: z.date().optional().nullable(),
-  grade: z.string().optional(),
-  content: z.string().optional(),
-  pass_mark: z.coerce.number().min(0).max(100).optional().nullable(),
-  time_limit: z.coerce.number().min(0).optional().nullable(),
-}).superRefine((data, ctx) => {
-  // We need the lesson type for validation, but it's not part of the form.
-  // We can get it from the lesson prop in the component.
-  // For now, this is a basic validation. A more robust solution might involve passing lessonType to superRefine.
-});
-
-type EditLessonFormValues = z.infer<typeof editLessonSchema>;
-
 interface EditLessonDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -47,6 +30,45 @@ interface EditLessonDialogProps {
 
 export const EditLessonDialog = ({ isOpen, onOpenChange, lesson }: EditLessonDialogProps) => {
   const queryClient = useQueryClient();
+
+  const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/;
+
+  const editLessonSchema = z.object({
+    title: z.string().min(2, "Lesson title must be at least 2 characters."),
+    description: z.string().optional(),
+    due_date: z.date().optional().nullable(),
+    grade: z.string().optional(),
+    content: z.string().optional(),
+    pass_mark: z.coerce.number().min(0).max(100).optional().nullable(),
+    time_limit: z.coerce.number().min(0).optional().nullable(),
+  }).superRefine((data, ctx) => {
+    if (lesson.lesson_type === 'video') {
+      if (!data.content) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['content'],
+          message: 'Video URL is required for video lessons.',
+        });
+      } else if (!videoUrlRegex.test(data.content)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['content'],
+          message: 'Please enter a valid YouTube or Vimeo URL.',
+        });
+      }
+    }
+    if (lesson.lesson_type === 'quiz') {
+      if (data.pass_mark === null || data.pass_mark === undefined) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['pass_mark'],
+            message: 'Pass mark is required for quizzes.',
+        });
+      }
+    }
+  });
+
+  type EditLessonFormValues = z.infer<typeof editLessonSchema>;
   
   const form = useForm<EditLessonFormValues>({
     resolver: zodResolver(editLessonSchema),
