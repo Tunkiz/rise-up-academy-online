@@ -14,10 +14,10 @@ import { Loader2, PlusCircle, Trash2, CalendarIcon } from "lucide-react";
 import { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Label } from "@/components/ui/label";
 import { OptionsFieldArray } from "./form-parts/OptionsFieldArray";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar } from "./ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 
 const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/;
 
