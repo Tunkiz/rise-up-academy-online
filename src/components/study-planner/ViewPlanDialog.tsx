@@ -13,8 +13,9 @@ import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import React, { useState, useEffect, ComponentProps } from "react";
+import React, { useState, useEffect, ComponentProps, useMemo } from "react";
 import { Loader2, Save } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 type StudyPlan = Tables<"study_plans">;
 
@@ -42,6 +43,20 @@ export const ViewPlanDialog = ({ plan, isOpen, onOpenChange, onUpdatePlan, isUpd
       setEditableContent(null);
     }
   }, [plan]);
+
+  const { totalTasks, completedTasks } = useMemo(() => {
+    if (!editableContent) return { totalTasks: 0, completedTasks: 0 };
+    
+    const taskRegex = /-\s\[( |x|X)\]/g;
+    const tasks = editableContent.match(taskRegex) || [];
+    
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(task => task.includes('[x]') || task.includes('[X]')).length;
+
+    return { totalTasks, completedTasks };
+  }, [editableContent]);
+
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const handleCheckboxToggle = (lineIndex: number, newCheckedState: boolean) => {
     setEditableContent(currentContent => {
@@ -80,6 +95,17 @@ export const ViewPlanDialog = ({ plan, isOpen, onOpenChange, onUpdatePlan, isUpd
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto pr-4">
+              {totalTasks > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Progress ({completedTasks}/{totalTasks})
+                    </p>
+                    <p className="text-sm font-bold">{Math.round(progressPercentage)}%</p>
+                  </div>
+                  <Progress value={progressPercentage} className="h-2" />
+                </div>
+              )}
               <div className="prose dark:prose-invert max-w-none">
                 {editableContent !== null && (
                   <ReactMarkdown
