@@ -29,7 +29,6 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
   const [hasCompletedTour, setHasCompletedTour] = useState(() => {
     // Initialize state directly from localStorage to avoid race conditions.
     const completed = localStorage.getItem('tourCompleted') === 'true';
-    console.log('[TourProvider] Initial `hasCompletedTour` from localStorage:', completed);
     return completed;
   });
   const navigate = useNavigate();
@@ -48,7 +47,6 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, location.pathname]);
 
   const stopTour = useCallback(() => {
-    console.log('[TourProvider] stopTour called. Setting tourCompleted to true.');
     setIsTourActive(false);
     setSteps([]);
     setCurrentStep(0);
@@ -82,8 +80,6 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
   }, [currentStep, steps, navigate, location.pathname]);
   
   const value = useMemo(() => ({ isTourActive, currentStep, steps, startTour, stopTour, nextStep, prevStep, hasCompletedTour }), [isTourActive, currentStep, steps, startTour, stopTour, nextStep, prevStep, hasCompletedTour]);
-
-  console.log('[TourProvider] Rendering with `hasCompletedTour`:', hasCompletedTour);
 
   return (
     <TourContext.Provider value={value}>

@@ -75,21 +75,14 @@ const Index = () => {
   const { startTour, hasCompletedTour, stopTour } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
 
-  console.log('[Index] Component rendered. `hasCompletedTour` is:', hasCompletedTour);
-
   useEffect(() => {
-    console.log('[Index] useEffect triggered. `hasCompletedTour` is:', hasCompletedTour);
     const timer = setTimeout(() => {
       if (!hasCompletedTour) {
-        console.log('[Index] Timer fired. Showing tour prompt.');
         setShowTourPrompt(true);
-      } else {
-        console.log('[Index] Timer fired. Not showing tour prompt.');
       }
     }, 1500);
 
     return () => {
-      console.log('[Index] useEffect cleanup. Clearing timer.');
       clearTimeout(timer);
     };
   }, [hasCompletedTour]);
