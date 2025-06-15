@@ -30,11 +30,9 @@ const studyPlannerTourSteps = [
 ];
 
 const formSchema = z.object({
-  goal: z.string().min(1, "Goal is required"),
-  timeframe: z.string().min(1, "Timeframe is required"),
-  hoursPerWeek: z.number().min(1, "Hours per week must be at least 1"),
-  subjects: z.array(z.string()).min(1, "At least one subject is required"),
-  currentLevel: z.string().min(1, "Current level is required"),
+  goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
+  timeframe: z.string().min(3, { message: "Please provide a timeframe (e.g., '3 months')." }),
+  hours_per_week: z.coerce.number().min(1, { message: "Please enter at least 1 hour per week." }),
 });
 
 const StudyPlanner = () => {
@@ -49,9 +47,7 @@ const StudyPlanner = () => {
     defaultValues: {
       goal: "",
       timeframe: "",
-      hoursPerWeek: 1,
-      subjects: [],
-      currentLevel: "",
+      hours_per_week: 1,
     },
   });
 
@@ -69,7 +65,15 @@ const StudyPlanner = () => {
   const { mutate: generatePlan, isPending: isGenerating } = useStudyPlanGeneration();
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    generatePlan(data, {
+    const requestData = {
+      goal: data.goal,
+      timeframe: data.timeframe,
+      hoursPerWeek: data.hours_per_week,
+      subjects: [] as string[],
+      currentLevel: "intermediate"
+    };
+    
+    generatePlan(requestData, {
       onSuccess: (result) => {
         setCurrentPlanDetails({ ...data, plan: result.plan });
       },
@@ -147,7 +151,7 @@ const StudyPlanner = () => {
           plan={selectedPlan}
           isOpen={!!selectedPlan}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
-          onUpdatePlan={(planId, content) => updatePlan({ planId, content })}
+          onUpdatePlan={({ planId, content }) => updatePlan({ planId, content })}
           isUpdating={isUpdatingPlan}
         />
       </div>
