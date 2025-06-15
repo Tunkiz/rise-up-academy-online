@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "./StatCard";
@@ -34,7 +33,17 @@ const AdminDashboard = () => {
         console.error("Error fetching admin stats:", error);
         throw new Error(error.message);
       }
-      return data?.[0] || null;
+      const statsData = data?.[0];
+      if (!statsData) {
+        return null;
+      }
+
+      // The `most_popular_subjects` comes back as JSON, which could be null.
+      // We ensure it's an array for type safety in the component.
+      return {
+        ...statsData,
+        most_popular_subjects: (statsData.most_popular_subjects as PopularSubject[] | null) ?? [],
+      };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
