@@ -26,6 +26,7 @@ const resourceFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
   subject_id: z.string().uuid("Please select a subject."),
+  grade: z.string().optional(),
   file: z.instanceof(File).refine(file => file.size > 0, "A file is required."),
 });
 
@@ -73,6 +74,7 @@ const AdminPage = () => {
         description: values.description,
         subject_id: values.subject_id,
         file_url: publicUrl,
+        grade: values.grade ? parseInt(values.grade, 10) : null,
       });
       if (insertError) throw new Error(`Failed to save resource: ${insertError.message}`);
     },
@@ -157,20 +159,41 @@ const AdminPage = () => {
                 <FormField control={form.control} name="description" render={({ field }) => (
                   <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A brief summary of the resource." {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="subject_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubjects}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {subjects?.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="subject_id" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubjects}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {subjects?.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                   <FormField control={form.control} name="grade" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grade</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="For all grades" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">All Grades</SelectItem>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
+                            <SelectItem key={g} value={String(g)}>
+                              Grade {g}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
                 <FormField control={form.control} name="file" render={({ field: { value, onChange, ...fieldProps } }) => (
                   <FormItem>
                     <FormLabel>Resource File</FormLabel>

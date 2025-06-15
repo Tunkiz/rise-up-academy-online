@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -5,21 +6,52 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tables } from "@/integrations/supabase/types";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 
 type Resource = Tables<'resources'> & { subjects: { name: string } | null };
 
 const ResourceLibrary = () => {
-  const { isAdmin } = useAuth();
-  const { data: resources, isLoading } = useQuery({
-    queryKey: ['resources'],
+  const { user, isAdmin } = useAuth();
+
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('grade')
+        .eq('id', user.id)
+        .single();
+      if (error && error.code !== 'PGRST116') throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: resources, isLoading: isLoadingResources } = useQuery({
+    queryKey: ['resources', user ? profile?.grade : 'public'],
     queryFn: async (): Promise<Resource[]> => {
-      const { data, error } = await supabase.from('resources').select('*, subjects(name)');
+      let query = supabase.from('resources').select('*, subjects(name)');
+      
+      if (user && profile) {
+        if (profile.grade) {
+          query = query.or(`grade.eq.${profile.grade},grade.is.null`);
+        } else {
+          query = query.is('grade', null);
+        }
+      } else {
+        query = query.is('grade', null);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
       if (error) throw new Error(error.message);
       return data as Resource[] || [];
-    }
+    },
+    enabled: !user || (!!user && !isLoadingProfile),
   });
+
+  const isLoading = isLoadingProfile || isLoadingResources;
 
   return (
     <div className="container py-10">

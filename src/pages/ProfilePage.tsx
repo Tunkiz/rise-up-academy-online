@@ -1,15 +1,12 @@
-
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AvatarUpload from "@/components/profile/AvatarUpload";
@@ -19,12 +16,11 @@ import { Separator } from "@/components/ui/separator";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
-  grade: z.coerce.number().min(1, "Grade must be between 1 and 12").max(12).optional().nullable(),
+  grade: z.coerce.number().min(1, "Grade must be between 1 and 12").optional().nullable(),
 });
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
@@ -47,7 +43,7 @@ const ProfilePage = () => {
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      full_name: user?.user_metadata.full_name || "",
+      full_name: "",
       grade: null,
     },
   });
@@ -55,50 +51,16 @@ const ProfilePage = () => {
   React.useEffect(() => {
     if (profile) {
       form.reset({
-        full_name: profile.full_name || "",
+        full_name: profile.full_name || user?.user_metadata.full_name || "",
         grade: profile.grade || null,
       });
-    }
-  }, [profile, form.reset]);
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof profileSchema>) => {
-      if (!user) throw new Error("User not authenticated");
-
-      // Update auth user metadata
-      const { data: { user: updatedUser }, error: userError } = await supabase.auth.updateUser({
-        data: { 
-          full_name: values.full_name,
-          grade: values.grade,
-         }
+    } else if (user) {
+       form.reset({
+        full_name: user.user_metadata.full_name || "",
+        grade: null,
       });
-      if (userError) throw userError;
-
-      // Update public profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          full_name: values.full_name,
-          grade: values.grade
-        })
-        .eq('id', user.id);
-      if (profileError) throw profileError;
-
-      return updatedUser;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['user-details', user?.id] });
-      toast.success("Profile updated successfully!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update profile: ${error.message}`);
     }
-  });
-
-  const onSubmit = (values: z.infer<typeof profileSchema>) => {
-    updateProfileMutation.mutate(values);
-  };
+  }, [profile, user, form.reset]);
 
   return (
     <div className="container py-10">
@@ -108,7 +70,7 @@ const ProfilePage = () => {
             <User />
             User Profile
           </CardTitle>
-          <CardDescription>Manage your personal information and avatar.</CardDescription>
+          <CardDescription>Manage your personal information and subject enrollments.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -118,7 +80,6 @@ const ProfilePage = () => {
               </div>
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full mt-4" />
-              <Skeleton className="h-10 w-24 self-start" />
             </div>
           ) : (
             <div className="flex flex-col items-center gap-8">
@@ -127,7 +88,10 @@ const ProfilePage = () => {
                 fullName={profile?.full_name || user?.user_metadata?.full_name}
               />
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+                <form className="space-y-4 w-full">
+                   <p className="text-sm text-muted-foreground text-center p-3 bg-muted/50 rounded-lg">
+                    Your name and grade level can only be changed by an administrator. Please contact support if you need to update them.
+                  </p>
                   <FormField
                     control={form.control}
                     name="full_name"
@@ -135,7 +99,7 @@ const ProfilePage = () => {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your full name" {...field} />
+                          <Input placeholder="Your full name" {...field} readOnly className="bg-muted/50" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -150,25 +114,25 @@ const ProfilePage = () => {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="e.g., 10" 
+                            placeholder="Not set" 
                             {...field}
                             value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                            readOnly
+                            className="bg-muted/50"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={updateProfileMutation.isPending}>
-                    {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
                 </form>
               </Form>
 
               <Separator className="my-4" />
               
               <div className="w-full">
+                <h3 className="text-lg font-medium mb-2">My Subjects</h3>
+                <p className="text-sm text-muted-foreground mb-4">Select the subjects you are studying to personalize your learning experience.</p>
                 <SubjectSelector />
               </div>
 

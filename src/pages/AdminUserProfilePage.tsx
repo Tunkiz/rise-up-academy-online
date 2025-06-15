@@ -9,18 +9,22 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthProvider';
-import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
-import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
 import UserStatsCard from '@/components/admin/UserStatsCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tables } from '@/integrations/supabase/types';
+import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
+import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
+import { EditUserDetailsDialog } from '@/components/admin/EditUserDetailsDialog';
+import { EditUserSubjectsDialog } from '@/components/admin/EditUserSubjectsDialog';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const { user: currentUser } = useAuth();
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
   const [isSuspendUserOpen, setIsSuspendUserOpen] = useState(false);
+  const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
+  const [isEditSubjectsOpen, setIsEditSubjectsOpen] = useState(false);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user-details', userId],
@@ -164,9 +168,17 @@ const AdminUserProfilePage = () => {
           </CardContent>
           {user && (
             <CardFooter className="border-t bg-muted/20 px-6 py-4">
-              <div className="flex w-full justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
+              <div className="flex w-full justify-end gap-2 flex-wrap">
+                <Button variant="outline" onClick={() => setIsEditDetailsOpen(true)}>
                   <Edit className="mr-2 h-4 w-4" />
+                  Edit Details
+                </Button>
+                 <Button variant="outline" onClick={() => setIsEditSubjectsOpen(true)} disabled={isOwnProfile}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Manage Subjects
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
+                  <Shield className="mr-2 h-4 w-4" />
                   Edit Role
                 </Button>
                 <Button
@@ -200,6 +212,16 @@ const AdminUserProfilePage = () => {
             user={user}
             isOpen={isSuspendUserOpen}
             onOpenChange={setIsSuspendUserOpen}
+          />
+          <EditUserDetailsDialog
+            user={user}
+            isOpen={isEditDetailsOpen}
+            onOpenChange={setIsEditDetailsOpen}
+          />
+          <EditUserSubjectsDialog
+            user={user}
+            isOpen={isEditSubjectsOpen}
+            onOpenChange={setIsEditSubjectsOpen}
           />
         </>
       )}

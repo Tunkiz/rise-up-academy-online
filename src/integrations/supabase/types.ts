@@ -91,6 +91,7 @@ export type Database = {
           attachment_url: string | null
           content: string | null
           description: string | null
+          grade: number | null
           id: string
           lesson_type: string
           order: number
@@ -103,6 +104,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           description?: string | null
+          grade?: number | null
           id?: string
           lesson_type: string
           order?: number
@@ -115,6 +117,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           description?: string | null
+          grade?: number | null
           id?: string
           lesson_type?: string
           order?: number
@@ -280,6 +283,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           file_url: string | null
+          grade: number | null
           id: string
           subject_id: string | null
           title: string
@@ -289,6 +293,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           file_url?: string | null
+          grade?: number | null
           id?: string
           subject_id?: string | null
           title: string
@@ -298,6 +303,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           file_url?: string | null
+          grade?: number | null
           id?: string
           subject_id?: string | null
           title?: string
@@ -521,11 +527,23 @@ export type Database = {
         Args: { target_user_id: string; action: string }
         Returns: undefined
       }
+      update_user_details_by_admin: {
+        Args: {
+          target_user_id: string
+          new_full_name: string
+          new_grade: number
+        }
+        Returns: undefined
+      }
       update_user_role: {
         Args: {
           target_user_id: string
           new_role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: undefined
+      }
+      update_user_subjects_by_admin: {
+        Args: { target_user_id: string; new_subject_ids: string[] }
         Returns: undefined
       }
     }
