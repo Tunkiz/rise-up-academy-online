@@ -130,7 +130,7 @@ const StudyPlanner = () => {
   });
 
   const onSubmit = (values: FormValues) => {
-    let finalGoal = values.goal;
+    let promptContext = "Please format the study plan as a markdown checklist (e.g., `- [ ] Task one`).";
 
     if (progressData && progressData.length > 0) {
       const progressString = progressData
@@ -138,8 +138,10 @@ const StudyPlanner = () => {
         .map(p => `- ${p.subjects?.name}: ${p.progress}%`)
         .join('\n');
       
-      finalGoal = `${values.goal}\n\nFor context, here is my current progress in my subjects:\n${progressString}\n\nPlease create a study plan that helps me achieve my main goal, and pay special attention to my weaker subjects (those with lower progress percentages).`;
+      promptContext = `For context, here is my current progress in my subjects:\n${progressString}\n\nPlease create a study plan that helps me achieve my main goal, and pay special attention to my weaker subjects (those with lower progress percentages).\n\nIMPORTANT: The plan must be a markdown checklist (e.g., \`- [ ] Task one\`).`;
     }
+
+    const finalGoal = `${values.goal}\n\n${promptContext}`;
 
     generatePlan({ ...values, goal: finalGoal }, {
       onSuccess: (data) => {
