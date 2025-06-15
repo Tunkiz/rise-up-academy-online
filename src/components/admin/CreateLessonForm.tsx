@@ -141,7 +141,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
           contentToInsert = values.content;
         } else if (lesson_type === 'document' && values.content instanceof File) {
           const file = values.content;
-          const filePath = `public/lessons/${Date.now()}_${file.name}`;
+          const filePath = `lessons/${Date.now()}_${file.name}`;
           const { error: uploadError } = await supabase.storage.from('resource_files').upload(filePath, file);
           if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`);
 
@@ -153,7 +153,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
 
       let attachmentUrlToInsert: string | null = null;
       if (lesson_type === 'video' && attachment) {
-        const filePath = `public/lesson_attachments/${Date.now()}_${attachment.name}`;
+        const filePath = `lesson_attachments/${Date.now()}_${attachment.name}`;
         const { error: uploadError } = await supabase.storage.from('resource_files').upload(filePath, attachment);
         if (uploadError) throw new Error(`Attachment upload failed: ${uploadError.message}`);
         const { data: { publicUrl } } = supabase.storage.from('resource_files').getPublicUrl(filePath);

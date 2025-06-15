@@ -62,7 +62,7 @@ const AdminPage = () => {
   const { mutate: uploadResource, isPending } = useMutation({
     mutationFn: async (values: ResourceFormValues) => {
       const file = values.file;
-      const filePath = `public/${Date.now()}_${file.name}`;
+      const filePath = `resources/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from('resource_files').upload(filePath, file);
       if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`);
 
