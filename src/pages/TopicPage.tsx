@@ -1,195 +1,186 @@
-
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthProvider";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
-import { LessonList } from "@/components/learning/LessonList";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { List, ListItem } from "@/components/ui/list";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthProvider";
 
-type Topic = Tables<"topics">;
-type Lesson = Tables<"lessons">;
-type LessonCompletionInsert = TablesInsert<"lesson_completions">;
-type Profile = { grade: number | null } | null;
+interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  order: number;
+}
 
 const TopicPage = () => {
-  const { subjectId, topicId } = useParams<{
-    subjectId: string;
-    topicId: string;
-  }>();
-  const { user } = useAuth();
+  const { subjectId, topicId } = useParams<{ subjectId: string; topicId: string }>();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const { data: profile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: async (): Promise<Profile> => {
-      if (!user) return null;
+  const { data: topic, isLoading: isLoadingTopic, error: errorLoadingTopic } = useQuery({
+    queryKey: ['topic', topicId],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("grade")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw new Error(error.message);
-      }
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const { data: topic, isLoading: isLoadingTopic } = useQuery({
-    queryKey: ["topic", topicId],
-    queryFn: async (): Promise<Topic | null> => {
-      if (!topicId) return null;
-      const { data, error } = await supabase
-        .from("topics")
-        .select("*")
-        .eq("id", topicId)
+        .from('topics')
+        .select('*')
+        .eq('id', topicId)
         .single();
+
       if (error) {
-        console.error("Error fetching topic:", error);
-        throw new Error(error.message);
+        throw new Error(`Failed to fetch topic: ${error.message}`);
       }
+
       return data;
     },
     enabled: !!topicId,
   });
 
-  const { data: lessons, isLoading: isLoadingLessons } = useQuery({
-    queryKey: ["lessons", topicId, profile?.grade],
-    queryFn: async (): Promise<Lesson[]> => {
-      if (!topicId) return [];
-
-      let query = supabase.from("lessons").select("*").eq("topic_id", topicId);
-
-      // If user is logged in and profile is loaded
-      if (user && profile) {
-        if (profile.grade) {
-          query = query.or(`grade.eq.${profile.grade},grade.is.null`);
-        }
-      }
-
-      query = query.order("order", { ascending: true });
-
-      const { data, error } = await query;
+  const { data: lessons, isLoading: isLoadingLessons, error: errorLoadingLessons } = useQuery({
+    queryKey: ['lessons', topicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('topic_id', topicId)
+        .order('order', { ascending: true });
 
       if (error) {
-        console.error("Error fetching lessons:", error);
-        throw new Error(error.message);
+        throw new Error(`Failed to fetch lessons: ${error.message}`);
       }
-      return data || [];
+
+      return data as Lesson[];
     },
-    enabled: !!topicId && (!user || (user && !isLoadingProfile)),
+    enabled: !!topicId,
   });
 
-  const lessonIds = lessons?.map((l) => l.id);
+  const { data: lessonCompletions, isLoading: isLoadingLessonCompletions, error: errorLoadingLessonCompletions } = useQuery({
+    queryKey: ['lesson-completions', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
 
-  const { data: lessonCompletions, isLoading: isLoadingCompletions } = useQuery(
-    {
-      queryKey: ["lesson_completions", user?.id, topicId],
-      queryFn: async (): Promise<Pick<LessonCompletionInsert, "lesson_id">[]> => {
-        if (!user || !lessonIds || lessonIds.length === 0) return [];
-        const { data, error } = await supabase
-          .from("lesson_completions")
-          .select("lesson_id")
-          .eq("user_id", user.id)
-          .in("lesson_id", lessonIds);
-        if (error) {
-          console.error("Error fetching lesson completions:", error);
-          throw new Error(error.message);
-        }
-        return data || [];
-      },
-      enabled: !!user && !!lessonIds && lessonIds.length > 0,
-    }
-  );
+      const { data, error } = await supabase
+        .from('lesson_completions')
+        .select('lesson_id')
+        .eq('user_id', user.id);
 
-  const completedLessonIds = new Set(
-    lessonCompletions?.map((lc) => lc.lesson_id)
-  );
-
-  const toggleLessonMutation = useMutation({
-    mutationFn: async ({ lessonId, completed }: { lessonId: string; completed: boolean }) => {
-      if (!user) throw new Error("User not authenticated");
-
-      if (completed) {
-        const { error } = await supabase.from("lesson_completions").insert({
-          user_id: user.id,
-          lesson_id: lessonId,
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("lesson_completions")
-          .delete()
-          .match({ user_id: user.id, lesson_id: lessonId });
-        if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to fetch lesson completions: ${error.message}`);
       }
+
+      return data?.map(completion => completion.lesson_id) || [];
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (errorLoadingTopic) {
+      toast.error(`Failed to load topic: ${errorLoadingTopic.message}`);
+    }
+    if (errorLoadingLessons) {
+      toast.error(`Failed to load lessons: ${errorLoadingLessons.message}`);
+    }
+    if (errorLoadingLessonCompletions) {
+      toast.error(`Failed to load lesson completions: ${errorLoadingLessonCompletions.message}`);
+    }
+  }, [errorLoadingTopic, errorLoadingLessons, errorLoadingLessonCompletions]);
+
+  const markAsCompleteMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
+      const { error } = await supabase.from('lesson_completions').insert({
+        user_id: user.id,
+        lesson_id: lessonId,
+        tenant_id: profile.tenant_id,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lesson_completions", user?.id, topicId] });
-      queryClient.invalidateQueries({ queryKey: ["topics", subjectId] });
-      queryClient.invalidateQueries({ queryKey: ["activity", user?.id] });
-      toast({
-        title: "Progress updated!",
-        description: "Your lesson completion status has been saved.",
-      });
+      queryClient.invalidateQueries({ queryKey: ['lesson-completions', user?.id] });
+      toast.success('Lesson marked as complete!');
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update progress: ${error.message}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to mark lesson as complete: ${error.message}`);
     },
   });
 
-  const isLoading =
-    isLoadingTopic ||
-    isLoadingLessons ||
-    (!!user && (isLoadingCompletions || isLoadingProfile));
+  const isLessonComplete = (lessonId: string) => {
+    return lessonCompletions?.includes(lessonId);
+  };
+
+  if (isLoadingTopic || isLoadingLessons || isLoadingLessonCompletions) {
+    return <div>Loading...</div>;
+  }
+
+  if (!topic) {
+    return <div>Topic not found.</div>;
+  }
 
   return (
-    <div className="container py-10">
-      <Link to={`/subject/${subjectId}`} className="mb-6 inline-block">
-        <Button variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Topics
-        </Button>
-      </Link>
-      
-      {isLoadingTopic ? (
-        <Skeleton className="h-10 w-3/4 mb-2" />
-      ) : (
-        topic && <h1 className="text-4xl font-bold">{topic.name}</h1>
-      )}
-      <p className="text-muted-foreground mt-2">
-        Complete the lessons below to make progress.
-      </p>
+    <div className="container mx-auto py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">{topic.title}</h1>
+        <p className="text-muted-foreground">{topic.description}</p>
+      </div>
 
-      <Card className="mt-8">
+      <Card>
         <CardHeader>
           <CardTitle>Lessons</CardTitle>
+          <CardDescription>Complete the lessons to master this topic.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LessonList
-            lessons={lessons}
-            subjectId={subjectId!}
-            topicId={topicId!}
-            completedLessonIds={completedLessonIds}
-            onToggleLesson={toggleLessonMutation.mutate}
-            isToggling={toggleLessonMutation.isPending}
-            isUserLoggedIn={!!user}
-            isLoading={isLoading}
-          />
+          <List>
+            {lessons?.map((lesson) => (
+              <ListItem key={lesson.id} className="flex items-center justify-between py-2">
+                <div>
+                  <Link to={`/subject/${subjectId}/topic/${topicId}/lesson/${lesson.id}`} className="hover:underline">
+                    {lesson.title}
+                  </Link>
+                  <p className="text-sm text-muted-foreground">{lesson.description}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`lesson-complete-${lesson.id}`}
+                    checked={isLessonComplete(lesson.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        markAsCompleteMutation.mutate(lesson.id);
+                      } else {
+                        // Implement delete logic if needed
+                      }
+                    }}
+                    disabled={markAsCompleteMutation.isPending}
+                  />
+                  <Label htmlFor={`lesson-complete-${lesson.id}`} className="text-sm font-medium cursor-pointer">
+                    Complete
+                  </Label>
+                </div>
+              </ListItem>
+            ))}
+          </List>
         </CardContent>
       </Card>
+
+      <Button asChild className="mt-4">
+        <Link to={`/subject/${subjectId}`}>Back to Subject</Link>
+      </Button>
     </div>
   );
 };

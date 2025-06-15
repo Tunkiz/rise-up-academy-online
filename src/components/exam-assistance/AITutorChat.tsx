@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +22,7 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-const AITutorChat = () => {
+export const AITutorChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       type: 'ai',
@@ -149,7 +148,7 @@ const AITutorChat = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
       {/* Chat Interface */}
       <div className="lg:col-span-2">
-        <Card className="h-full flex flex-col">
+        <Card id="ai-tutor-chat-card" className="h-full flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />

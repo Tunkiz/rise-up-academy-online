@@ -4,9 +4,13 @@ import { StudyPlanForm } from "@/components/study-planner/StudyPlanForm";
 import { PastPlansList } from "@/components/study-planner/PastPlansList";
 import { GeneratedPlanView } from "@/components/study-planner/GeneratedPlanView";
 import { ViewPlanDialog } from "@/components/study-planner/ViewPlanDialog";
-import { useStudyPlanner } from "@/hooks/useStudyPlanner";
+import { usePastStudyPlans } from "@/hooks/usePastStudyPlans";
+import { useStudyPlanGeneration } from "@/hooks/useStudyPlanGeneration";
 import { useTour } from "@/hooks/useTour";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,34 +29,43 @@ const studyPlannerTourSteps = [
     { target: '#past-plans-list', title: 'Manage Past Plans', content: 'All your saved study plans will be listed here for you to review or delete.', placement: 'right' as const },
 ];
 
+const formSchema = z.object({
+  goal: z.string().min(1, "Goal is required"),
+  timeframe: z.string().min(1, "Timeframe is required"),
+  hoursPerWeek: z.number().min(1, "Hours per week must be at least 1"),
+  subjects: z.array(z.string()).min(1, "At least one subject is required"),
+  currentLevel: z.string().min(1, "Current level is required"),
+});
 
 const StudyPlanner = () => {
-  const {
-    form,
-    onSubmit,
-    isGenerating,
-    isLoadingProgress,
-    pastPlans,
-    isLoadingPastPlans,
-    setSelectedPlan,
-    deletePlan,
-    isDeletingPlan,
-    currentPlanDetails,
-    interactivePlan,
-    isSaving,
-    savePlan,
-    handleCheckboxToggle,
-    totalTasks,
-    completedTasks,
-    selectedPlan,
-    updatePlan,
-    isUpdatingPlan,
-  } = useStudyPlanner();
-
   const { user } = useAuth();
   const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
+  const [currentPlanDetails, setCurrentPlanDetails] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const tourId = 'study-planner';
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      goal: "",
+      timeframe: "",
+      hoursPerWeek: 1,
+      subjects: [],
+      currentLevel: "",
+    },
+  });
+
+  const { data: pastPlans, isLoading: isLoadingPastPlans, refetch: refetchPlans } = usePastStudyPlans();
+  const { mutate: generatePlan, isPending: isGenerating } = useStudyPlanGeneration();
+
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    generatePlan(data, {
+      onSuccess: (result) => {
+        setCurrentPlanDetails({ ...data, plan: result.plan });
+      },
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -94,7 +107,7 @@ const StudyPlanner = () => {
                   form={form}
                   onSubmit={onSubmit}
                   isGenerating={isGenerating}
-                  isLoadingProgress={isLoadingProgress}
+                  isLoadingProgress={false}
                 />
               </CardContent>
             </Card>
@@ -103,21 +116,21 @@ const StudyPlanner = () => {
               plans={pastPlans || []}
               isLoading={isLoadingPastPlans}
               onSelectPlan={setSelectedPlan}
-              onDeletePlan={deletePlan}
-              isDeletingPlan={isDeletingPlan}
+              onDeletePlan={() => refetchPlans()}
+              isDeletingPlan={false}
             />
 
           </div>
           <div id="generated-plan-view" className="sticky top-24 self-start">
             <GeneratedPlanView
               currentPlanDetails={currentPlanDetails}
-              interactivePlan={interactivePlan}
+              interactivePlan={null}
               isGenerating={isGenerating}
-              isSaving={isSaving}
-              onSavePlan={() => savePlan()}
-              onCheckboxToggle={handleCheckboxToggle}
-              totalTasks={totalTasks}
-              completedTasks={completedTasks}
+              isSaving={false}
+              onSavePlan={() => {}}
+              onCheckboxToggle={() => {}}
+              totalTasks={0}
+              completedTasks={0}
             />
           </div>
         </div>
@@ -125,8 +138,8 @@ const StudyPlanner = () => {
           plan={selectedPlan}
           isOpen={!!selectedPlan}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
-          onUpdatePlan={updatePlan}
-          isUpdating={isUpdatingPlan}
+          onUpdatePlan={() => {}}
+          isUpdating={false}
         />
       </div>
       <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
