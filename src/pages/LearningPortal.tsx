@@ -7,9 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 type Subject = Tables<"subjects">;
-type StudentProgress = Pick<Tables<"student_progress">, "subject_id" | "progress">;
+type StudentProgress = Pick<
+  Tables<"student_progress">,
+  "subject_id" | "progress"
+>;
+type UserSubject = { subject_id: string };
 
 const LearningPortal = () => {
   const { user } = useAuth();
@@ -21,6 +26,20 @@ const LearningPortal = () => {
       if (error) throw new Error(error.message);
       return data || [];
     },
+  });
+
+  const { data: userSubjects, isLoading: isLoadingUserSubjects } = useQuery({
+    queryKey: ["user_subjects", user?.id],
+    queryFn: async (): Promise<UserSubject[]> => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("user_subjects")
+        .select("subject_id")
+        .eq("user_id", user.id);
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!user,
   });
 
   const { data: studentProgress, isLoading: isLoadingProgress } = useQuery({
@@ -37,9 +56,18 @@ const LearningPortal = () => {
     enabled: !!user,
   });
 
-  const isLoading = isLoadingSubjects || (!!user && isLoadingProgress);
+  const isLoading =
+    isLoadingSubjects || (!!user && (isLoadingProgress || isLoadingUserSubjects));
 
-  const combinedData = subjects?.map((subject) => {
+  const userSubjectIds = user
+    ? new Set(userSubjects?.map((us) => us.subject_id))
+    : null;
+
+  const displayedSubjects = user
+    ? subjects?.filter((s) => userSubjectIds!.has(s.id))
+    : subjects;
+
+  const combinedData = displayedSubjects?.map((subject) => {
     const progressItem = studentProgress?.find(
       (p) => p.subject_id === subject.id
     );
@@ -95,7 +123,20 @@ const LearningPortal = () => {
               </Card>
             </Link>
           ))}
-        {!isLoading && (!combinedData || combinedData.length === 0) && (
+        {!isLoading &&
+          user &&
+          (!displayedSubjects || displayedSubjects.length === 0) && (
+            <div className="text-center py-12 md:col-span-2 lg:col-span-3">
+              <h2 className="text-2xl font-semibold">No Subjects To Display</h2>
+              <p className="text-muted-foreground mt-2">
+                It looks like you haven't enrolled in any subjects yet.
+              </p>
+              <Button asChild className="mt-4">
+                <Link to="/profile">Select Your Subjects</Link>
+              </Button>
+            </div>
+          )}
+        {!isLoading && !user && (!subjects || subjects.length === 0) && (
           <div className="text-center py-12 md:col-span-2 lg:col-span-3">
             <h2 className="text-2xl font-semibold">No Subjects Found</h2>
             <p className="text-muted-foreground mt-2">

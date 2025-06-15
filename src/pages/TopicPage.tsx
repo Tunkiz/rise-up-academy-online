@@ -13,12 +13,34 @@ import { LessonList } from "@/components/learning/LessonList";
 type Topic = Tables<"topics">;
 type Lesson = Tables<"lessons">;
 type LessonCompletionInsert = TablesInsert<"lesson_completions">;
+type Profile = { grade: number | null } | null;
 
 const TopicPage = () => {
-  const { subjectId, topicId } = useParams<{ subjectId: string; topicId: string }>();
+  const { subjectId, topicId } = useParams<{
+    subjectId: string;
+    topicId: string;
+  }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async (): Promise<Profile> => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("grade")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw new Error(error.message);
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: topic, isLoading: isLoadingTopic } = useQuery({
     queryKey: ["topic", topicId],
@@ -39,44 +61,57 @@ const TopicPage = () => {
   });
 
   const { data: lessons, isLoading: isLoadingLessons } = useQuery({
-    queryKey: ["lessons", topicId],
+    queryKey: ["lessons", topicId, profile?.grade],
     queryFn: async (): Promise<Lesson[]> => {
       if (!topicId) return [];
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .eq("topic_id", topicId)
-        .order("order", { ascending: true });
+
+      let query = supabase.from("lessons").select("*").eq("topic_id", topicId);
+
+      // If user is logged in and profile is loaded
+      if (user && profile) {
+        if (profile.grade) {
+          query = query.or(`grade.eq.${profile.grade},grade.is.null`);
+        }
+      }
+
+      query = query.order("order", { ascending: true });
+
+      const { data, error } = await query;
+
       if (error) {
         console.error("Error fetching lessons:", error);
         throw new Error(error.message);
       }
       return data || [];
     },
-    enabled: !!topicId,
+    enabled: !!topicId && (!user || (user && !isLoadingProfile)),
   });
-  
+
   const lessonIds = lessons?.map((l) => l.id);
 
-  const { data: lessonCompletions, isLoading: isLoadingCompletions } = useQuery({
-    queryKey: ["lesson_completions", user?.id, topicId],
-    queryFn: async (): Promise<Pick<LessonCompletionInsert, "lesson_id">[]> => {
-      if (!user || !lessonIds || lessonIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("lesson_completions")
-        .select("lesson_id")
-        .eq("user_id", user.id)
-        .in("lesson_id", lessonIds);
-      if (error) {
-        console.error("Error fetching lesson completions:", error);
-        throw new Error(error.message);
-      }
-      return data || [];
-    },
-    enabled: !!user && !!lessonIds && lessonIds.length > 0,
-  });
-  
-  const completedLessonIds = new Set(lessonCompletions?.map((lc) => lc.lesson_id));
+  const { data: lessonCompletions, isLoading: isLoadingCompletions } = useQuery(
+    {
+      queryKey: ["lesson_completions", user?.id, topicId],
+      queryFn: async (): Promise<Pick<LessonCompletionInsert, "lesson_id">[]> => {
+        if (!user || !lessonIds || lessonIds.length === 0) return [];
+        const { data, error } = await supabase
+          .from("lesson_completions")
+          .select("lesson_id")
+          .eq("user_id", user.id)
+          .in("lesson_id", lessonIds);
+        if (error) {
+          console.error("Error fetching lesson completions:", error);
+          throw new Error(error.message);
+        }
+        return data || [];
+      },
+      enabled: !!user && !!lessonIds && lessonIds.length > 0,
+    }
+  );
+
+  const completedLessonIds = new Set(
+    lessonCompletions?.map((lc) => lc.lesson_id)
+  );
 
   const toggleLessonMutation = useMutation({
     mutationFn: async ({ lessonId, completed }: { lessonId: string; completed: boolean }) => {
@@ -113,7 +148,10 @@ const TopicPage = () => {
     },
   });
 
-  const isLoading = isLoadingTopic || isLoadingLessons || (!!user && isLoadingCompletions);
+  const isLoading =
+    isLoadingTopic ||
+    isLoadingLessons ||
+    (!!user && (isLoadingCompletions || isLoadingProfile));
 
   return (
     <div className="container py-10">
