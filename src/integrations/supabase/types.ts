@@ -259,21 +259,21 @@ export type Database = {
           course: string
           date: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           activity: string
           course: string
           date?: string
           id?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           activity?: string
           course?: string
           date?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

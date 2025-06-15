@@ -74,7 +74,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('recent_activity')
         .select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},user_id.is.null`)
         .order('date', { ascending: false })
         .limit(5);
 
