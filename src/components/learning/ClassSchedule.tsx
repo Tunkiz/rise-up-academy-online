@@ -7,6 +7,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Clock, Video } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isClassInNext24Hours } from "@/lib/time-utils";
 
 type SubjectWithClassInfo = Pick<Tables<'subjects'>, 'id' | 'name' | 'class_time' | 'teams_link'>;
 
@@ -26,6 +27,10 @@ const ClassSchedule = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!userSubjectIds && userSubjectIds.length > 0,
   });
+
+  const upcomingClasses = subjects?.filter(
+    (subject) => subject.class_time && isClassInNext24Hours(subject.class_time)
+  );
 
   if (isLoading) {
     return (
@@ -58,8 +63,8 @@ const ClassSchedule = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
     );
   }
 
-  if (!subjects || subjects.length === 0) {
-    // Don't render anything if there are no subjects with scheduled class times.
+  if (!upcomingClasses || upcomingClasses.length === 0) {
+    // Don't render anything if there are no subjects with scheduled class times in the next 24 hours.
     return null;
   }
 
@@ -68,7 +73,7 @@ const ClassSchedule = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
       <CardHeader>
         <CardTitle className="flex items-center">
           <Clock className="mr-2 h-6 w-6" />
-          Your Class Schedule
+          Classes in the next 24 hours
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -82,7 +87,7 @@ const ClassSchedule = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subjects.map((subject) => (
+              {upcomingClasses.map((subject) => (
                 <TableRow key={subject.id}>
                   <TableCell className="font-medium">{subject.name}</TableCell>
                   <TableCell>{subject.class_time}</TableCell>
