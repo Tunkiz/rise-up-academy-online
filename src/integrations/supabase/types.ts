@@ -430,6 +430,30 @@ export type Database = {
           },
         ]
       }
+      tutor_notes: {
+        Row: {
+          created_at: string
+          id: string
+          prompt: string
+          response: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prompt: string
+          response: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prompt?: string
+          response?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

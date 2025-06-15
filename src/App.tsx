@@ -21,6 +21,7 @@ import TopicPage from "./pages/TopicPage";
 import LessonPage from "./pages/LessonPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminUserProfilePage from "./pages/AdminUserProfilePage";
+import TutorNotes from "./pages/TutorNotes";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
               <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
               <Route path="/exam-assistance" element={<ExamAssistance />} />
+              <Route path="/tutor-notes" element={<TutorNotes />} />
               <Route path="/study-planner" element={<StudyPlanner />} />
               <Route path="/resource-library" element={<ResourceLibrary />} />
               <Route path="/admin" element={<AdminPage />} />

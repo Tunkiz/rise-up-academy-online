@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Bookmark } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -98,6 +99,35 @@ export const AITutorChat = () => {
     }
   };
 
+  const handleSaveNote = async (prompt: string, response: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Authentication Error", description: "You must be logged in to save notes.", variant: "destructive" });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('tutor_notes')
+        .insert([{ user_id: session.user.id, prompt, response }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Note Saved",
+        description: "Your note has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving note:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      toast({
+        title: "Error",
+        description: `Could not save your note: ${errorMessage}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handlePromptClick = (prompt: string) => {
     if (isLoading) return;
 
@@ -158,19 +188,32 @@ export const AITutorChat = () => {
           )}
 
           {messages.map((msg, index) => (
-            <div key={index} className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+            <div key={index} className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : "group"}`}>
               {msg.role === "model" && <Bot className="w-6 h-6 flex-shrink-0" />}
               <div className={`rounded-lg p-3 max-w-lg ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                <div className="markdown-content">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {msg.parts[0].text}
-                  </ReactMarkdown>
-                </div>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    ul: ({ node, ...props }) => <ul className="list-disc list-inside my-2" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="list-decimal list-inside my-2" {...props} />,
+                    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+                  }}
+                >
+                  {msg.parts[0].text}
+                </ReactMarkdown>
               </div>
               {msg.role === "user" && <User className="w-6 h-6 flex-shrink-0" />}
+              {msg.role === 'model' && msg.parts[0].text && index > 0 && messages[index - 1]?.role === 'user' && !isLoading && (
+                 <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleSaveNote(messages[index - 1].parts[0].text, msg.parts[0].text)}
+                >
+                    <Bookmark className="h-4 w-4" />
+                 </Button>
+              )}
             </div>
           ))}
           {isLoading && messages[messages.length - 1]?.parts[0].text === "" && (
