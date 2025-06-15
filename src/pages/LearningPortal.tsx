@@ -79,7 +79,7 @@ const LearningPortal = () => {
 
   return (
     <div className="container py-10">
-      <h1 className="text-4xl font-bold">Learning Portal</h1>
+      <h1 id="learning-portal-title" className="text-4xl font-bold">Learning Portal</h1>
       <p className="text-muted-foreground mt-2">
         Your gateway to knowledge. Select a subject to start learning.
       </p>

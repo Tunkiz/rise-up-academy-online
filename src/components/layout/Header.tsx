@@ -76,7 +76,7 @@ export function Header() {
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full" id="user-menu-button">
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} />
                       <AvatarFallback>{getInitials(user.user_metadata.full_name)}</AvatarFallback>

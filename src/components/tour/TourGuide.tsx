@@ -11,11 +11,21 @@ export const TourGuide = () => {
   useEffect(() => {
     if (isTourActive && steps.length > 0) {
       const step = steps[currentStep];
-      const element = document.querySelector(step.target) as HTMLElement;
-      setTargetElement(element);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      
+      // A short delay to allow the page to render after navigation
+      const timer = setTimeout(() => {
+        const element = document.querySelector(step.target) as HTMLElement;
+        if (element) {
+          setTargetElement(element);
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // If element not found, it might not be rendered yet.
+          // Hiding the popover for now. A retry mechanism could be implemented for more robustness.
+          setTargetElement(null);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
     } else {
       setTargetElement(null);
     }
