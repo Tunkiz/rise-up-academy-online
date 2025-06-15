@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,9 +13,13 @@ import { toast } from "sonner";
 import { User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AvatarUpload from "@/components/profile/AvatarUpload";
+import React from "react";
+import SubjectSelector from "@/components/profile/SubjectSelector";
+import { Separator } from "@/components/ui/separator";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
+  grade: z.coerce.number().min(1, "Grade must be between 1 and 12").max(12).optional().nullable(),
 });
 
 const ProfilePage = () => {
@@ -27,7 +32,7 @@ const ProfilePage = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url')
+        .select('full_name, avatar_url, grade')
         .eq('id', user.id)
         .single();
       
@@ -41,12 +46,20 @@ const ProfilePage = () => {
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    values: {
-      full_name: profile?.full_name || user?.user_metadata.full_name || "",
+    defaultValues: {
+      full_name: user?.user_metadata.full_name || "",
+      grade: null,
     },
-    // Reset form when profile data loads
-    ...(profile && {values: { full_name: profile.full_name || "" }}),
   });
+  
+  React.useEffect(() => {
+    if (profile) {
+      form.reset({
+        full_name: profile.full_name || "",
+        grade: profile.grade || null,
+      });
+    }
+  }, [profile, form.reset]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: z.infer<typeof profileSchema>) => {
@@ -54,14 +67,20 @@ const ProfilePage = () => {
 
       // Update auth user metadata
       const { data: { user: updatedUser }, error: userError } = await supabase.auth.updateUser({
-        data: { full_name: values.full_name }
+        data: { 
+          full_name: values.full_name,
+          grade: values.grade,
+         }
       });
       if (userError) throw userError;
 
       // Update public profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ full_name: values.full_name })
+        .update({ 
+          full_name: values.full_name,
+          grade: values.grade
+        })
         .eq('id', user.id);
       if (profileError) throw profileError;
 
@@ -69,7 +88,7 @@ const ProfilePage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      // onAuthStateChange will update user in AuthProvider, which will cause dashboard to re-render with new name.
+      queryClient.invalidateQueries({ queryKey: ['user-details', user?.id] });
       toast.success("Profile updated successfully!");
     },
     onError: (error: Error) => {
@@ -98,6 +117,7 @@ const ProfilePage = () => {
                   <Skeleton className="h-32 w-32 rounded-full" />
               </div>
               <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full mt-4" />
               <Skeleton className="h-10 w-24 self-start" />
             </div>
           ) : (
@@ -121,11 +141,37 @@ const ProfilePage = () => {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="grade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Grade Level</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="e.g., 10" 
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit" disabled={updateProfileMutation.isPending}>
                     {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </form>
               </Form>
+
+              <Separator className="my-4" />
+              
+              <div className="w-full">
+                <SubjectSelector />
+              </div>
+
             </div>
           )}
         </CardContent>

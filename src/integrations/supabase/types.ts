@@ -137,16 +137,19 @@ export type Database = {
         Row: {
           avatar_url: string | null
           full_name: string | null
+          grade: number | null
           id: string
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
+          grade?: number | null
           id: string
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
+          grade?: number | null
           id?: string
         }
         Relationships: []
@@ -427,6 +430,32 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subjects: {
+        Row: {
+          id: string
+          subject_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          subject_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          subject_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subjects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -442,6 +471,8 @@ export type Database = {
           created_at: string
           banned_until: string
           avatar_url: string
+          grade: number
+          subjects: Json
         }[]
       }
       get_quiz_lessons_by_subject: {
@@ -470,6 +501,8 @@ export type Database = {
           created_at: string
           banned_until: string
           avatar_url: string
+          grade: number
+          subjects: Json
         }[]
       }
       get_user_stats: {

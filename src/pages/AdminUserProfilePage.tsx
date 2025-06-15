@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, ArrowLeft, Mail, Calendar, Shield, AlertTriangle, Edit, Ban } from 'lucide-react';
+import { User, ArrowLeft, Mail, Calendar, Shield, AlertTriangle, Edit, Ban, BookOpen, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -14,6 +13,8 @@ import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
 import UserStatsCard from '@/components/admin/UserStatsCard';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tables } from '@/integrations/supabase/types';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -38,6 +39,15 @@ const AdminUserProfilePage = () => {
     enabled: !!userId,
   });
 
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
+    const names = name.split(' ');
+    if (names.length > 1 && names[1]) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+  
   const isSuspended = user?.banned_until && (user.banned_until.toLowerCase() === 'infinity' || new Date(user.banned_until) > new Date());
   const isOwnProfile = currentUser?.id === userId;
 
@@ -77,11 +87,10 @@ const AdminUserProfilePage = () => {
             ) : user ? (
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                </div>
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={user.avatar_url ?? undefined} />
+                  <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">{user.full_name || 'N/A'}</h2>
                   <p className="text-sm text-muted-foreground font-mono">{user.id}</p>
@@ -123,6 +132,30 @@ const AdminUserProfilePage = () => {
                     <p className="text-base">{format(new Date(user.created_at), 'PPP')}</p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-muted-foreground">Grade</h3>
+                    <p className="text-base">{user.grade || 'Not set'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                  <BookOpen className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div className="w-full">
+                      <h3 className="font-medium text-muted-foreground">Registered Subjects</h3>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {user.subjects && (user.subjects as Tables<'subjects'>[]).length > 0 ? (
+                              (user.subjects as Tables<'subjects'>[]).map((subject) => (
+                                  <Badge key={subject.id} variant="secondary">{subject.name}</Badge>
+                              ))
+                          ) : (
+                              <p className="text-base text-muted-foreground">No subjects registered.</p>
+                          )}
+                      </div>
+                  </div>
               </div>
             </div>
           ) : (

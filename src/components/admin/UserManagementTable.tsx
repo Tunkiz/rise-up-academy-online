@@ -60,6 +60,7 @@ const UserManagementTable = () => {
           <TableRow>
             <TableHead>Full Name</TableHead>
             <TableHead>Email</TableHead>
+            <TableHead>Grade</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Joined Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -77,6 +78,7 @@ const UserManagementTable = () => {
                   {isSuspended && <Badge variant="destructive" className="ml-2">Suspended</Badge>}
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell>{user.grade || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
                     {user.role}
