@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import React from "react";
+import React, { ComponentProps } from "react";
 
 interface GeneratedPlanViewProps {
   currentPlanDetails: { goal?: string; timeframe?: string; hours_per_week?: number } | null;
@@ -15,6 +15,13 @@ interface GeneratedPlanViewProps {
   onSavePlan: () => void;
   onCheckboxToggle: (lineIndex: number, currentChecked: boolean) => void;
 }
+
+// Define a type for the custom `li` component's props, which includes the `checked` 
+// property added by remark-gfm for task list items.
+type CustomLiProps = ComponentProps<'li'> & {
+  node?: any; // The `node` object from remark
+  checked?: boolean | null; // `checked` is boolean for task lists, null for regular lists
+};
 
 export const GeneratedPlanView = ({
   currentPlanDetails,
@@ -53,14 +60,11 @@ export const GeneratedPlanView = ({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                li: ({ node, children, ...props }) => {
-                  // `react-markdown` passes a `checked` prop for task list items.
-                  // It's `true` or `false` for tasks, and `null` for regular list items.
-                  // We access it with a type assertion to avoid TypeScript errors as it's not in the default `li` props.
-                  const checked = (props as any).checked;
-
+                // Use our custom type to correctly handle props for list items.
+                // This resolves the TypeScript error by explicitly defining the 'checked' prop.
+                li: ({ node, children, checked, ...props }: CustomLiProps) => {
                   if (typeof checked === 'boolean') {
-                    // We need the node position to get the line index for the toggle callback.
+                    // This is a task list item.
                     if (node?.position) {
                       const lineIndex = node.position.start.line - 1;
                       return (
@@ -70,13 +74,13 @@ export const GeneratedPlanView = ({
                             onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
                             className="mr-2 translate-y-px"
                           />
-                          {/* The original children include the <input>. We slice it off to show only the text. */}
+                          {/* The original children from react-markdown include an <input>. We slice it off to show only the text content. */}
                           <span className="flex-1">{React.Children.toArray(children).slice(1)}</span>
                         </li>
                       );
                     }
                   }
-                  // For regular list items, or tasks we can't make interactive, render them as-is.
+                  // For regular list items, or tasks we can't process, render them normally.
                   return <li {...props}>{children}</li>;
                 },
               }}
