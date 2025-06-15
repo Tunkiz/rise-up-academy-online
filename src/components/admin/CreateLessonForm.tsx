@@ -15,6 +15,8 @@ import { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Label } from "@/components/ui/label";
 import { OptionsFieldArray } from "./form-parts/OptionsFieldArray";
 
+const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/;
+
 const lessonFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
@@ -56,10 +58,10 @@ const lessonFormSchema = z.object({
         }
     }
     if (data.lesson_type === 'video') {
-        if (!data.content || !z.string().url().safeParse(data.content).success) {
+        if (!data.content || typeof data.content !== 'string' || !videoUrlRegex.test(data.content)) {
              ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "A valid video URL is required.",
+                message: "Please provide a valid YouTube or Vimeo URL.",
                 path: ['content'],
             });
         }
@@ -325,7 +327,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
             {lessonType === 'video' && (
               <>
                 <FormField control={lessonForm.control} name="content" render={({ field }) => (
-                  <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/embed/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/watch?v=..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={lessonForm.control} name="attachment" render={({ field: { value, onChange, ...fieldProps } }) => (
                     <FormItem>
