@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,12 +12,16 @@ import { MoreHorizontal } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { EditRoleDialog } from "./EditRoleDialog";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthProvider";
+import { SuspendUserDialog } from "./SuspendUserDialog";
 
 type User = Database['public']['Functions']['get_all_users']['Returns'][number];
 
 const UserManagementTable = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [suspendingUser, setSuspendingUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
 
   const { data: users, isLoading, error } = useQuery<User[]>({
     queryKey: ['users'],
@@ -63,39 +66,51 @@ const UserManagementTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users?.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
-                  {user.role}
-                </Badge>
-              </TableCell>
-              <TableCell>{format(new Date(user.created_at), 'PPP')}</TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => navigate(`/admin/user/${user.id}`)}>
-                      View Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setEditingUser(user)}>
-                      Edit Role
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      Suspend User
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+          {users?.map((user) => {
+            const isSuspended = user.banned_until && (user.banned_until.toLowerCase() === 'infinity' || new Date(user.banned_until) > new Date());
+            const isCurrentUser = authUser?.id === user.id;
+
+            return (
+              <TableRow key={user.id}>
+                <TableCell className="font-medium">
+                  {user.full_name || 'N/A'}
+                  {isSuspended && <Badge variant="destructive" className="ml-2">Suspended</Badge>}
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
+                    {user.role}
+                  </Badge>
+                </TableCell>
+                <TableCell>{format(new Date(user.created_at), 'PPP')}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => navigate(`/admin/user/${user.id}`)}>
+                        View Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setEditingUser(user)}>
+                        Edit Role
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => setSuspendingUser(user)}
+                        className={!isSuspended ? "text-destructive" : ""}
+                        disabled={isCurrentUser}
+                      >
+                        {isSuspended ? "Unsuspend User" : "Suspend User"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
       <EditRoleDialog
@@ -104,6 +119,15 @@ const UserManagementTable = () => {
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setEditingUser(null);
+          }
+        }}
+      />
+      <SuspendUserDialog
+        user={suspendingUser}
+        isOpen={!!suspendingUser}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSuspendingUser(null);
           }
         }}
       />

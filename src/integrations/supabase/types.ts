@@ -437,6 +437,7 @@ export type Database = {
           email: string
           role: Database["public"]["Enums"]["app_role"]
           created_at: string
+          banned_until: string
         }[]
       }
       get_quiz_lessons_by_subject: {
@@ -449,6 +450,10 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      manage_user_suspension: {
+        Args: { target_user_id: string; action: string }
+        Returns: undefined
       }
       update_user_role: {
         Args: {
