@@ -155,7 +155,7 @@ export const AITutorChat = () => {
   }, [messages]);
 
   return (
-    <Card className="h-[70vh] flex flex-col">
+    <Card id="ai-tutor-chat-card" className="h-[70vh] flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot /> AI Tutor

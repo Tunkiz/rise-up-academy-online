@@ -29,7 +29,7 @@ export const TourGuide = () => {
           console.error(`[TourGuide] Target element with selector "${step.target}" for step ${currentStep + 1} was not found in the DOM.`);
           setTargetElement(null);
         }
-      }, 500);
+      }, 1000);
 
       return () => clearTimeout(timer);
     } else {

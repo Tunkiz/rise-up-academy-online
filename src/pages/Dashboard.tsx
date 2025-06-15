@@ -33,17 +33,9 @@ const chartConfig = {
 } satisfies ChartConfig
 
 const dashboardTourSteps = [
-    { target: '#progress-card', title: 'Your Progress', content: 'This section shows your progress across all subjects you are enrolled in.', placement: 'bottom' as const, path: '/dashboard' },
-    { target: '#deadlines-card', title: 'Upcoming Deadlines', content: "Keep an eye on your upcoming lesson deadlines here. Don't miss them!", placement: 'left' as const, path: 'dashboard' },
-    { target: '#nav-learning-portal', title: 'Learning Portal', content: 'This is your gateway to all subjects and lessons. Let\'s go there.', placement: 'bottom' as const, path: '/dashboard' },
-    { target: '#learning-portal-title', title: 'Welcome to the Learning Portal', content: 'Here you can see all the subjects you are enrolled in. Click any subject to start learning.', placement: 'bottom' as const, path: '/learning-portal' },
-    { target: '#nav-exam-assistance', title: 'Exam Assistance', content: 'Stuck on a topic? Our AI tutor can help. Let\'s check it out.', placement: 'bottom' as const, path: '/learning-portal' },
-    { target: '#exam-assistance-title', title: 'AI-Powered Exam Assistance', content: 'Use our AI Tutor to get explanations, solve problems, and prepare for your exams.', placement: 'bottom' as const, path: '/exam-assistance' },
-    { target: '#nav-study-planner', title: 'Study Planner', content: 'Create a personalized study plan with our AI-powered planner.', placement: 'bottom' as const, path: '/exam-assistance' },
-    { target: 'h1', title: 'AI Study Planner', content: 'Generate a study schedule tailored to your needs to stay organized and on track.', placement: 'bottom' as const, path: '/study-planner' },
-    { target: '#nav-resource-library', title: 'Resource Library', content: 'Access a collection of study materials and past papers.', placement: 'bottom' as const, path: '/study-planner' },
-    { target: 'h1', title: 'Resource Library', content: 'Find and download useful resources to aid your learning.', placement: 'bottom' as const, path: '/resource-library' },
-    { target: '#user-menu-button', title: 'Your Account', content: 'Manage your profile and account settings here.', placement: 'left' as const, path: '/dashboard' },
+    { target: '#progress-card', title: 'Your Progress', content: 'This section shows your progress across all subjects you are enrolled in.', placement: 'bottom' as const },
+    { target: '#deadlines-card', title: 'Upcoming Deadlines', content: "Keep an eye on your upcoming lesson deadlines here. Don't miss them!", placement: 'left' as const },
+    { target: '#user-menu-button', title: 'Your Account', content: 'Manage your profile and account settings here.', placement: 'left' as const },
 ];
 
 const Dashboard = () => {
