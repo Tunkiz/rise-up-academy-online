@@ -63,6 +63,7 @@ const StudyPlanner = () => {
     },
     onSuccess: (data) => {
       setInteractivePlan(data);
+      setCurrentPlanDetails(form.getValues());
       toast({ title: "Study plan generated successfully!" });
     },
     onError: (error) => {
@@ -122,7 +123,6 @@ const StudyPlanner = () => {
   });
 
   const onSubmit = (values: FormValues) => {
-    setCurrentPlanDetails(values);
     let finalGoal = values.goal;
 
     if (progressData && progressData.length > 0) {
