@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,10 +53,12 @@ export const GeneratedPlanView = ({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                li: ({ node, children, checked, ...props }) => {
+                li: ({ node, children, ...props }) => {
                   // `react-markdown` passes a `checked` prop for task list items.
                   // It's `true` or `false` for tasks, and `null` for regular list items.
-                  // This is the most reliable way to identify them.
+                  // We access it with a type assertion to avoid TypeScript errors as it's not in the default `li` props.
+                  const checked = (props as any).checked;
+
                   if (typeof checked === 'boolean') {
                     // We need the node position to get the line index for the toggle callback.
                     if (node?.position) {
