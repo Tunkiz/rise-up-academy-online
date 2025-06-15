@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -198,8 +197,19 @@ const StudyPlanner = () => {
         <div className="sticky top-24 self-start">
           <Card className="max-h-[calc(100vh-8rem)] overflow-y-auto">
             <CardHeader>
-              <CardTitle>Generated Study Plan</CardTitle>
-              <CardDescription>Here is your personalized plan. Review and save it if you're happy.</CardDescription>
+              {currentPlanDetails && generatedPlan ? (
+                <>
+                  <CardTitle className="text-xl leading-tight">{currentPlanDetails.goal}</CardTitle>
+                  <CardDescription className="pt-2">
+                    {currentPlanDetails.timeframe} &middot; {currentPlanDetails.hours_per_week} hours per week
+                  </CardDescription>
+                </>
+              ) : (
+                <>
+                  <CardTitle>Generated Study Plan</CardTitle>
+                  <CardDescription>Here is your personalized plan. Review and save it if you're happy.</CardDescription>
+                </>
+              )}
             </CardHeader>
             <CardContent>
               {isGenerating && <div className="flex justify-center items-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
