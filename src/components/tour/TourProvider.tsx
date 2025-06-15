@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -27,16 +26,12 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<TourStep[]>([]);
-  const [hasCompletedTour, setHasCompletedTour] = useState(true);
+  const [hasCompletedTour, setHasCompletedTour] = useState(() => {
+    // Initialize state directly from localStorage to avoid race conditions.
+    return localStorage.getItem('tourCompleted') === 'true';
+  });
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const tourCompleted = localStorage.getItem('tourCompleted');
-    if (!tourCompleted) {
-      setHasCompletedTour(false);
-    }
-  }, []);
 
   const startTour = useCallback((tourSteps: TourStep[]) => {
     if (tourSteps.length === 0) return;
