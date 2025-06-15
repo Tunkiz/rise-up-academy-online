@@ -143,15 +143,18 @@ const StudyPlanner = () => {
     setInteractivePlan(currentPlan => {
         if (!currentPlan) return null;
         const lines = currentPlan.split('\n');
-        const lineToUpdate = lines[lineIndex];
-        if (!lineToUpdate) return currentPlan;
+        let lineToUpdate = lines[lineIndex];
+        if (typeof lineToUpdate === 'undefined') return currentPlan;
         
-        const newText = currentChecked ? '- [ ]' : '- [x]';
-        const oldText = currentChecked ? '- [x]' : '- [ ]';
-        
-        if (lineToUpdate.includes(oldText)) {
-          lines[lineIndex] = lineToUpdate.replace(oldText, newText);
+        if (currentChecked) {
+          // If it was checked, find [x] or [X] and replace it with [ ]
+          lineToUpdate = lineToUpdate.replace(/\[[xX]\]/, '[ ]');
+        } else {
+          // If it was unchecked, find [ ] and replace it with [x]
+          lineToUpdate = lineToUpdate.replace(/\[ \]/, '[x]');
         }
+        lines[lineIndex] = lineToUpdate;
+
         return lines.join('\n');
     });
   };
