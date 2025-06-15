@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, BookMarked, BrainCircuit, CalendarCheck, Library } from "lucide-react";
@@ -72,12 +73,13 @@ const tourSteps = [
 ];
 
 const Index = () => {
-  const { startTour, hasCompletedTour, stopTour } = useTour();
+  const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
+  const tourId = 'features';
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!hasCompletedTour) {
+      if (!isTourCompleted(tourId)) {
         setShowTourPrompt(true);
       }
     }, 1500);
@@ -85,16 +87,16 @@ const Index = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [hasCompletedTour]);
+  }, [isTourCompleted]);
 
   const handleStartTour = () => {
     setShowTourPrompt(false);
-    startTour(tourSteps);
+    startTour(tourSteps, tourId);
   };
   
   const handleSkipTour = () => {
       setShowTourPrompt(false);
-      stopTour();
+      markTourAsCompleted(tourId);
   }
 
   return (

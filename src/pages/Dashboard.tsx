@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -35,7 +34,7 @@ const chartConfig = {
 
 const dashboardTourSteps = [
     { target: '#progress-card', title: 'Your Progress', content: 'This section shows your progress across all subjects you are enrolled in.', placement: 'bottom' as const, path: '/dashboard' },
-    { target: '#deadlines-card', title: 'Upcoming Deadlines', content: "Keep an eye on your upcoming lesson deadlines here. Don't miss them!", placement: 'left' as const, path: '/dashboard' },
+    { target: '#deadlines-card', title: 'Upcoming Deadlines', content: "Keep an eye on your upcoming lesson deadlines here. Don't miss them!", placement: 'left' as const, path: 'dashboard' },
     { target: '#nav-learning-portal', title: 'Learning Portal', content: 'This is your gateway to all subjects and lessons. Let\'s go there.', placement: 'bottom' as const, path: '/dashboard' },
     { target: '#learning-portal-title', title: 'Welcome to the Learning Portal', content: 'Here you can see all the subjects you are enrolled in. Click any subject to start learning.', placement: 'bottom' as const, path: '/learning-portal' },
     { target: '#nav-exam-assistance', title: 'Exam Assistance', content: 'Stuck on a topic? Our AI tutor can help. Let\'s check it out.', placement: 'bottom' as const, path: '/learning-portal' },
@@ -50,14 +49,15 @@ const dashboardTourSteps = [
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { startTour, hasCompletedTour, stopTour } = useTour();
+  const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
+  const tourId = 'dashboard';
 
   useEffect(() => {
     // Only show tour prompt if user has logged in and hasn't completed the tour
     if (user) {
         const timer = setTimeout(() => {
-            if (!hasCompletedTour) {
+            if (!isTourCompleted(tourId)) {
                 setShowTourPrompt(true);
             }
         }, 1500);
@@ -65,16 +65,16 @@ const Dashboard = () => {
           clearTimeout(timer);
         };
     }
-  }, [hasCompletedTour, user]);
+  }, [isTourCompleted, user]);
 
   const handleStartTour = () => {
     setShowTourPrompt(false);
-    startTour(dashboardTourSteps);
+    startTour(dashboardTourSteps, tourId);
   };
   
   const handleSkipTour = () => {
       setShowTourPrompt(false);
-      stopTour();
+      markTourAsCompleted(tourId);
   };
 
   const { data: progressData, isLoading: isProgressLoading } = useQuery({
