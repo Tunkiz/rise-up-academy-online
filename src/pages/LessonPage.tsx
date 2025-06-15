@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Tables } from "@/integrations/supabase/types";
 import Quiz from "@/components/learning/Quiz";
+import VideoPlayer from "@/components/learning/VideoPlayer";
 
 type Lesson = Tables<"lessons">;
 
@@ -59,16 +59,7 @@ const LessonPage = () => {
                   <Quiz lessonId={lesson.id} passMark={lesson.pass_mark} />
                 ) : lesson.content ? (
                   lesson.lesson_type === 'video' ? (
-                    <div className="not-prose relative w-full" style={{ paddingTop: '56.25%' }}>
-                      <iframe
-                        src={lesson.content}
-                        title={lesson.title}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        className="absolute top-0 left-0 w-full h-full rounded-md"
-                      ></iframe>
-                    </div>
+                    <VideoPlayer url={lesson.content} title={lesson.title} />
                   ) : (
                     <p>{lesson.content}</p>
                   )
