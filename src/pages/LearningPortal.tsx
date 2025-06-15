@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -85,7 +84,7 @@ const LearningPortal = () => {
         Your gateway to knowledge. Select a subject to start learning.
       </p>
 
-      {user && <MyClasses subjects={combinedData} isLoading={isLoading} />}
+      {user && <MyClasses userSubjectIds={userSubjectIds} />}
 
       <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading &&

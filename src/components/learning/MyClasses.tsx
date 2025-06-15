@@ -5,23 +5,49 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { Tables } from "@/integrations/supabase/types";
 import { Clock, Video } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format, formatDistanceToNow } from "date-fns";
 
-type Subject = Tables<"subjects">;
+type ClassSchedule = Tables<"class_schedules"> & {
+  subjects: Pick<Tables<"subjects">, "name"> | null;
+};
 
 interface MyClassesProps {
-  subjects: (Subject & { progress: number })[] | undefined;
-  isLoading: boolean;
+  userSubjectIds: Set<string> | null;
 }
 
-const MyClasses = ({ subjects, isLoading }: MyClassesProps) => {
-  const subjectsWithClassInfo = subjects?.filter(s => s.class_time || s.teams_link);
+const MyClasses = ({ userSubjectIds }: MyClassesProps) => {
+  const { data: schedules, isLoading } = useQuery({
+    queryKey: ['upcoming_class_schedules', userSubjectIds ? Array.from(userSubjectIds) : []],
+    queryFn: async (): Promise<ClassSchedule[]> => {
+      if (!userSubjectIds || userSubjectIds.size === 0) return [];
+
+      const now = new Date();
+      const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+      const { data, error } = await supabase
+        .from('class_schedules')
+        .select('*, subjects(name)')
+        .in('subject_id', Array.from(userSubjectIds))
+        .gt('start_time', now.toISOString())
+        .lt('start_time', in24Hours.toISOString())
+        .order('start_time', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      // Supabase TypeScript generator doesn't currently support typed relations, so we cast here.
+      return (data as any) || [];
+    },
+    enabled: !!userSubjectIds && userSubjectIds.size > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   return (
     <Card className="mt-8">
       <CardHeader>
         <CardTitle className="flex items-center">
           <Clock className="mr-2 h-6 w-6" />
-          My Classes
+          Upcoming Classes (Next 24 Hours)
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -30,47 +56,56 @@ const MyClasses = ({ subjects, isLoading }: MyClassesProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                <TableHead><Skeleton className="h-5 w-48" /></TableHead>
+                <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                 <TableHead className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from({ length: 2 }).map((_, i) => (
+              {Array.from({ length: 1 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-10 w-20 ml-auto" /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-        {!isLoading && (!subjectsWithClassInfo || subjectsWithClassInfo.length === 0) && (
+        {!isLoading && (!schedules || schedules.length === 0) && (
           <p className="text-muted-foreground text-center py-4">
-            No class times have been scheduled for your subjects yet.
+            You have no classes scheduled in the next 24 hours.
           </p>
         )}
-        {!isLoading && subjectsWithClassInfo && subjectsWithClassInfo.length > 0 && (
+        {!isLoading && schedules && schedules.length > 0 && (
           <div className="relative w-full overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Subject</TableHead>
-                  <TableHead>Time</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Starts</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subjectsWithClassInfo.map((subject) => (
-                  <TableRow key={subject.id}>
-                    <TableCell className="font-medium">{subject.name}</TableCell>
+                {schedules.map((schedule) => (
+                  <TableRow key={schedule.id}>
+                    <TableCell className="font-medium">{schedule.subjects?.name || 'N/A'}</TableCell>
+                    <TableCell>{schedule.title}</TableCell>
                     <TableCell>
-                      {subject.class_time || 'Not specified'}
+                      <div className="flex flex-col">
+                        <span>{format(new Date(schedule.start_time), "h:mm a")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(schedule.start_time), { addSuffix: true })}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      {subject.teams_link ? (
+                      {schedule.meeting_link ? (
                         <Button asChild size="sm">
-                          <a href={subject.teams_link} target="_blank" rel="noopener noreferrer">
+                          <a href={schedule.meeting_link} target="_blank" rel="noopener noreferrer">
                             <Video className="mr-2 h-4 w-4" />
                             Join
                           </a>
