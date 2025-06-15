@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Send, Bot, User, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 type Message = {
   role: "user" | "model";
@@ -77,7 +80,10 @@ export const AITutorChat = () => {
               {msg.role === "model" && <Bot className="w-6 h-6 flex-shrink-0" />}
               <div className={`rounded-lg p-3 max-w-lg ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                 <div className="prose dark:prose-invert prose-sm max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
                     {msg.parts[0].text}
                   </ReactMarkdown>
                 </div>
