@@ -3,41 +3,33 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export interface StudyPlan {
+export interface TutorNote {
   id: string;
-  goal: string;
-  timeframe: string;
-  hours_per_week: number;
-  plan_content: string;
+  prompt: string;
+  response: string;
   created_at: string;
-  updated_at: string | null;
 }
 
-export function useStudyPlans() {
+export function useTutorNotes() {
   return useQuery({
-    queryKey: ['study-plans'],
+    queryKey: ['tutor-notes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('study_plans')
+        .from('tutor_notes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as StudyPlan[];
+      return data as TutorNote[];
     },
   });
 }
 
-export function useCreateStudyPlan() {
+export function useSaveTutorNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (planData: {
-      goal: string;
-      timeframe: string;
-      hours_per_week: number;
-      plan_content: string;
-    }) => {
+    mutationFn: async ({ prompt, response }: { prompt: string; response: string }) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
@@ -53,10 +45,11 @@ export function useCreateStudyPlan() {
       }
 
       const { data, error } = await supabase
-        .from('study_plans')
+        .from('tutor_notes')
         .insert({
-          ...planData,
           user_id: user.user.id,
+          prompt,
+          response,
           tenant_id: profile.tenant_id
         })
         .select()
@@ -66,12 +59,35 @@ export function useCreateStudyPlan() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-plans'] });
-      toast.success('Study plan created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
+      toast.success('Note saved successfully!');
     },
     onError: (error) => {
-      console.error('Error creating study plan:', error);
-      toast.error('Failed to create study plan');
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note');
+    },
+  });
+}
+
+export function useDeleteTutorNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (noteId: string) => {
+      const { error } = await supabase
+        .from('tutor_notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
+      toast.success('Note deleted successfully!');
+    },
+    onError: (error) => {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
     },
   });
 }

@@ -3,41 +3,34 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export interface StudyPlan {
-  id: string;
-  goal: string;
-  timeframe: string;
-  hours_per_week: number;
-  plan_content: string;
-  created_at: string;
-  updated_at: string | null;
-}
-
-export function useStudyPlans() {
+export function useUserSubjects() {
   return useQuery({
-    queryKey: ['study-plans'],
+    queryKey: ['user-subjects'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('study_plans')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('user_subjects')
+        .select(`
+          id,
+          subject_id,
+          subjects (
+            id,
+            name,
+            teams_link,
+            class_time
+          )
+        `);
 
       if (error) throw error;
-      return data as StudyPlan[];
+      return data;
     },
   });
 }
 
-export function useCreateStudyPlan() {
+export function useEnrollInSubject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (planData: {
-      goal: string;
-      timeframe: string;
-      hours_per_week: number;
-      plan_content: string;
-    }) => {
+    mutationFn: async (subjectId: string) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
@@ -53,10 +46,10 @@ export function useCreateStudyPlan() {
       }
 
       const { data, error } = await supabase
-        .from('study_plans')
+        .from('user_subjects')
         .insert({
-          ...planData,
           user_id: user.user.id,
+          subject_id: subjectId,
           tenant_id: profile.tenant_id
         })
         .select()
@@ -66,12 +59,12 @@ export function useCreateStudyPlan() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-plans'] });
-      toast.success('Study plan created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['user-subjects'] });
+      toast.success('Successfully enrolled in subject!');
     },
     onError: (error) => {
-      console.error('Error creating study plan:', error);
-      toast.error('Failed to create study plan');
+      console.error('Error enrolling in subject:', error);
+      toast.error('Failed to enroll in subject');
     },
   });
 }
