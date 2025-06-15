@@ -16,18 +16,16 @@ interface PastPlansListProps {
 }
 
 export const PastPlansList = ({ plans, isLoading, onSelectPlan, onDeletePlan, isDeletingPlan }: PastPlansListProps) => {
-  if (isLoading) {
-    return <p>Loading past plans...</p>;
-  }
-  
-  if (!plans || plans.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="space-y-4">
+    <div id="past-plans-list" className="space-y-4">
       <h2 className="text-2xl font-bold">Your Past Plans</h2>
-      {plans.map(plan => (
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading past plans...</span>
+        </div>
+      ) : plans && plans.length > 0 ? (
+        plans.map(plan => (
          <Card key={plan.id} className="group relative transition-colors hover:bg-muted/50">
             <div onClick={() => onSelectPlan(plan)} className="cursor-pointer">
                 <CardHeader>
@@ -51,7 +49,14 @@ export const PastPlansList = ({ plans, isLoading, onSelectPlan, onDeletePlan, is
               {isDeletingPlan ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash className="h-4 w-4 text-destructive" />}
             </Button>
          </Card>
-      ))}
+        ))
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">You haven't saved any study plans yet. Create one to get started!</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
