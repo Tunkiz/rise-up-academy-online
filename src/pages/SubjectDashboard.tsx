@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthProvider";
 import type { Tables } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 type Topic = Tables<"topics"> & { progress?: number };
 type Subject = Tables<"subjects">;
@@ -111,6 +113,12 @@ const SubjectDashboard = () => {
 
   return (
     <div className="container py-10">
+      <Link to="/learning-portal" className="mb-6 inline-block">
+        <Button variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Learning Portal
+        </Button>
+      </Link>
       {isLoadingSubject ? (
         <Skeleton className="h-10 w-1/2 mb-2" />
       ) : (
