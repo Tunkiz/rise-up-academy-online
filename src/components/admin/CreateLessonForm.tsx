@@ -328,7 +328,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
             {lessonType === 'video' && (
               <>
                 <FormField control={lessonForm.control} name="content" render={({ field }) => (
-                  <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/watch?v=..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="e.g., https://www.youtube.com/watch?v=..." {...field} value={typeof field.value === 'string' ? field.value : ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={lessonForm.control} name="attachment" render={({ field: { value, onChange, ...fieldProps } }) => (
                     <FormItem>
@@ -341,7 +341,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
             )}
             {lessonType === 'notes' && (
               <FormField control={lessonForm.control} name="content" render={({ field }) => (
-                <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Enter lesson content here..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Enter lesson content here..." {...field} value={typeof field.value === 'string' ? field.value : ''} /></FormControl><FormMessage /></FormItem>
               )} />
             )}
             {lessonType === 'document' && (
