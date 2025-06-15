@@ -1,5 +1,4 @@
 
-```tsx
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -131,7 +130,7 @@ const AdminUserProfilePage = () => {
           <CardFooter className="border-t bg-muted/20 px-6 py-4">
             <div className="flex w-full justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
-                <Edit />
+                <Edit className="mr-2 h-4 w-4" />
                 Edit Role
               </Button>
               <Button
@@ -139,7 +138,7 @@ const AdminUserProfilePage = () => {
                 onClick={() => setIsSuspendUserOpen(true)}
                 disabled={isOwnProfile}
               >
-                <Ban />
+                <Ban className="mr-2 h-4 w-4" />
                 {isSuspended ? 'Unsuspend User' : 'Suspend User'}
               </Button>
             </div>
@@ -165,4 +164,3 @@ const AdminUserProfilePage = () => {
 };
 
 export default AdminUserProfilePage;
-```
