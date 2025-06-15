@@ -53,25 +53,32 @@ export const GeneratedPlanView = ({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                input: (props) => {
-                  const { node, ...rest } = props;
-                  // GFM task list items are rendered as inputs with this specific class.
-                  if (rest.className === 'task-list-item-checkbox') {
-                    if (node?.position) {
-                      const lineIndex = node.position.start.line - 1;
-                      return (
-                        <Checkbox
-                          checked={!!rest.checked}
-                          onCheckedChange={() => onCheckboxToggle(lineIndex, !!rest.checked)}
-                          className="mr-2 translate-y-px"
-                        />
-                      );
+                li: ({ node, children, ...props }) => {
+                  // GFM task list items are identified by this class.
+                  if (
+                    props.className?.includes('task-list-item') &&
+                    React.Children.count(children) > 0
+                  ) {
+                    const checkboxChild = React.Children.toArray(children)[0];
+                    if (React.isValidElement(checkboxChild) && checkboxChild.props.type === 'checkbox') {
+                      if (node?.position) {
+                        const lineIndex = node.position.start.line - 1;
+                        const isChecked = !!checkboxChild.props.checked;
+                        return (
+                          <li className="flex items-start list-none my-1 -ml-4" {...props}>
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => onCheckboxToggle(lineIndex, isChecked)}
+                              className="mr-2 translate-y-px"
+                            />
+                            <span className="flex-1">{React.Children.toArray(children).slice(1)}</span>
+                          </li>
+                        );
+                      }
                     }
-                    // Render a disabled one if we can't get position info
-                    return <Checkbox checked={!!rest.checked} disabled className="mr-2 translate-y-px" />;
                   }
-                  // Render other inputs as-is
-                  return <input {...rest} />;
+                  // Render regular list items as-is.
+                  return <li {...props}>{children}</li>;
                 },
               }}
             >
