@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +11,7 @@ import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthProvider';
 import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
+import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -47,16 +47,17 @@ const AdminUserProfilePage = () => {
           Back to Admin Panel
         </Link>
       </Button>
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User />
-            User Profile
-          </CardTitle>
-          <CardDescription>Viewing user's detailed information and managing their account.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
+      <div className="max-w-2xl mx-auto grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User />
+              User Profile
+            </CardTitle>
+            <CardDescription>Viewing user's detailed information and managing their account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
                 <Skeleton className="h-16 w-16 rounded-full" />
@@ -70,8 +71,8 @@ const AdminUserProfilePage = () => {
               <Skeleton className="h-5 w-1/4" />
             </div>
           ) : error ? (
-            <p className="text-destructive">Error: {error.message}</p>
-          ) : user ? (
+              <p className="text-destructive">Error: {error.message}</p>
+            ) : user ? (
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
@@ -123,28 +124,31 @@ const AdminUserProfilePage = () => {
               </div>
             </div>
           ) : (
-             <p>User profile not found.</p>
+               <p>User profile not found.</p>
+            )}
+          </CardContent>
+          {user && (
+            <CardFooter className="border-t bg-muted/20 px-6 py-4">
+              <div className="flex w-full justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Role
+                </Button>
+                <Button
+                  variant={isSuspended ? 'secondary' : 'destructive'}
+                  onClick={() => setIsSuspendUserOpen(true)}
+                  disabled={isOwnProfile}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  {isSuspended ? 'Unsuspend User' : 'Suspend User'}
+                </Button>
+              </div>
+            </CardFooter>
           )}
-        </CardContent>
-        {user && (
-          <CardFooter className="border-t bg-muted/20 px-6 py-4">
-            <div className="flex w-full justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditRoleOpen(true)} disabled={isOwnProfile}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Role
-              </Button>
-              <Button
-                variant={isSuspended ? 'secondary' : 'destructive'}
-                onClick={() => setIsSuspendUserOpen(true)}
-                disabled={isOwnProfile}
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                {isSuspended ? 'Unsuspend User' : 'Suspend User'}
-              </Button>
-            </div>
-          </CardFooter>
-        )}
-      </Card>
+        </Card>
+
+        {user && !isLoading && <RecentActivityFeed userId={user.id} />}
+      </div>
       {user && (
         <>
           <EditRoleDialog

@@ -447,6 +447,15 @@ export type Database = {
           title: string
         }[]
       }
+      get_user_activity: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          activity: string
+          course: string
+          date: string
+        }[]
+      }
       get_user_details: {
         Args: { p_user_id: string }
         Returns: {
