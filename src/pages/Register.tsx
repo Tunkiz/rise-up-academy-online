@@ -7,11 +7,19 @@ import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Register = () => {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [grade, setGrade] = useState("");
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -25,6 +33,7 @@ const Register = () => {
             options: {
                 data: {
                     full_name: fullName,
+                    grade: grade ? parseInt(grade, 10) : null,
                 },
                 emailRedirectTo: `${window.location.origin}/dashboard`
             },
@@ -68,6 +77,22 @@ const Register = () => {
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="grade">Grade</Label>
+              <Select onValueChange={setGrade} value={grade}>
+                <SelectTrigger id="grade">
+                  <SelectValue placeholder="Select your grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Not Applicable</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
+                    <SelectItem key={g} value={String(g)}>
+                      Grade {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col">
