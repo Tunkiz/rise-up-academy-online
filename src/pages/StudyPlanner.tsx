@@ -1,36 +1,25 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, Save } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
-import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
-const formSchema = z.object({
-  goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
-  timeframe: z.string().min(3, { message: "Please provide a timeframe (e.g., '3 months')." }),
-  hours_per_week: z.coerce.number().min(1, { message: "Please enter at least 1 hour per week." }),
-});
+import { StudyPlanForm, formSchema, FormValues } from "@/components/study-planner/StudyPlanForm";
+import { PastPlansList } from "@/components/study-planner/PastPlansList";
+import { GeneratedPlanView } from "@/components/study-planner/GeneratedPlanView";
+import { ViewPlanDialog } from "@/components/study-planner/ViewPlanDialog";
 
-type FormValues = z.infer<typeof formSchema>;
 type StudyPlan = Tables<'study_plans'>;
 
 const StudyPlanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
+  const [interactivePlan, setInteractivePlan] = useState<string | null>(null);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<FormValues | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<StudyPlan | null>(null);
 
@@ -72,9 +61,9 @@ const StudyPlanner = () => {
       if (data.error) throw new Error(data.error);
       return data.plan as string;
     },
-    onSuccess: (data, variables) => {
-      setGeneratedPlan(data);
-      setCurrentPlanDetails(variables);
+    onSuccess: (data) => {
+      setInteractivePlan(data);
+      setCurrentPlanDetails(form.getValues());
       toast({ title: "Study plan generated successfully!" });
     },
     onError: (error) => {
@@ -88,20 +77,20 @@ const StudyPlanner = () => {
 
   const { mutate: savePlan, isPending: isSaving } = useMutation({
     mutationFn: async () => {
-      if (!generatedPlan || !user || !currentPlanDetails) throw new Error("No plan to save.");
+      if (!interactivePlan || !user || !currentPlanDetails) throw new Error("No plan to save.");
       const { error } = await supabase.from('study_plans').insert({
         user_id: user.id,
         goal: currentPlanDetails.goal,
         timeframe: currentPlanDetails.timeframe,
         hours_per_week: currentPlanDetails.hours_per_week,
-        plan_content: generatedPlan,
+        plan_content: interactivePlan,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Plan saved successfully!" });
       queryClient.invalidateQueries({ queryKey: ['study_plans', user?.id] });
-      setGeneratedPlan(null);
+      setInteractivePlan(null);
       setCurrentPlanDetails(null);
       form.reset();
     },
@@ -109,6 +98,25 @@ const StudyPlanner = () => {
       toast({
         variant: "destructive",
         title: "Error Saving Plan",
+        description: error.message,
+      });
+    },
+  });
+  
+  const { mutate: deletePlan, isPending: isDeletingPlan } = useMutation({
+    mutationFn: async (planId: string) => {
+      if (!user) throw new Error("User not authenticated.");
+      const { error } = await supabase.from('study_plans').delete().match({ id: planId, user_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Plan deleted successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['study_plans', user?.id] });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error Deleting Plan",
         description: error.message,
       });
     },
@@ -128,6 +136,23 @@ const StudyPlanner = () => {
 
     generatePlan({ ...values, goal: finalGoal });
   };
+
+  const handleCheckboxToggle = (lineIndex: number, currentChecked: boolean) => {
+    setInteractivePlan(currentPlan => {
+        if (!currentPlan) return null;
+        const lines = currentPlan.split('\n');
+        const lineToUpdate = lines[lineIndex];
+        if (!lineToUpdate) return currentPlan;
+        
+        const newText = currentChecked ? '- [ ]' : '- [x]';
+        const oldText = currentChecked ? '- [x]' : '- [ ]';
+        
+        if (lineToUpdate.includes(oldText)) {
+          lines[lineIndex] = lineToUpdate.replace(oldText, newText);
+        }
+        return lines.join('\n');
+    });
+  };
   
   return (
     <div className="container py-10">
@@ -143,117 +168,40 @@ const StudyPlanner = () => {
               <CardDescription>Tell us your goals. We'll analyze your current progress to generate a truly personalized plan.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField control={form.control} name="goal" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Study Goal</FormLabel>
-                      <FormControl><Textarea placeholder="e.g., Pass Matric Maths with 80%" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="timeframe" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Timeframe</FormLabel>
-                      <FormControl><Input placeholder="e.g., 3 months" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="hours_per_week" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hours per Week</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button type="submit" disabled={isGenerating || isLoadingProgress} className="w-full">
-                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Generate Plan
-                  </Button>
-                </form>
-              </Form>
+              <StudyPlanForm
+                form={form}
+                onSubmit={onSubmit}
+                isGenerating={isGenerating}
+                isLoadingProgress={isLoadingProgress}
+              />
             </CardContent>
           </Card>
           
-          {isLoadingPastPlans && <p>Loading past plans...</p>}
-          {pastPlans && pastPlans.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Your Past Plans</h2>
-              {pastPlans.map(plan => (
-                 <Card key={plan.id} onClick={() => setSelectedPlan(plan)} className="cursor-pointer transition-colors hover:bg-muted/50">
-                    <CardHeader>
-                        <CardTitle className="text-lg">{plan.goal}</CardTitle>
-                        <CardDescription>Created on {format(new Date(plan.created_at), 'PPP')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground line-clamp-3">{plan.plan_content}</p>
-                    </CardContent>
-                 </Card>
-              ))}
-            </div>
-          )}
+          <PastPlansList
+            plans={pastPlans || []}
+            isLoading={isLoadingPastPlans}
+            onSelectPlan={setSelectedPlan}
+            onDeletePlan={deletePlan}
+            isDeletingPlan={isDeletingPlan}
+          />
 
         </div>
         <div className="sticky top-24 self-start">
-          <Card className="max-h-[calc(100vh-8rem)] overflow-y-auto">
-            <CardHeader>
-              {currentPlanDetails && generatedPlan ? (
-                <>
-                  <CardTitle className="text-xl leading-tight">{currentPlanDetails.goal}</CardTitle>
-                  <CardDescription className="pt-2">
-                    {currentPlanDetails.timeframe} &middot; {currentPlanDetails.hours_per_week} hours per week
-                  </CardDescription>
-                </>
-              ) : (
-                <>
-                  <CardTitle>Generated Study Plan</CardTitle>
-                  <CardDescription>Here is your personalized plan. Review and save it if you're happy.</CardDescription>
-                </>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isGenerating && <div className="flex justify-center items-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-              {!isGenerating && !generatedPlan && (
-                <div className="text-center text-muted-foreground py-12">
-                  <p>Your generated plan will appear here.</p>
-                </div>
-              )}
-              {generatedPlan && (
-                <div className="markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedPlan}</ReactMarkdown>
-                </div>
-              )}
-            </CardContent>
-            {generatedPlan && (
-              <CardFooter>
-                <Button onClick={() => savePlan()} disabled={isSaving} className="w-full">
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Save Plan
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
+          <GeneratedPlanView
+            currentPlanDetails={currentPlanDetails}
+            interactivePlan={interactivePlan}
+            isGenerating={isGenerating}
+            isSaving={isSaving}
+            onSavePlan={() => savePlan()}
+            onCheckboxToggle={handleCheckboxToggle}
+          />
         </div>
       </div>
-      <Dialog open={!!selectedPlan} onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}>
-        <DialogContent className="max-w-3xl">
-            {selectedPlan && (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>{selectedPlan.goal}</DialogTitle>
-                        <DialogDescription>
-                            Created on {format(new Date(selectedPlan.created_at), 'PPP')} &middot; {selectedPlan.timeframe} &middot; {selectedPlan.hours_per_week} hours/week
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="max-h-[60vh] overflow-y-auto pr-4">
-                        <div className="markdown-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedPlan.plan_content}</ReactMarkdown>
-                        </div>
-                    </div>
-                </>
-            )}
-        </DialogContent>
-      </Dialog>
+      <ViewPlanDialog
+        plan={selectedPlan}
+        isOpen={!!selectedPlan}
+        onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
+      />
     </div>
   );
 };
