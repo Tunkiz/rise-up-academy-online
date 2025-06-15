@@ -33,6 +33,7 @@ const UpcomingClasses = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
       return (data as any) || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!userSubjectIds && userSubjectIds.length > 0,
   });
 
   return (
@@ -68,7 +69,7 @@ const UpcomingClasses = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
         )}
         {!isLoading && (!schedules || schedules.length === 0) && (
           <p className="text-muted-foreground text-center py-4">
-            There are no classes scheduled in the next 24 hours.
+            There are no classes scheduled in the next 24 hours for your subjects.
           </p>
         )}
         {!isLoading && schedules && schedules.length > 0 && (
