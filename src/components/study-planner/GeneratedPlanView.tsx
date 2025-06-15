@@ -21,6 +21,7 @@ interface GeneratedPlanViewProps {
 type CustomLiProps = ComponentProps<'li'> & {
   node?: any; // The `node` object from remark
   checked?: boolean | null; // `checked` is boolean for task lists, null for regular lists
+  'data-task-list-item'?: boolean;
 };
 
 export const GeneratedPlanView = ({
@@ -56,31 +57,28 @@ export const GeneratedPlanView = ({
           </div>
         )}
         {interactivePlan && (
-          <div className="markdown-content">
+          <div className="prose dark:prose-invert max-w-none">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                // Use our custom type to correctly handle props for list items.
-                // This resolves the TypeScript error by explicitly defining the 'checked' prop.
                 li: ({ node, children, checked, ...props }: CustomLiProps) => {
-                  if (typeof checked === 'boolean') {
-                    // This is a task list item.
+                  const isTaskListItem = props['data-task-list-item'];
+
+                  if (isTaskListItem && typeof checked === 'boolean') {
                     if (node?.position) {
                       const lineIndex = node.position.start.line - 1;
                       return (
-                        <li className="flex items-start list-none my-1 -ml-4" {...props}>
+                        <li className="flex items-start list-none my-1" {...props}>
                           <Checkbox
                             checked={checked}
                             onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
                             className="mr-2 translate-y-px"
                           />
-                          {/* The original children from react-markdown include an <input>. We slice it off to show only the text content. */}
                           <span className="flex-1">{React.Children.toArray(children).slice(1)}</span>
                         </li>
                       );
                     }
                   }
-                  // For regular list items, or tasks we can't process, render them normally.
                   return <li {...props}>{children}</li>;
                 },
               }}
@@ -101,3 +99,4 @@ export const GeneratedPlanView = ({
     </Card>
   );
 };
+
