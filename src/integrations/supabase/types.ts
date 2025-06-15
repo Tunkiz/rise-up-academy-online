@@ -447,6 +447,17 @@ export type Database = {
           title: string
         }[]
       }
+      get_user_details: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          banned_until: string
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

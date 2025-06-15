@@ -4,34 +4,36 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, ArrowLeft } from 'lucide-react';
+import { User, ArrowLeft, Mail, Calendar, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
 
-  const { data: profile, isLoading, error } = useQuery({
-    queryKey: ['profile', userId],
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ['user-details', userId],
     queryFn: async () => {
       if (!userId) return null;
-      // The RLS policy we just updated allows admins to fetch any profile.
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', userId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // Ignore no rows found
+      const { data, error } = await supabase.rpc('get_user_details', {
+        p_user_id: userId,
+      });
+
+      if (error) {
         throw new Error(error.message);
       }
-      return data;
+      // The RPC returns an array, so we take the first element.
+      return data?.[0] || null;
     },
     enabled: !!userId,
   });
 
+  const isSuspended = user?.banned_until && (user.banned_until.toLowerCase() === 'infinity' || new Date(user.banned_until) > new Date());
+
   return (
     <div className="container py-10">
-       <Button asChild variant="outline" className="mb-4">
+      <Button asChild variant="outline" className="mb-4">
         <Link to="/admin">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Admin Panel
@@ -43,25 +45,73 @@ const AdminUserProfilePage = () => {
             <User />
             User Profile
           </CardTitle>
-          <CardDescription>Viewing user's personal information.</CardDescription>
+          <CardDescription>Viewing user's detailed information.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-6 w-1/4" />
-              <Skeleton className="h-8 w-3/4" />
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-[250px]" />
+                  <Skeleton className="h-4 w-[200px]" />
+                </div>
+              </div>
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-5 w-1/4" />
             </div>
           ) : error ? (
             <p className="text-destructive">Error: {error.message}</p>
-          ) : profile ? (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Full Name</h3>
-                <p className="text-lg">{profile.full_name || 'Not provided'}</p>
+          ) : user ? (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                    <User className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">{user.full_name || 'N/A'}</h2>
+                  <p className="text-sm text-muted-foreground font-mono">{user.id}</p>
+                </div>
               </div>
-               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">User ID</h3>
-                <p className="text-lg font-mono text-sm">{userId}</p>
+
+              {isSuspended && (
+                <div className="flex items-center p-3 rounded-md bg-destructive/10 text-destructive">
+                  <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <p className="font-medium">This user is currently suspended.</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 text-sm">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-muted-foreground">Email</h3>
+                    <p className="text-base break-all">{user.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-muted-foreground">Role</h3>
+                    <p>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize text-base px-3 py-1">
+                        {user.role}
+                      </Badge>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-muted-foreground">Joined</h3>
+                    <p className="text-base">{format(new Date(user.created_at), 'PPP')}</p>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
