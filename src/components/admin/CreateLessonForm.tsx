@@ -10,10 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, CalendarIcon } from "lucide-react";
 import { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Label } from "@/components/ui/label";
 import { OptionsFieldArray } from "./form-parts/OptionsFieldArray";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "./ui/calendar";
 
 const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/;
 
@@ -24,6 +28,7 @@ const lessonFormSchema = z.object({
   topic_id: z.string().uuid("Please select a topic."),
   lesson_type: z.enum(['quiz', 'video', 'notes', 'document'], { required_error: "Please select a lesson type."}),
   grade: z.string().optional(),
+  due_date: z.date().optional(),
   content: z.any().optional(),
   attachment: z.instanceof(File).optional(),
   pass_mark: z.coerce.number().min(0).max(100).optional(),
@@ -134,7 +139,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
 
   const { mutate: createLesson, isPending: isCreatingLesson } = useMutation({
     mutationFn: async (values: LessonFormValues) => {
-      const { title, topic_id, lesson_type, pass_mark, questions, description, time_limit, attachment, grade } = values;
+      const { title, topic_id, lesson_type, pass_mark, questions, description, time_limit, attachment, grade, due_date } = values;
 
       let contentToInsert: string | null = null;
       if (values.content) {
@@ -172,6 +177,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
         pass_mark: lesson_type === 'quiz' ? pass_mark : null,
         time_limit: (lesson_type === 'quiz' && time_limit) ? time_limit : null,
         grade: grade && grade !== 'all' ? parseInt(grade, 10) : null,
+        due_date: due_date ? due_date.toISOString() : null,
       };
 
       const { data: newLesson, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
@@ -273,6 +279,44 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                 <FormMessage />
               </FormItem>
             )} />
+            <FormField
+              control={lessonForm.control}
+              name="due_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Due Date (Optional)</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField control={lessonForm.control} name="lesson_type" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Lesson Type</FormLabel>
