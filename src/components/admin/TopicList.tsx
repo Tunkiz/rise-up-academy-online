@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +50,22 @@ const TopicList = ({ subjectId }: TopicListProps) => {
 
   const { mutate: addTopic, isPending: isAdding } = useMutation({
     mutationFn: async (values: TopicFormValues) => {
-      const { error } = await supabase.from('topics').insert({ name: values.name, subject_id: subjectId });
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
+      const { error } = await supabase.from('topics').insert({ 
+        name: values.name, 
+        subject_id: subjectId,
+        tenant_id: profile.tenant_id
+      });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

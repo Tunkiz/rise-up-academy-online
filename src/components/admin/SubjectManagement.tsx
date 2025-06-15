@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +47,21 @@ const SubjectManagement = () => {
 
   const { mutate: addSubject, isPending: isAdding } = useMutation({
     mutationFn: async (values: SubjectFormValues) => {
-      const { error } = await supabase.from('subjects').insert({ name: values.name });
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
+      const { error } = await supabase.from('subjects').insert({ 
+        name: values.name,
+        tenant_id: profile.tenant_id
+      });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

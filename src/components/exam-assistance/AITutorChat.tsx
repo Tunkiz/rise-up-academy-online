@@ -1,245 +1,261 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, User, Loader2, Bookmark } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import { toast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Send, BookOpen, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthProvider";
 
-type Message = {
-  role: "user" | "model";
-  parts: { text: string }[];
-};
+interface TutorNote {
+  id: string;
+  prompt: string;
+  response: string;
+  created_at: string;
+}
 
-const suggestedPrompts = [
-  "Explain photosynthesis like I'm five.",
-  "What were the main causes of World War I?",
-  "Can you help me with the Pythagorean theorem?",
-  "Tell me a fun fact about the Roman Empire.",
-];
+interface ChatMessage {
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
+}
 
-export const AITutorChat = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+const AITutorChat = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      type: 'ai',
+      content: 'Hello! I\'m your AI tutor. I can help you understand concepts, solve problems, and answer questions. What would you like to learn about today?',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const getAIResponse = async (history: Message[]) => {
+  const { data: savedNotes, isLoading: isLoadingNotes } = useQuery({
+    queryKey: ['tutor-notes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tutor_notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as TutorNote[];
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      const { error } = await supabase
+        .from('tutor_notes')
+        .delete()
+        .eq('id', noteId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
+      toast.success('Note deleted successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete note');
+    },
+  });
+
+  const saveNoteMutation = useMutation({
+    mutationFn: async ({ prompt, response }: { prompt: string; response: string }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
+      const { error } = await supabase.from('tutor_notes').insert({
+        user_id: user.id,
+        prompt,
+        response,
+        tenant_id: profile.tenant_id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
+      toast.success('Note saved successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to save note');
+    },
+  });
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+
+    const userMessage = inputValue.trim();
+    setInputValue('');
+    
+    // Add user message
+    setMessages(prev => [...prev, { type: 'user', content: userMessage, timestamp: new Date() }]);
     setIsLoading(true);
-    setMessages((prev) => [...prev, { role: "model", parts: [{ text: "" }] }]);
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error("User is not authenticated.");
-      }
-
-      const response = await fetch(`https://wvgbsdhftlnzyxboxrae.supabase.co/functions/v1/ai-tutor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ history }),
+      const { data, error } = await supabase.functions.invoke('ai-tutor', {
+        body: { prompt: userMessage }
       });
 
-      if (!response.ok || !response.body) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to get a response from the AI tutor." }));
-        throw new Error(errorData.error);
-      }
+      if (error) throw error;
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        setMessages((prevMessages) => {
-          const newMessages = [...prevMessages];
-          const lastMessage = newMessages[newMessages.length - 1];
-          if (lastMessage.role === "model") {
-            lastMessage.parts[0].text += chunk;
-          }
-          return newMessages;
-        });
-      }
+      const aiResponse = data.response;
+      
+      // Add AI response
+      setMessages(prev => [...prev, { type: 'ai', content: aiResponse, timestamp: new Date() }]);
+      
+      // Save the conversation
+      await saveNoteMutation.mutateAsync({ prompt: userMessage, response: aiResponse });
+      
     } catch (error) {
-      console.error("Error streaming message:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage.role === "model" && lastMessage.parts[0].text === "") {
-          lastMessage.parts[0].text = `Sorry, something went wrong: ${errorMessage}`;
-        } else {
-            newMessages.push({
-                role: "model",
-                parts: [{ text: `Sorry, something went wrong: ${errorMessage}` }],
-            });
-        }
-        return newMessages;
-      });
-      toast({
-        title: "Error",
-        description: "Could not get response from AI Tutor.",
-        variant: "destructive",
-      });
+      console.error('Error calling AI tutor:', error);
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        content: 'Sorry, I encountered an error. Please try again.', 
+        timestamp: new Date() 
+      }]);
+      toast.error('Failed to get response from AI tutor');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSaveNote = async (prompt: string, response: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Authentication Error", description: "You must be logged in to save notes.", variant: "destructive" });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('tutor_notes')
-        .insert([{ user_id: session.user.id, prompt, response }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Note Saved",
-        description: "Your note has been saved successfully.",
-      });
-    } catch (error) {
-      console.error("Error saving note:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({
-        title: "Error",
-        description: `Could not save your note: ${errorMessage}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePromptClick = (prompt: string) => {
-    if (isLoading) return;
-
-    const userMessage: Message = { role: "user", parts: [{ text: prompt }] };
-    const newMessages = [...messages, userMessage];
-
-    setMessages(newMessages);
-    getAIResponse(newMessages);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = { role: "user", parts: [{ text: input }] };
-    const newMessages = [...messages, userMessage];
-
-    setMessages(newMessages);
-    setInput("");
-    getAIResponse(newMessages);
-  };
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   return (
-    <Card id="ai-tutor-chat-card" className="h-[70vh] flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bot /> AI Tutor
-        </CardTitle>
-        <CardDescription>
-          Ask questions about any subject, and I'll help you understand.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto pr-4">
-        <div className="space-y-4 h-full">
-          {messages.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Bot className="w-12 h-12 mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold">Ready to help!</h3>
-              <p className="text-sm text-muted-foreground mb-6">Ask me anything or try a suggestion below.</p>
-              <div className="w-full max-w-md grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {suggestedPrompts.map((prompt, i) => (
-                  <Button
-                    key={i}
-                    variant="outline"
-                    size="sm"
-                    className="text-left h-auto whitespace-normal p-3"
-                    onClick={() => handlePromptClick(prompt)}
-                  >
-                    {prompt}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((msg, index) => (
-            <div key={index} className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : "group"}`}>
-              {msg.role === "model" && <Bot className="w-6 h-6 flex-shrink-0" />}
-              <div className={`rounded-lg p-3 max-w-lg ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    ul: ({ node, ...props }) => <ul className="list-disc list-inside my-2" {...props} />,
-                    ol: ({ node, ...props }) => <ol className="list-decimal list-inside my-2" {...props} />,
-                    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                  }}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+      {/* Chat Interface */}
+      <div className="lg:col-span-2">
+        <Card className="h-full flex flex-col">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              AI Tutor Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto space-y-4 min-h-0">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.type === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
                 >
-                  {msg.parts[0].text}
-                </ReactMarkdown>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </div>
+                </div>
               </div>
-              {msg.role === "user" && <User className="w-6 h-6 flex-shrink-0" />}
-              {msg.role === 'model' && msg.parts[0].text && index > 0 && messages[index - 1]?.role === 'user' && !isLoading && (
-                 <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleSaveNote(messages[index - 1].parts[0].text, msg.parts[0].text)}
-                >
-                    <Bookmark className="h-4 w-4" />
-                 </Button>
-              )}
-            </div>
-          ))}
-          {isLoading && messages[messages.length - 1]?.parts[0].text === "" && (
-            <div className="flex items-start gap-3">
-              <Bot className="w-6 h-6 flex-shrink-0" />
-              <div className="bg-muted rounded-lg p-3 flex items-center">
-                <Loader2 className="w-5 h-5 animate-spin" />
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-muted p-3 rounded-lg">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </CardContent>
-      <div className="p-4 border-t">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question about chemistry, history, math..."
-            disabled={isLoading}
-          />
-          <Button type="submit" disabled={isLoading}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+            )}
+            <div ref={messagesEndRef} />
+          </CardContent>
+          <CardFooter>
+            <form onSubmit={handleSubmit} className="flex w-full gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Ask me anything about your studies..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={isLoading || !inputValue.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          </CardFooter>
+        </Card>
       </div>
-    </Card>
+
+      {/* Saved Notes */}
+      <div className="lg:col-span-1">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Saved Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 overflow-y-auto min-h-0">
+            {isLoadingNotes ? (
+              <div className="space-y-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : savedNotes && savedNotes.length > 0 ? (
+              savedNotes.map((note) => (
+                <div key={note.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{note.prompt}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(note.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteNoteMutation.mutate(note.id)}
+                      disabled={deleteNoteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                    {note.response.length > 100 
+                      ? `${note.response.substring(0, 100)}...` 
+                      : note.response
+                    }
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No saved notes yet. Start a conversation to save notes automatically!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
+
+export default AITutorChat;

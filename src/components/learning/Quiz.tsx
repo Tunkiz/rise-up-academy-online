@@ -57,12 +57,24 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
     mutationFn: async ({ score, passed }: { score: number; passed: boolean }) => {
       if (!user) throw new Error("User not authenticated");
 
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
       // 1. Save quiz attempt
       const { error: attemptError } = await supabase.from("quiz_attempts").insert({
         user_id: user.id,
         lesson_id: lessonId,
         score,
         passed,
+        tenant_id: profile.tenant_id,
       });
       if (attemptError) throw attemptError;
 
@@ -70,7 +82,11 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
       if (passed) {
         const { error: completionError } = await supabase
           .from("lesson_completions")
-          .upsert({ user_id: user.id, lesson_id: lessonId });
+          .upsert({ 
+            user_id: user.id, 
+            lesson_id: lessonId,
+            tenant_id: profile.tenant_id,
+          });
         if (completionError) throw completionError;
       }
     },
@@ -108,6 +124,7 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
     }
   }, [currentQuestionIndex, questions, isResultSaved, correctAnswers, passMark, user, saveQuizAttemptMutation]);
 
+  
   if (isLoading) {
     return (
       <div className="not-prose space-y-4">

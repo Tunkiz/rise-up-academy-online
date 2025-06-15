@@ -42,8 +42,23 @@ const SubjectSelector: React.FC = () => {
         mutationFn: async ({ subjectId, isSelected }: { subjectId: string, isSelected: boolean }) => {
             if (!user) throw new Error("User not found");
 
+            // Get current user's tenant_id
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('tenant_id')
+              .eq('id', user.id)
+              .single();
+
+            if (!profile?.tenant_id) {
+              throw new Error('User tenant not found');
+            }
+
             if (isSelected) {
-                const { error } = await supabase.from('user_subjects').insert({ user_id: user.id, subject_id: subjectId });
+                const { error } = await supabase.from('user_subjects').insert({ 
+                  user_id: user.id, 
+                  subject_id: subjectId,
+                  tenant_id: profile.tenant_id
+                });
                 if (error) throw error;
             } else {
                 const { error } = await supabase.from('user_subjects').delete().match({ user_id: user.id, subject_id: subjectId });

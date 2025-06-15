@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -141,6 +142,17 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
     mutationFn: async (values: LessonFormValues) => {
       const { title, topic_id, lesson_type, pass_mark, questions, description, time_limit, attachment, grade, due_date } = values;
 
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('User tenant not found');
+      }
+
       let contentToInsert: string | null = null;
       if (values.content) {
         if (lesson_type === 'video' || lesson_type === 'notes') {
@@ -178,6 +190,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
         time_limit: (lesson_type === 'quiz' && time_limit) ? time_limit : null,
         grade: grade && grade !== 'all' ? parseInt(grade, 10) : null,
         due_date: due_date ? due_date.toISOString() : null,
+        tenant_id: profile.tenant_id,
       };
 
       const { data: newLesson, error } = await supabase.from('lessons').insert(lessonData).select('id').single();
