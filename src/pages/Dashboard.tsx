@@ -1,10 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Book, Calendar, Bell, LogOut, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -52,16 +53,17 @@ const Dashboard = () => {
   })) || [];
 
   const { data: deadlinesData, isLoading: isDeadlinesLoading } = useQuery({
-    queryKey: ['deadlines', user?.id],
+    queryKey: ['lesson_deadlines', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
-        .from('deadlines')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('due_date', { ascending: true });
+      const { data, error } = await supabase.rpc('get_user_lesson_deadlines', {
+        p_user_id: user.id,
+      });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Error fetching lesson deadlines:", error);
+        throw new Error(error.message);
+      }
       return data;
     },
     enabled: !!user,
@@ -155,12 +157,15 @@ const Dashboard = () => {
           {deadlinesData && deadlinesData.length > 0 ? (
             <ul className="space-y-3">
               {deadlinesData.map((deadline) => (
-                <li key={deadline.id} className="flex items-start">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
-                  <div>
-                    <p className="font-medium">{deadline.title}</p>
-                    <p className="text-sm text-muted-foreground">Due: {format(new Date(deadline.due_date), 'PPP')}</p>
-                  </div>
+                <li key={deadline.id}>
+                  <Link to={`/subject/${deadline.subject_id}/topic/${deadline.topic_id}/lesson/${deadline.id}`} className="flex items-start p-2 -m-2 rounded-lg hover:bg-muted transition-colors">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
+                    <div>
+                      <p className="font-medium">{deadline.title}</p>
+                      <p className="text-sm text-muted-foreground">{deadline.subject_name}</p>
+                      <p className="text-sm text-muted-foreground">Due: {format(new Date(deadline.due_date), 'PPP')}</p>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>

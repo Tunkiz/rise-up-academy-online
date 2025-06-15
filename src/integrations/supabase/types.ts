@@ -91,6 +91,7 @@ export type Database = {
           attachment_url: string | null
           content: string | null
           description: string | null
+          due_date: string | null
           grade: number | null
           id: string
           lesson_type: string
@@ -104,6 +105,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           description?: string | null
+          due_date?: string | null
           grade?: number | null
           id?: string
           lesson_type: string
@@ -117,6 +119,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           description?: string | null
+          due_date?: string | null
           grade?: number | null
           id?: string
           lesson_type?: string
@@ -515,6 +518,18 @@ export type Database = {
           avatar_url: string
           grade: number
           subjects: Json
+        }[]
+      }
+      get_user_lesson_deadlines: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          title: string
+          due_date: string
+          lesson_type: string
+          subject_name: string
+          topic_id: string
+          subject_id: string
         }[]
       }
       get_user_stats: {
