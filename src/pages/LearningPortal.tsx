@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import MyClasses from "@/components/learning/MyClasses";
+import UpcomingClasses from "@/components/learning/UpcomingClasses";
 
 type Subject = Tables<"subjects">;
 type StudentProgress = Pick<
@@ -84,7 +84,7 @@ const LearningPortal = () => {
         Your gateway to knowledge. Select a subject to start learning.
       </p>
 
-      {user && <MyClasses userSubjectIds={userSubjectIds} />}
+      {user && <UpcomingClasses />}
 
       <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading &&

@@ -13,23 +13,16 @@ type ClassSchedule = Tables<"class_schedules"> & {
   subjects: Pick<Tables<"subjects">, "name"> | null;
 };
 
-interface MyClassesProps {
-  userSubjectIds: Set<string> | null;
-}
-
-const MyClasses = ({ userSubjectIds }: MyClassesProps) => {
+const UpcomingClasses = () => {
   const { data: schedules, isLoading } = useQuery({
-    queryKey: ['upcoming_class_schedules', userSubjectIds ? Array.from(userSubjectIds) : []],
+    queryKey: ['upcoming_class_schedules'],
     queryFn: async (): Promise<ClassSchedule[]> => {
-      if (!userSubjectIds || userSubjectIds.size === 0) return [];
-
       const now = new Date();
       const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
       const { data, error } = await supabase
         .from('class_schedules')
         .select('*, subjects(name)')
-        .in('subject_id', Array.from(userSubjectIds))
         .gt('start_time', now.toISOString())
         .lt('start_time', in24Hours.toISOString())
         .order('start_time', { ascending: true });
@@ -38,7 +31,6 @@ const MyClasses = ({ userSubjectIds }: MyClassesProps) => {
       // Supabase TypeScript generator doesn't currently support typed relations, so we cast here.
       return (data as any) || [];
     },
-    enabled: !!userSubjectIds && userSubjectIds.size > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -75,7 +67,7 @@ const MyClasses = ({ userSubjectIds }: MyClassesProps) => {
         )}
         {!isLoading && (!schedules || schedules.length === 0) && (
           <p className="text-muted-foreground text-center py-4">
-            You have no classes scheduled in the next 24 hours.
+            There are no classes scheduled in the next 24 hours.
           </p>
         )}
         {!isLoading && schedules && schedules.length > 0 && (
@@ -125,4 +117,4 @@ const MyClasses = ({ userSubjectIds }: MyClassesProps) => {
   );
 };
 
-export default MyClasses;
+export default UpcomingClasses;
