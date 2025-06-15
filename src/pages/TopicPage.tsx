@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,6 +135,7 @@ const TopicPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lesson_completions", user?.id, topicId] });
       queryClient.invalidateQueries({ queryKey: ["topics", subjectId] });
+      queryClient.invalidateQueries({ queryKey: ["activity", user?.id] });
       toast({
         title: "Progress updated!",
         description: "Your lesson completion status has been saved.",
