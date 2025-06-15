@@ -60,7 +60,7 @@ const LearningPortal = () => {
     isLoadingSubjects || (!!user && (isLoadingProgress || isLoadingUserSubjects));
 
   const userSubjectIds = user
-    ? new Set(userSubjects?.map((us) => us.subject_id))
+    ? new Set(userSubjects?.map((us) => us.subject_id) ?? [])
     : null;
 
   const displayedSubjects = user
@@ -77,6 +77,8 @@ const LearningPortal = () => {
     };
   });
 
+  const userSubjectIdsArray = userSubjectIds ? Array.from(userSubjectIds) : [];
+
   return (
     <div className="container py-10">
       <h1 id="learning-portal-title" className="text-4xl font-bold">Learning Portal</h1>
@@ -84,7 +86,7 @@ const LearningPortal = () => {
         Your gateway to knowledge. Select a subject to start learning.
       </p>
 
-      {user && <UpcomingClasses />}
+      {user && userSubjectIdsArray.length > 0 && <UpcomingClasses userSubjectIds={userSubjectIdsArray} />}
 
       <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading &&

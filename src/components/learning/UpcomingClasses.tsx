@@ -13,9 +13,9 @@ type ClassSchedule = Tables<"class_schedules"> & {
   subjects: Pick<Tables<"subjects">, "name"> | null;
 };
 
-const UpcomingClasses = () => {
+const UpcomingClasses = ({ userSubjectIds }: { userSubjectIds: string[] }) => {
   const { data: schedules, isLoading } = useQuery({
-    queryKey: ['upcoming_class_schedules'],
+    queryKey: ['upcoming_class_schedules', userSubjectIds],
     queryFn: async (): Promise<ClassSchedule[]> => {
       const now = new Date();
       const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -25,6 +25,7 @@ const UpcomingClasses = () => {
         .select('*, subjects(name)')
         .gt('start_time', now.toISOString())
         .lt('start_time', in24Hours.toISOString())
+        .in('subject_id', userSubjectIds)
         .order('start_time', { ascending: true });
 
       if (error) throw new Error(error.message);
