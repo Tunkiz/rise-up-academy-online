@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, BookMarked, BrainCircuit, CalendarCheck, Library } from "lucide-react";
@@ -15,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthProvider";
 
 const features = [
   {
@@ -73,13 +73,14 @@ const tourSteps = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
   const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
   const tourId = 'features';
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!isTourCompleted(tourId)) {
+      if (!user && !isTourCompleted(tourId)) {
         setShowTourPrompt(true);
       }
     }, 1500);
@@ -87,7 +88,7 @@ const Index = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [isTourCompleted]);
+  }, [isTourCompleted, user]);
 
   const handleStartTour = () => {
     setShowTourPrompt(false);
@@ -124,7 +125,11 @@ const Index = () => {
             </p>
             <div className="space-y-4 md:space-y-0 md:space-x-4 animate-fade-in-up [animation-delay:0.4s]">
               <Button className="w-full md:w-1/3" asChild>
+                {user ? (
+                  <Link to="/dashboard" id="get-started-link-hero">Go to Dashboard</Link>
+                ) : (
                   <Link to="/register" id="get-started-link-hero">Get Started</Link>
+                )}
               </Button>
               <Button variant="outline" className="w-full md:w-1/3" asChild>
                   <Link to="/learning-portal">Explore Lessons <ArrowRight className="ml-2 h-4 w-4" /></Link>
@@ -169,7 +174,11 @@ const Index = () => {
               Join thousands of students on the path to success.
             </p>
             <Button size="lg" asChild>
-              <Link to="/register">Sign Up for Free</Link>
+              {user ? (
+                <Link to="/dashboard">Go to Dashboard</Link>
+              ) : (
+                <Link to="/register">Sign Up for Free</Link>
+              )}
             </Button>
           </div>
         </section>
