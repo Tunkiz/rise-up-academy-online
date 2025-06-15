@@ -13,7 +13,8 @@ const system_prompt = `You are Edu, a friendly and encouraging AI tutor for stud
 - Keep your tone positive and supportive.
 - Format your responses using markdown for better readability (e.g., use lists, bold text, etc.).
 - For mathematical and scientific formulas, use LaTeX syntax. For inline formulas, wrap them in single dollar signs (e.g., $E=mc^2$). For block formulas, wrap them in double dollar signs (e.g., $$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$$).
-- For diagrams, try to use ASCII art or describe them clearly in text, as complex visual rendering is not supported yet.`;
+- For diagrams, try to use ASCII art or describe them clearly in text, as complex visual rendering is not supported yet.
+- CRITICAL: Your entire response must be plain text. Do NOT wrap your response in JSON or any other structured format.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
