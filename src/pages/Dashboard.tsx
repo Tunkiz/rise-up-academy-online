@@ -1,7 +1,5 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Book, Calendar, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -9,6 +7,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from 'date-fns';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+
+const chartConfig = {
+  progress: {
+    label: "Progress (%)",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -33,6 +45,11 @@ const Dashboard = () => {
     },
     enabled: !!user,
   });
+
+  const chartData = progressData?.map((item) => ({
+    subject: item.subjects?.name || 'Unnamed Subject',
+    progress: item.progress,
+  })) || [];
 
   const { data: deadlinesData, isLoading: isDeadlinesLoading } = useQuery({
     queryKey: ['deadlines', user?.id],
@@ -93,16 +110,24 @@ const Dashboard = () => {
         <CardContent>
           <div className="space-y-4">
             {isProgressLoading ? <p>Loading progress...</p> : null}
-            {progressData && progressData.length > 0 ? (
-              progressData.map((item, index) => (
-                <div key={index}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{item.subjects?.name || 'Unnamed Subject'}</span>
-                    <span className="text-sm text-muted-foreground">{item.progress}%</span>
-                  </div>
-                  <Progress value={item.progress} />
-                </div>
-              ))
+            {chartData && chartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                <BarChart accessibilityLayer data={chartData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="subject"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                  />
+                  <YAxis />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                  />
+                  <Bar dataKey="progress" fill="var(--color-progress)" radius={4} />
+                </BarChart>
+              </ChartContainer>
             ) : !isProgressLoading && (
               <p className="text-muted-foreground text-sm">No progress tracked yet. Complete a lesson to see your progress!</p>
             )}
