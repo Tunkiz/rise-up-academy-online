@@ -1,6 +1,5 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { toast } from "@/components/ui/use-toast";
 
 type Message = {
   role: "user" | "model";
@@ -26,33 +26,78 @@ const suggestedPrompts = [
 export const AITutorChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { mutate: sendMessage, isPending: isLoading } = useMutation({
-    mutationFn: async (newMessages: Message[]) => {
-      const { data, error } = await supabase.functions.invoke("ai-tutor", {
-        body: { history: newMessages },
+  const getAIResponse = async (history: Message[]) => {
+    setIsLoading(true);
+    setMessages((prev) => [...prev, { role: "model", parts: [{ text: "" }] }]);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("User is not authenticated.");
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ history }),
       });
 
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-      
-      return data.reply as string;
-    },
-    onSuccess: (reply) => {
-      setMessages((prev) => [...prev, { role: "model", parts: [{ text: reply }] }]);
-    },
-    onError: (error) => {
-      console.error("Error sending message:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "model",
-          parts: [{ text: `Sorry, something went wrong: ${error.message}` }],
-        },
-      ]);
-    },
-  });
+      if (!response.ok || !response.body) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to get a response from the AI tutor." }));
+        throw new Error(errorData.error);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        setMessages((prevMessages) => {
+          const newMessages = [...prevMessages];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage.role === "model") {
+            lastMessage.parts[0].text += chunk;
+          }
+          return newMessages;
+        });
+      }
+    } catch (error) {
+      console.error("Error streaming message:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage.role === "model" && lastMessage.parts[0].text === "") {
+          lastMessage.parts[0].text = `Sorry, something went wrong: ${errorMessage}`;
+        } else {
+            newMessages.push({
+                role: "model",
+                parts: [{ text: `Sorry, something went wrong: ${errorMessage}` }],
+            });
+        }
+        return newMessages;
+      });
+      toast({
+        title: "Error",
+        description: "Could not get response from AI Tutor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePromptClick = (prompt: string) => {
     if (isLoading) return;
@@ -61,7 +106,7 @@ export const AITutorChat = () => {
     const newMessages = [...messages, userMessage];
 
     setMessages(newMessages);
-    sendMessage(newMessages);
+    getAIResponse(newMessages);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,7 +118,7 @@ export const AITutorChat = () => {
 
     setMessages(newMessages);
     setInput("");
-    sendMessage(newMessages);
+    getAIResponse(newMessages);
   };
 
   useEffect(() => {
@@ -129,7 +174,7 @@ export const AITutorChat = () => {
               {msg.role === "user" && <User className="w-6 h-6 flex-shrink-0" />}
             </div>
           ))}
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.parts[0].text === "" && (
             <div className="flex items-start gap-3">
               <Bot className="w-6 h-6 flex-shrink-0" />
               <div className="bg-muted rounded-lg p-3 flex items-center">

@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
 
 const system_prompt = `You are Edu, a friendly and encouraging AI tutor for students.
 - Your main goal is to help students understand concepts, not just give them the answers.
@@ -40,23 +40,45 @@ serve(async (req) => {
       },
     };
 
-    const response = await fetch(API_URL, {
+    const geminiResponse = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
       console.error("Gemini API error response:", errorText);
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      throw new Error(`Gemini API error: ${geminiResponse.statusText}`);
     }
 
-    const data = await response.json();
-    const botMessage = data.candidates[0].content.parts[0].text;
+    const stream = geminiResponse.body!
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            const lines = chunk.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const jsonString = line.substring(6);
+                  const json = JSON.parse(jsonString);
+                  const text = json.candidates[0]?.content?.parts[0]?.text;
+                  if (text) {
+                    controller.enqueue(text);
+                  }
+                } catch (e) {
+                  console.error("Failed to parse stream chunk:", e);
+                }
+              }
+            }
+          },
+        })
+      )
+      .pipeThrough(new TextEncoderStream());
 
-    return new Response(JSON.stringify({ reply: botMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(stream, {
+      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
     console.error("Error in ai-tutor function:", error);
