@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      class_schedules: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          meeting_link: string | null
+          start_time: string
+          subject_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          meeting_link?: string | null
+          start_time: string
+          subject_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          meeting_link?: string | null
+          start_time?: string
+          subject_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_schedules_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deadlines: {
         Row: {
           due_date: string
