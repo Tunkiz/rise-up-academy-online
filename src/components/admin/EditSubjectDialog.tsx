@@ -17,6 +17,8 @@ type Subject = Tables<'subjects'>;
 
 const editSubjectSchema = z.object({
   name: z.string().min(2, "Subject name must be at least 2 characters."),
+  class_time: z.string().optional(),
+  teams_link: z.string().url({ message: "Please enter a valid URL." }).or(z.literal('')).optional(),
 });
 
 type EditSubjectFormValues = z.infer<typeof editSubjectSchema>;
@@ -34,12 +36,18 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     resolver: zodResolver(editSubjectSchema),
     defaultValues: {
       name: "",
+      class_time: "",
+      teams_link: "",
     },
   });
 
   useEffect(() => {
     if (subject) {
-      form.reset({ name: subject.name });
+      form.reset({
+        name: subject.name,
+        class_time: subject.class_time || "",
+        teams_link: subject.teams_link || "",
+      });
     }
   }, [subject, form, isOpen]);
 
@@ -47,7 +55,11 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     mutationFn: async (values: EditSubjectFormValues) => {
       const { error } = await supabase
         .from('subjects')
-        .update({ name: values.name })
+        .update({
+          name: values.name,
+          class_time: values.class_time || null,
+          teams_link: values.teams_link || null,
+        })
         .eq('id', subject.id);
       if (error) throw new Error(error.message);
     },
@@ -70,7 +82,7 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Subject</DialogTitle>
-          <DialogDescription>Change the name of the subject below.</DialogDescription>
+          <DialogDescription>Change the details of the subject below.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -82,6 +94,32 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
                   <FormLabel>Subject Name</FormLabel>
                   <FormControl>
                     <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="class_time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Class Time</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Tuesdays at 4:00 PM" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="teams_link"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teams Meeting Link</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://teams.microsoft.com/..." {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -379,16 +379,22 @@ export type Database = {
       }
       subjects: {
         Row: {
+          class_time: string | null
           id: string
           name: string
+          teams_link: string | null
         }
         Insert: {
+          class_time?: string | null
           id?: string
           name: string
+          teams_link?: string | null
         }
         Update: {
+          class_time?: string | null
           id?: string
           name?: string
+          teams_link?: string | null
         }
         Relationships: []
       }

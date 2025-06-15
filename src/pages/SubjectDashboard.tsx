@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthProvider";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock, Video } from "lucide-react";
 
 type Topic = Tables<"topics"> & { progress?: number };
 type Subject = Tables<"subjects">;
@@ -127,6 +127,38 @@ const SubjectDashboard = () => {
       <p className="text-muted-foreground mt-2">
         Explore the topics below to start your learning journey.
       </p>
+
+      {subject && (subject.class_time || subject.teams_link) && !isLoadingSubject && (
+        <Card className="my-6">
+            <CardHeader>
+                <CardTitle>Online Class Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {subject.class_time && (
+                    <div className="flex items-center gap-4">
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="font-semibold">Class Time</p>
+                            <p className="text-muted-foreground">{subject.class_time}</p>
+                        </div>
+                    </div>
+                )}
+                {subject.teams_link && (
+                    <div className="flex items-center gap-4">
+                        <Video className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="font-semibold">Meeting Link</p>
+                            <Button asChild variant="link" className="p-0 h-auto">
+                                <a href={subject.teams_link} target="_blank" rel="noopener noreferrer">
+                                    Join Microsoft Teams Meeting
+                                </a>
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading &&
