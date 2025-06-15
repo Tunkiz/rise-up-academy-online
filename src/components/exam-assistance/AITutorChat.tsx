@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -162,7 +161,7 @@ export const AITutorChat = () => {
             <div key={index} className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
               {msg.role === "model" && <Bot className="w-6 h-6 flex-shrink-0" />}
               <div className={`rounded-lg p-3 max-w-lg ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                <div className="prose dark:prose-invert prose-sm max-w-none">
+                <div className="markdown-content">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeKatex]}
