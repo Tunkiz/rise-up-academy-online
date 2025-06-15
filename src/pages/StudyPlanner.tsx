@@ -1,6 +1,5 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { StudyPlanForm } from "@/components/study-planner/StudyPlanForm";
+import { StudyPlanForm, formSchema, FormValues } from "@/components/study-planner/StudyPlanForm";
 import { PastPlansList } from "@/components/study-planner/PastPlansList";
 import { GeneratedPlanView } from "@/components/study-planner/GeneratedPlanView";
 import { ViewPlanDialog } from "@/components/study-planner/ViewPlanDialog";
@@ -10,7 +9,6 @@ import { useTour } from "@/hooks/useTour";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,12 +27,6 @@ const studyPlannerTourSteps = [
     { target: '#past-plans-list', title: 'Manage Past Plans', content: 'All your saved study plans will be listed here for you to review or delete.', placement: 'right' as const },
 ];
 
-const formSchema = z.object({
-  goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
-  timeframe: z.string().min(3, { message: "Please provide a timeframe (e.g., '3 months')." }),
-  hours_per_week: z.coerce.number().min(1, { message: "Please enter at least 1 hour per week." }),
-});
-
 const StudyPlanner = () => {
   const { user } = useAuth();
   const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
@@ -42,7 +34,7 @@ const StudyPlanner = () => {
   const [currentPlanDetails, setCurrentPlanDetails] = useState<any>(null);
   const tourId = 'study-planner';
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       goal: "",
@@ -64,7 +56,7 @@ const StudyPlanner = () => {
   
   const { mutate: generatePlan, isPending: isGenerating } = useStudyPlanGeneration();
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit = (data: FormValues) => {
     const requestData = {
       goal: data.goal,
       timeframe: data.timeframe,

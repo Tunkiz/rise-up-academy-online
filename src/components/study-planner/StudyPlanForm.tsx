@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
+import * as z from "zod";
 
-export type FormValues = {
-  goal: string;
-  timeframe: string;
-  hours_per_week: number;
-};
+export const formSchema = z.object({
+  goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
+  timeframe: z.string().min(3, { message: "Please provide a timeframe (e.g., '3 months')." }),
+  hours_per_week: z.coerce.number().min(1, { message: "Please enter at least 1 hour per week." }),
+});
+
+export type FormValues = z.infer<typeof formSchema>;
 
 interface StudyPlanFormProps {
   form: UseFormReturn<FormValues>;
