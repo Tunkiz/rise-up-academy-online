@@ -17,7 +17,7 @@ export type Database = {
           meeting_link: string | null
           start_time: string
           subject_id: string
-          tenant_id: string | null
+          tenant_id: string
           title: string
         }
         Insert: {
@@ -27,7 +27,7 @@ export type Database = {
           meeting_link?: string | null
           start_time: string
           subject_id: string
-          tenant_id?: string | null
+          tenant_id: string
           title: string
         }
         Update: {
@@ -37,7 +37,7 @@ export type Database = {
           meeting_link?: string | null
           start_time?: string
           subject_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           title?: string
         }
         Relationships: [
@@ -61,21 +61,21 @@ export type Database = {
         Row: {
           due_date: string
           id: string
-          tenant_id: string | null
+          tenant_id: string
           title: string
           user_id: string
         }
         Insert: {
           due_date: string
           id?: string
-          tenant_id?: string | null
+          tenant_id: string
           title: string
           user_id: string
         }
         Update: {
           due_date?: string
           id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           title?: string
           user_id?: string
         }
@@ -121,21 +121,21 @@ export type Database = {
           completed_at: string
           id: string
           lesson_id: string
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
           completed_at?: string
           id?: string
           lesson_id: string
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
           completed_at?: string
           id?: string
           lesson_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -166,7 +166,7 @@ export type Database = {
           lesson_type: string
           order: number
           pass_mark: number | null
-          tenant_id: string | null
+          tenant_id: string
           time_limit: number | null
           title: string
           topic_id: string
@@ -181,7 +181,7 @@ export type Database = {
           lesson_type: string
           order?: number
           pass_mark?: number | null
-          tenant_id?: string | null
+          tenant_id: string
           time_limit?: number | null
           title: string
           topic_id: string
@@ -196,7 +196,7 @@ export type Database = {
           lesson_type?: string
           order?: number
           pass_mark?: number | null
-          tenant_id?: string | null
+          tenant_id?: string
           time_limit?: number | null
           title?: string
           topic_id?: string
@@ -224,21 +224,21 @@ export type Database = {
           full_name: string | null
           grade: number | null
           id: string
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
           grade?: number | null
           id: string
-          tenant_id?: string | null
+          tenant_id: string
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
           grade?: number | null
           id?: string
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -257,7 +257,7 @@ export type Database = {
           lesson_id: string
           passed: boolean
           score: number
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -266,7 +266,7 @@ export type Database = {
           lesson_id: string
           passed: boolean
           score: number
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
@@ -275,7 +275,7 @@ export type Database = {
           lesson_id?: string
           passed?: boolean
           score?: number
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -362,7 +362,7 @@ export type Database = {
           course: string
           date: string
           id: string
-          tenant_id: string | null
+          tenant_id: string
           user_id: string | null
         }
         Insert: {
@@ -370,7 +370,7 @@ export type Database = {
           course: string
           date?: string
           id?: string
-          tenant_id?: string | null
+          tenant_id: string
           user_id?: string | null
         }
         Update: {
@@ -378,7 +378,7 @@ export type Database = {
           course?: string
           date?: string
           id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string | null
         }
         Relationships: [
@@ -400,7 +400,7 @@ export type Database = {
           grade: number | null
           id: string
           subject_id: string | null
-          tenant_id: string | null
+          tenant_id: string
           title: string
         }
         Insert: {
@@ -411,7 +411,7 @@ export type Database = {
           grade?: number | null
           id?: string
           subject_id?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           title: string
         }
         Update: {
@@ -422,7 +422,7 @@ export type Database = {
           grade?: number | null
           id?: string
           subject_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           title?: string
         }
         Relationships: [
@@ -447,21 +447,21 @@ export type Database = {
           id: string
           progress: number
           subject_id: string
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
           id?: string
           progress: number
           subject_id: string
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
           id?: string
           progress?: number
           subject_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -488,7 +488,7 @@ export type Database = {
           hours_per_week: number
           id: string
           plan_content: string
-          tenant_id: string | null
+          tenant_id: string
           timeframe: string
           updated_at: string | null
           user_id: string
@@ -499,7 +499,7 @@ export type Database = {
           hours_per_week: number
           id?: string
           plan_content: string
-          tenant_id?: string | null
+          tenant_id: string
           timeframe: string
           updated_at?: string | null
           user_id: string
@@ -510,7 +510,7 @@ export type Database = {
           hours_per_week?: number
           id?: string
           plan_content?: string
-          tenant_id?: string | null
+          tenant_id?: string
           timeframe?: string
           updated_at?: string | null
           user_id?: string
@@ -531,21 +531,21 @@ export type Database = {
           id: string
           name: string
           teams_link: string | null
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           class_time?: string | null
           id?: string
           name: string
           teams_link?: string | null
-          tenant_id?: string | null
+          tenant_id: string
         }
         Update: {
           class_time?: string | null
           id?: string
           name?: string
           teams_link?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -583,19 +583,19 @@ export type Database = {
           id: string
           name: string
           subject_id: string
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           id?: string
           name: string
           subject_id: string
-          tenant_id?: string | null
+          tenant_id: string
         }
         Update: {
           id?: string
           name?: string
           subject_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -620,7 +620,7 @@ export type Database = {
           id: string
           prompt: string
           response: string
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -628,7 +628,7 @@ export type Database = {
           id?: string
           prompt: string
           response: string
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
@@ -636,7 +636,7 @@ export type Database = {
           id?: string
           prompt?: string
           response?: string
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -653,19 +653,19 @@ export type Database = {
         Row: {
           id: string
           role: Database["public"]["Enums"]["app_role"]
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
           id?: string
           role: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -682,19 +682,19 @@ export type Database = {
         Row: {
           id: string
           subject_id: string
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
           id?: string
           subject_id: string
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
           id?: string
           subject_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
