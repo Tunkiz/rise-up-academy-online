@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import React from "react";
 
 interface GeneratedPlanViewProps {
-  currentPlanDetails: { goal: string; timeframe: string; hours_per_week: number } | null;
+  currentPlanDetails: { goal?: string; timeframe?: string; hours_per_week?: number } | null;
   interactivePlan: string | null;
   isGenerating: boolean;
   isSaving: boolean;
