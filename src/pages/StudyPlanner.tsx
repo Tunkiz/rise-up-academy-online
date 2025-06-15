@@ -109,6 +109,29 @@ const StudyPlanner = () => {
       });
     },
   });
+
+  const { mutate: updatePlan, isPending: isUpdatingPlan } = useMutation({
+    mutationFn: async ({ planId, content }: { planId: string, content: string }) => {
+      if (!user) throw new Error("User not authenticated.");
+      const { error } = await supabase
+        .from('study_plans')
+        .update({ plan_content: content })
+        .match({ id: planId, user_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Plan updated successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['study_plans', user?.id] });
+      setSelectedPlan(null); // Close the dialog on success
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error Updating Plan",
+        description: error.message,
+      });
+    },
+  });
   
   const { mutate: deletePlan, isPending: isDeletingPlan } = useMutation({
     mutationFn: async (planId: string) => {
@@ -221,6 +244,8 @@ const StudyPlanner = () => {
         plan={selectedPlan}
         isOpen={!!selectedPlan}
         onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
+        onUpdatePlan={updatePlan}
+        isUpdating={isUpdatingPlan}
       />
     </div>
   );
