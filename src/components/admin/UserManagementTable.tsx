@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { EditRoleDialog } from "./EditRoleDialog";
+import { useNavigate } from "react-router-dom";
 
 type User = Database['public']['Functions']['get_all_users']['Returns'][number];
 
 const UserManagementTable = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   const { data: users, isLoading, error } = useQuery<User[]>({
     queryKey: ['users'],
@@ -80,7 +82,9 @@ const UserManagementTable = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Profile</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate(`/admin/user/${user.id}`)}>
+                      View Profile
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setEditingUser(user)}>
                       Edit Role
                     </DropdownMenuItem>
