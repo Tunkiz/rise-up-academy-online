@@ -74,7 +74,7 @@ const AdminPage = () => {
         description: values.description,
         subject_id: values.subject_id,
         file_url: publicUrl,
-        grade: values.grade ? parseInt(values.grade, 10) : null,
+        grade: values.grade && values.grade !== 'all' ? parseInt(values.grade, 10) : null,
       });
       if (insertError) throw new Error(`Failed to save resource: ${insertError.message}`);
     },
@@ -163,7 +163,7 @@ const AdminPage = () => {
                   <FormField control={form.control} name="subject_id" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubjects}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoadingSubjects}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Select a subject"} /></SelectTrigger>
                         </FormControl>
@@ -177,12 +177,12 @@ const AdminPage = () => {
                    <FormField control={form.control} name="grade" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grade</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="For all grades" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">All Grades</SelectItem>
+                          <SelectItem value="all">All Grades</SelectItem>
                           {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
                             <SelectItem key={g} value={String(g)}>
                               Grade {g}
