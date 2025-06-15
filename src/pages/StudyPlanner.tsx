@@ -42,7 +42,6 @@ const StudyPlanner = () => {
   const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<any>(null);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const tourId = 'study-planner';
 
   const form = useForm({
@@ -56,7 +55,17 @@ const StudyPlanner = () => {
     },
   });
 
-  const { data: pastPlans, isLoading: isLoadingPastPlans, refetch: refetchPlans } = usePastStudyPlans();
+  const { 
+    pastPlans, 
+    isLoadingPastPlans, 
+    selectedPlan, 
+    setSelectedPlan, 
+    updatePlan, 
+    isUpdatingPlan, 
+    deletePlan, 
+    isDeletingPlan 
+  } = usePastStudyPlans();
+  
   const { mutate: generatePlan, isPending: isGenerating } = useStudyPlanGeneration();
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -116,8 +125,8 @@ const StudyPlanner = () => {
               plans={pastPlans || []}
               isLoading={isLoadingPastPlans}
               onSelectPlan={setSelectedPlan}
-              onDeletePlan={() => refetchPlans()}
-              isDeletingPlan={false}
+              onDeletePlan={(planId) => deletePlan(planId)}
+              isDeletingPlan={isDeletingPlan}
             />
 
           </div>
@@ -138,8 +147,8 @@ const StudyPlanner = () => {
           plan={selectedPlan}
           isOpen={!!selectedPlan}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
-          onUpdatePlan={() => {}}
-          isUpdating={false}
+          onUpdatePlan={(planId, content) => updatePlan({ planId, content })}
+          isUpdating={isUpdatingPlan}
         />
       </div>
       <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>

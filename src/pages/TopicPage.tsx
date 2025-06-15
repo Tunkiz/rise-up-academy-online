@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,8 +137,8 @@ const TopicPage = () => {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">{topic.title}</h1>
-        <p className="text-muted-foreground">{topic.description}</p>
+        <h1 className="text-3xl font-bold">{topic.name}</h1>
+        <p className="text-muted-foreground">Complete the lessons to master this topic.</p>
       </div>
 
       <Card>
