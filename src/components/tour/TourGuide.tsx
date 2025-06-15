@@ -11,19 +11,25 @@ export const TourGuide = () => {
   useEffect(() => {
     if (isTourActive && steps.length > 0) {
       const step = steps[currentStep];
+      console.log(`[TourGuide] Starting step ${currentStep + 1}/${steps.length}`, step);
       
-      // A short delay to allow the page to render after navigation
       const timer = setTimeout(() => {
         const element = document.querySelector(step.target) as HTMLElement;
+        console.log(`[TourGuide] Searching for target: "${step.target}". Found element:`, element);
         if (element) {
-          setTargetElement(element);
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const rect = element.getBoundingClientRect();
+          if (rect.width === 0 || rect.height === 0) {
+             console.warn(`[TourGuide] Target element for step ${currentStep + 1} was found, but it is not visible (has zero width or height).`, element);
+             setTargetElement(null);
+          } else {
+            setTargetElement(element);
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
         } else {
-          // If element not found, it might not be rendered yet.
-          // Hiding the popover for now. A retry mechanism could be implemented for more robustness.
+          console.error(`[TourGuide] Target element with selector "${step.target}" for step ${currentStep + 1} was not found in the DOM.`);
           setTargetElement(null);
         }
-      }, 300);
+      }, 500);
 
       return () => clearTimeout(timer);
     } else {
