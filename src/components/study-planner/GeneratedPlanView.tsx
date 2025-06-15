@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import React from "react";
 
 interface GeneratedPlanViewProps {
   currentPlanDetails: { goal: string; timeframe: string; hours_per_week: number } | null;
@@ -52,20 +53,19 @@ export const GeneratedPlanView = ({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                input: ({ node, ...props }) => {
-                  if (props.type === 'checkbox' && node?.position) {
+                input: (props) => {
+                  const { node, ...rest } = props;
+                  if (rest.type === 'checkbox' && node?.position) {
                     const lineIndex = node.position.start.line - 1;
                     return (
                       <Checkbox
-                        checked={!!props.checked}
-                        onCheckedChange={() => onCheckboxToggle(lineIndex, !!props.checked)}
+                        checked={!!rest.checked}
+                        onCheckedChange={() => onCheckboxToggle(lineIndex, !!rest.checked)}
                         className="mr-2 translate-y-px"
                       />
                     );
                   }
-                  // For other input types, render them normally.
-                  // This branch is unlikely to be hit with GFM task lists.
-                  return <input {...props} />;
+                  return <input {...rest} />;
                 },
               }}
             >
