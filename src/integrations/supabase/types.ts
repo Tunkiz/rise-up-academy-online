@@ -541,6 +541,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_admin_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users_count: number
+          new_users_last_30_days: number
+          total_subjects_count: number
+          total_lessons_count: number
+          total_resources_count: number
+          total_lessons_completed: number
+          total_quizzes_attempted: number
+          most_popular_subjects: Json
+        }[]
+      }
       get_all_users: {
         Args: Record<PropertyKey, never>
         Returns: {

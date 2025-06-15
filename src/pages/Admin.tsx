@@ -21,6 +21,7 @@ import { CreateLessonForm } from "@/components/admin/CreateLessonForm";
 import UserManagementTable from "@/components/admin/UserManagementTable";
 import SubjectManagement from "@/components/admin/SubjectManagement";
 import { Users } from "lucide-react";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 
 const resourceFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -113,6 +114,10 @@ const AdminPage = () => {
     <div className="container py-10">
       <h1 className="text-4xl font-bold">Admin Panel</h1>
       <p className="text-muted-foreground mt-2">Manage application content here.</p>
+
+      <div className="mt-8">
+        <AdminDashboard />
+      </div>
 
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         <Card>
