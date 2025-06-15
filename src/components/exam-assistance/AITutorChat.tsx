@@ -16,6 +16,13 @@ type Message = {
   parts: { text: string }[];
 };
 
+const suggestedPrompts = [
+  "Explain photosynthesis like I'm five.",
+  "What were the main causes of World War I?",
+  "Can you help me with the Pythagorean theorem?",
+  "Tell me a fun fact about the Roman Empire.",
+];
+
 export const AITutorChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -47,6 +54,16 @@ export const AITutorChat = () => {
     },
   });
 
+  const handlePromptClick = (prompt: string) => {
+    if (isLoading) return;
+
+    const userMessage: Message = { role: "user", parts: [{ text: prompt }] };
+    const newMessages = [...messages, userMessage];
+
+    setMessages(newMessages);
+    sendMessage(newMessages);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -74,7 +91,28 @@ export const AITutorChat = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto pr-4">
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
+          {messages.length === 0 && !isLoading && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Bot className="w-12 h-12 mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">Ready to help!</h3>
+              <p className="text-sm text-muted-foreground mb-6">Ask me anything or try a suggestion below.</p>
+              <div className="w-full max-w-md grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {suggestedPrompts.map((prompt, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    className="text-left h-auto whitespace-normal p-3"
+                    onClick={() => handlePromptClick(prompt)}
+                  >
+                    {prompt}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {messages.map((msg, index) => (
             <div key={index} className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
               {msg.role === "model" && <Bot className="w-6 h-6 flex-shrink-0" />}
