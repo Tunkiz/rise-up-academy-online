@@ -1,9 +1,20 @@
 
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, BookOpenCheck } from "lucide-react";
+import { Menu, BookOpenCheck, User, Shield, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -29,6 +40,23 @@ const NavLinkItem = ({ to, label, onClick }: { to: string; label: string, onClic
 
 export function Header() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  const getInitials = (name: string | undefined) => {
+    if (!name) return '??';
+    const names = name.split(' ');
+    if (names.length > 1 && names[1]) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -42,13 +70,52 @@ export function Header() {
             <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => {}} />
           ))}
         </nav>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Login</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/register">Sign Up</Link>
-          </Button>
+        <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} />
+                    <AvatarFallback>{getInitials(user.user_metadata.full_name)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.user_metadata.full_name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onSelect={() => navigate('/admin')}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Admin Panel</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden md:flex items-center space-x-4">
+              <Button variant="ghost" asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">Sign Up</Link>
+              </Button>
+            </div>
+          )}
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
@@ -65,6 +132,32 @@ export function Header() {
                 {navLinks.map((link) => (
                    <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => setIsSheetOpen(false)} />
                 ))}
+                <div className="border-t pt-6 mt-4">
+                  {user ? (
+                    <div className="space-y-4">
+                      <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/profile'); setIsSheetOpen(false); }}>
+                        <User className="mr-2 h-4 w-4" /> Profile
+                      </Button>
+                      {isAdmin && (
+                        <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/admin'); setIsSheetOpen(false); }}>
+                          <Shield className="mr-2 h-4 w-4" /> Admin Panel
+                        </Button>
+                      )}
+                      <Button variant="outline" className="w-full justify-start" onClick={() => { handleLogout(); setIsSheetOpen(false); }}>
+                        <LogOut className="mr-2 h-4 w-4" /> Log out
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Button variant="outline" className="w-full" asChild onClick={() => setIsSheetOpen(false)}>
+                        <Link to="/login">Login</Link>
+                      </Button>
+                      <Button className="w-full" asChild onClick={() => setIsSheetOpen(false)}>
+                        <Link to="/register">Sign Up</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </nav>
             </SheetContent>
           </Sheet>

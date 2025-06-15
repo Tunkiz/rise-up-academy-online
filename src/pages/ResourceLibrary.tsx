@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,11 +28,6 @@ const ResourceLibrary = () => {
           <h1 className="text-4xl font-bold">Resource Library</h1>
           <p className="text-muted-foreground mt-2">Find all your study materials here.</p>
         </div>
-        {isAdmin && (
-          <Button asChild>
-            <Link to="/admin">Go to Admin Panel</Link>
-          </Button>
-        )}
       </div>
 
       {isLoading && (
