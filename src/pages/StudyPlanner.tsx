@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,6 +42,21 @@ const StudyPlanner = () => {
       const { data, error } = await supabase.from('study_plans').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: progressData, isLoading: isLoadingProgress } = useQuery({
+    queryKey: ['progress', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('student_progress')
+        .select(`progress, subjects (name)`)
+        .eq('user_id', user.id);
+      
+      if (error) throw new Error(error.message);
+      return data?.filter(p => p.subjects) || [];
     },
     enabled: !!user,
   });
@@ -97,7 +111,18 @@ const StudyPlanner = () => {
   });
 
   const onSubmit = (values: FormValues) => {
-    generatePlan(values);
+    let finalGoal = values.goal;
+
+    if (progressData && progressData.length > 0) {
+      const progressString = progressData
+        .sort((a, b) => (a.progress ?? 0) - (b.progress ?? 0))
+        .map(p => `- ${p.subjects?.name}: ${p.progress}%`)
+        .join('\n');
+      
+      finalGoal = `${values.goal}\n\nFor context, here is my current progress in my subjects:\n${progressString}\n\nPlease create a study plan that helps me achieve my main goal, and pay special attention to my weaker subjects (those with lower progress percentages).`;
+    }
+
+    generatePlan({ ...values, goal: finalGoal });
   };
   
   return (
@@ -111,7 +136,7 @@ const StudyPlanner = () => {
           <Card>
             <CardHeader>
               <CardTitle>Create Your Plan</CardTitle>
-              <CardDescription>Tell us your goals, and we'll generate a personalized plan.</CardDescription>
+              <CardDescription>Tell us your goals. We'll analyze your current progress to generate a truly personalized plan.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -137,7 +162,7 @@ const StudyPlanner = () => {
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <Button type="submit" disabled={isGenerating} className="w-full">
+                  <Button type="submit" disabled={isGenerating || isLoadingProgress} className="w-full">
                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Generate Plan
                   </Button>
