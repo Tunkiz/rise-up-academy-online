@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -53,15 +52,24 @@ const Dashboard = () => {
   const { startTour, hasCompletedTour, stopTour } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
 
+  console.log('[Dashboard] Component rendered. `hasCompletedTour` is:', hasCompletedTour);
+
   useEffect(() => {
+    console.log('[Dashboard] useEffect triggered. `hasCompletedTour` is:', hasCompletedTour, '`user` is:', !!user);
     // Only show tour prompt if user has logged in and hasn't completed the tour
     if (user) {
         const timer = setTimeout(() => {
             if (!hasCompletedTour) {
+                console.log('[Dashboard] Timer fired. Showing tour prompt.');
                 setShowTourPrompt(true);
+            } else {
+                console.log('[Dashboard] Timer fired. Not showing tour prompt.');
             }
         }, 1500);
-        return () => clearTimeout(timer);
+        return () => {
+          console.log('[Dashboard] useEffect cleanup. Clearing timer.');
+          clearTimeout(timer);
+        };
     }
   }, [hasCompletedTour, user]);
 
