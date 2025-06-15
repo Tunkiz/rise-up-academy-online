@@ -1,5 +1,4 @@
 
-```typescript
 import { TourContext } from '@/components/tour/TourProvider';
 import { useContext } from 'react';
 
@@ -10,4 +9,3 @@ export const useTour = () => {
   }
   return context;
 };
-```

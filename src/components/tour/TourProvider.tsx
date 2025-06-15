@@ -1,5 +1,4 @@
 
-```typescript
 import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react';
 
 type TourStep = {
@@ -73,4 +72,3 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
     </TourContext.Provider>
   );
 };
-```

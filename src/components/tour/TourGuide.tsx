@@ -1,5 +1,4 @@
 
-```typescript
 import React, { useEffect, useState } from 'react';
 import { useTour } from '@/hooks/useTour';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -77,4 +76,3 @@ export const TourGuide = () => {
     </>
   );
 };
-```
