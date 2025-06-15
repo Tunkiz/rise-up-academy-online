@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +52,18 @@ const StudyPlanner = () => {
     },
     enabled: !!user,
   });
+
+  const { totalTasks, completedTasks } = useMemo(() => {
+    if (!interactivePlan) return { totalTasks: 0, completedTasks: 0 };
+    
+    const taskRegex = /-\s\[( |x|X)\]/g;
+    const tasks = interactivePlan.match(taskRegex) || [];
+    
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(task => task.includes('[x]') || task.includes('[X]')).length;
+
+    return { totalTasks, completedTasks };
+  }, [interactivePlan]);
 
   const { mutate: generatePlan, isPending: isGenerating } = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -199,6 +210,8 @@ const StudyPlanner = () => {
             isSaving={isSaving}
             onSavePlan={() => savePlan()}
             onCheckboxToggle={handleCheckboxToggle}
+            totalTasks={totalTasks}
+            completedTasks={completedTasks}
           />
         </div>
       </div>

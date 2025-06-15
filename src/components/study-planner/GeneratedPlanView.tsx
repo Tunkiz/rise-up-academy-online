@@ -6,6 +6,7 @@ import { Loader2, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import React, { ComponentProps } from "react";
+import { Progress } from "@/components/ui/progress";
 
 interface GeneratedPlanViewProps {
   currentPlanDetails: { goal?: string; timeframe?: string; hours_per_week?: number } | null;
@@ -14,6 +15,8 @@ interface GeneratedPlanViewProps {
   isSaving: boolean;
   onSavePlan: () => void;
   onCheckboxToggle: (lineIndex: number, currentChecked: boolean) => void;
+  totalTasks: number;
+  completedTasks: number;
 }
 
 // Define a type for the custom `li` component's props.
@@ -30,7 +33,11 @@ export const GeneratedPlanView = ({
   isSaving,
   onSavePlan,
   onCheckboxToggle,
+  totalTasks,
+  completedTasks,
 }: GeneratedPlanViewProps) => {
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
   return (
     <Card className="max-h-[calc(100vh-8rem)] overflow-y-auto">
       <CardHeader>
@@ -56,42 +63,55 @@ export const GeneratedPlanView = ({
           </div>
         )}
         {interactivePlan && (
-          <div className="prose dark:prose-invert max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                li: ({ node, children, checked, ...props }: CustomLiProps) => {
-                  const isTaskListItem = typeof checked === 'boolean';
+          <>
+            {totalTasks > 0 && (
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Progress ({completedTasks}/{totalTasks})
+                  </p>
+                  <p className="text-sm font-bold">{Math.round(progressPercentage)}%</p>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+            )}
+            <div className="prose dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  li: ({ node, children, checked, ...props }: CustomLiProps) => {
+                    const isTaskListItem = typeof checked === 'boolean';
 
-                  if (isTaskListItem && node?.position) {
-                    const lineIndex = node.position.start.line - 1;
-                    return (
-                      // We render a custom `li` for task list items.
-                      // `list-none` removes the default bullet point.
-                      <li className="flex items-start list-none my-1" {...props}>
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
-                          className="mr-2 translate-y-px"
-                        />
-                        {/* 
-                          We render the original children from react-markdown,
-                          but hide the first element (the disabled checkbox) with Tailwind CSS.
-                          This is more robust than slicing the children array.
-                        */}
-                        <span className="flex-1 [&>*:first-child]:hidden">{children}</span>
-                      </li>
-                    );
-                  }
-                  
-                  // For regular list items, render them as they are.
-                  return <li {...props}>{children}</li>;
-                },
-              }}
-            >
-              {interactivePlan}
-            </ReactMarkdown>
-          </div>
+                    if (isTaskListItem && node?.position) {
+                      const lineIndex = node.position.start.line - 1;
+                      return (
+                        // We render a custom `li` for task list items.
+                        // `list-none` removes the default bullet point.
+                        <li className="flex items-start list-none my-1" {...props}>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
+                            className="mr-2 translate-y-px"
+                          />
+                          {/* 
+                            We render the original children from react-markdown,
+                            but hide the first element (the disabled checkbox) with Tailwind CSS.
+                            This is more robust than slicing the children array.
+                          */}
+                          <span className="flex-1 [&>*:first-child]:hidden">{children}</span>
+                        </li>
+                      );
+                    }
+                    
+                    // For regular list items, render them as they are.
+                    return <li {...props}>{children}</li>;
+                  },
+                }}
+              >
+                {interactivePlan}
+              </ReactMarkdown>
+            </div>
+          </>
         )}
       </CardContent>
       {interactivePlan && (
