@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,7 +68,7 @@ const lessonFormSchema = z.object({
         }
     }
     if (data.lesson_type === 'notes') {
-        if (!data.content || data.content.trim().length === 0) {
+        if (!data.content || typeof data.content !== 'string' || data.content.trim().length === 0) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: "Content is required for notes.",
