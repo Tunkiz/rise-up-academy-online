@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +16,8 @@ import { Loader2, Save } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const formSchema = z.object({
   goal: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
@@ -205,7 +208,11 @@ const StudyPlanner = () => {
                   <p>Your generated plan will appear here.</p>
                 </div>
               )}
-              {generatedPlan && <pre className="whitespace-pre-wrap font-sans text-sm">{generatedPlan}</pre>}
+              {generatedPlan && (
+                <div className="markdown-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedPlan}</ReactMarkdown>
+                </div>
+              )}
             </CardContent>
             {generatedPlan && (
               <CardFooter>
@@ -229,7 +236,9 @@ const StudyPlanner = () => {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto pr-4">
-                        <pre className="whitespace-pre-wrap font-sans text-sm">{selectedPlan.plan_content}</pre>
+                        <div className="markdown-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedPlan.plan_content}</ReactMarkdown>
+                        </div>
                     </div>
                 </>
             )}
