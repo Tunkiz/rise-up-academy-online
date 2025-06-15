@@ -53,8 +53,10 @@ export const GeneratedPlanView = ({
               remarkPlugins={[remarkGfm]}
               components={{
                 input: ({ node, ...props }) => {
-                  const { checked, ...restProps } = props;
-                  if (props.type === 'checkbox' && node?.position) {
+                  // The `type` prop from the markdown-parsed input is incompatible with shadcn's Checkbox.
+                  // We destructure it out and spread the rest.
+                  const { checked, type, ...restProps } = props;
+                  if (type === 'checkbox' && node?.position) {
                     const lineIndex = node.position.start.line - 1;
                     return (
                       <Checkbox
@@ -65,6 +67,7 @@ export const GeneratedPlanView = ({
                       />
                     );
                   }
+                  // For other input types, render them normally.
                   return <input {...props} />;
                 },
               }}
