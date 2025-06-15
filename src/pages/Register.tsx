@@ -33,7 +33,7 @@ const Register = () => {
             options: {
                 data: {
                     full_name: fullName,
-                    grade: grade ? parseInt(grade, 10) : null,
+                    grade: grade && grade !== 'not_applicable' ? parseInt(grade, 10) : null,
                 },
                 emailRedirectTo: `${window.location.origin}/dashboard`
             },
@@ -85,7 +85,7 @@ const Register = () => {
                   <SelectValue placeholder="Select your grade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not Applicable</SelectItem>
+                  <SelectItem value="not_applicable">Not Applicable</SelectItem>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
                     <SelectItem key={g} value={String(g)}>
                       Grade {g}
