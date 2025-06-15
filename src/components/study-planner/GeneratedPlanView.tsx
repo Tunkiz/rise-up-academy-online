@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,7 +89,12 @@ export const GeneratedPlanView = ({
                         <li className="flex items-start list-none my-1" {...props}>
                           <Checkbox
                             checked={checked}
-                            onCheckedChange={() => onCheckboxToggle(lineIndex, checked)}
+                            onCheckedChange={(isChecked) => {
+                              // isChecked can be 'indeterminate', but we only handle boolean.
+                              if (typeof isChecked === 'boolean') {
+                                onCheckboxToggle(lineIndex, isChecked);
+                              }
+                            }}
                             className="mr-2 translate-y-px"
                           />
                           {/* 

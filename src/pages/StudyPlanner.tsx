@@ -152,19 +152,19 @@ const StudyPlanner = () => {
     });
   };
 
-  const handleCheckboxToggle = (lineIndex: number, currentChecked: boolean) => {
+  const handleCheckboxToggle = (lineIndex: number, newCheckedState: boolean) => {
     setInteractivePlan(currentPlan => {
         if (!currentPlan) return null;
         const lines = currentPlan.split('\n');
         let lineToUpdate = lines[lineIndex];
         if (typeof lineToUpdate === 'undefined') return currentPlan;
         
-        if (currentChecked) {
-          // If it was checked, find [x] or [X] and replace it with [ ]
-          lineToUpdate = lineToUpdate.replace(/\[[xX]\]/, '[ ]');
-        } else {
-          // If it was unchecked, find [ ] and replace it with [x]
+        if (newCheckedState) {
+          // If the new state is checked, find [ ] and replace it with [x]
           lineToUpdate = lineToUpdate.replace(/\[ \]/, '[x]');
+        } else {
+          // If the new state is unchecked, find [x] or [X] and replace it with [ ]
+          lineToUpdate = lineToUpdate.replace(/\[[xX]\]/, '[ ]');
         }
         lines[lineIndex] = lineToUpdate;
 
