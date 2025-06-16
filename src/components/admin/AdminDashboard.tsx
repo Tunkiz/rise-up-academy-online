@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "./StatCard";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "react-router-dom";
+import SuperAdminDashboard from "./SuperAdminDashboard";
 
 type PopularSubject = {
   id: string;
@@ -25,6 +27,19 @@ type DashboardStats = {
 };
 
 const AdminDashboard = () => {
+  // Check if current user is super admin
+  const { data: isSuperAdmin, isLoading: isLoadingSuperAdmin } = useQuery({
+    queryKey: ['is_super_admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('is_super_admin');
+      if (error) {
+        console.error("Error checking super admin status:", error);
+        return false;
+      }
+      return data;
+    },
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin_dashboard_stats'],
     queryFn: async (): Promise<DashboardStats | null> => {
@@ -38,16 +53,35 @@ const AdminDashboard = () => {
         return null;
       }
 
-      // The `most_popular_subjects` comes back as JSON, which could be null.
-      // We ensure it's an array for type safety in the component.
       return {
         ...statsData,
         most_popular_subjects: (statsData.most_popular_subjects as PopularSubject[] | null) ?? [],
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !isLoadingSuperAdmin && !isSuperAdmin, // Only load if not super admin
   });
 
+  // Show super admin dashboard if user is super admin
+  if (isLoadingSuperAdmin) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isSuperAdmin) {
+    return <SuperAdminDashboard />;
+  }
+
+  // Regular tenant admin dashboard
   if (error) {
     return (
         <Card className="bg-destructive/10 border-destructive">
@@ -77,7 +111,7 @@ const AdminDashboard = () => {
             <BarChart3 className="mr-2 h-5 w-5" />
             Most Popular Subjects
           </CardTitle>
-          <CardDescription>Top 5 subjects by student enrollment.</CardDescription>
+          <CardDescription>Top 5 subjects by student enrollment in your organization.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (

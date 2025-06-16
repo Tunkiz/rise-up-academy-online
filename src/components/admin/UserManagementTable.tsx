@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,19 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import { SuspendUserDialog } from "./SuspendUserDialog";
 
-type User = Database['public']['Functions']['get_all_users']['Returns'][number];
+// Updated type to include tenant_name
+type User = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: Database['public']['Enums']['app_role'];
+  created_at: string;
+  banned_until: string | null;
+  avatar_url: string | null;
+  grade: number | null;
+  subjects: any;
+  tenant_name: string | null;
+};
 
 const UserManagementTable = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -36,6 +49,16 @@ const UserManagementTable = () => {
         throw new Error(error.message);
       }
       return data || [];
+    },
+  });
+
+  // Check if current user is super admin
+  const { data: isSuperAdmin } = useQuery({
+    queryKey: ['is_super_admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('is_super_admin');
+      if (error) throw new Error(error.message);
+      return data;
     },
   });
 
@@ -62,6 +85,7 @@ const UserManagementTable = () => {
             <TableHead>Email</TableHead>
             <TableHead>Grade</TableHead>
             <TableHead>Role</TableHead>
+            {isSuperAdmin && <TableHead>Organization</TableHead>}
             <TableHead>Joined Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -80,10 +104,15 @@ const UserManagementTable = () => {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.grade || 'N/A'}</TableCell>
                 <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
-                    {user.role}
+                  <Badge variant={user.role === 'admin' ? 'default' : user.role === 'super_admin' ? 'destructive' : 'secondary'} className="capitalize">
+                    {user.role === 'super_admin' ? 'Super Admin' : user.role}
                   </Badge>
                 </TableCell>
+                {isSuperAdmin && (
+                  <TableCell>
+                    <Badge variant="outline">{user.tenant_name || 'No Organization'}</Badge>
+                  </TableCell>
+                )}
                 <TableCell>{format(new Date(user.created_at), 'PPP')}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -97,16 +126,20 @@ const UserManagementTable = () => {
                       <DropdownMenuItem onSelect={() => navigate(`/admin/user/${user.id}`)}>
                         View Profile
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setEditingUser(user)}>
-                        Edit Role
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={() => setSuspendingUser(user)}
-                        className={!isSuspended ? "text-destructive" : ""}
-                        disabled={isCurrentUser}
-                      >
-                        {isSuspended ? "Unsuspend User" : "Suspend User"}
-                      </DropdownMenuItem>
+                      {user.role !== 'super_admin' && (
+                        <>
+                          <DropdownMenuItem onSelect={() => setEditingUser(user)}>
+                            Edit Role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => setSuspendingUser(user)}
+                            className={!isSuspended ? "text-destructive" : ""}
+                            disabled={isCurrentUser}
+                          >
+                            {isSuspended ? "Unsuspend User" : "Suspend User"}
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +19,19 @@ import { Loader2 } from 'lucide-react';
 import { buttonVariants } from '../ui/button';
 import { cn } from '@/lib/utils';
 
-type User = Database['public']['Functions']['get_all_users']['Returns'][number];
+// Updated User type to include tenant_name
+type User = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: Database['public']['Enums']['app_role'];
+  created_at: string;
+  banned_until: string | null;
+  avatar_url: string | null;
+  grade: number | null;
+  subjects: any;
+  tenant_name: string | null;
+};
 
 interface SuspendUserDialogProps {
   user: User | null;
@@ -60,7 +73,7 @@ export const SuspendUserDialog: React.FC<SuspendUserDialogProps> = ({ user, isOp
     },
   });
 
-  if (!user) return null;
+  if (!user || user.role === 'super_admin') return null;
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>

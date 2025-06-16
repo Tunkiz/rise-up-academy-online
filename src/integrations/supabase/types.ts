@@ -744,6 +744,7 @@ export type Database = {
           avatar_url: string
           grade: number
           subjects: Json
+          tenant_name: string
         }[]
       }
       get_current_tenant_id: {
@@ -755,6 +756,15 @@ export type Database = {
         Returns: {
           id: string
           title: string
+        }[]
+      }
+      get_super_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_tenants_count: number
+          total_users_across_all_tenants: number
+          total_active_users_last_30_days: number
+          tenants_with_stats: Json
         }[]
       }
       get_user_activity: {
@@ -804,6 +814,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_tenant_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       manage_user_suspension: {
         Args: { target_user_id: string; action: string }
         Returns: undefined
@@ -829,7 +847,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "learner" | "tutor" | "parent"
+      app_role: "admin" | "learner" | "tutor" | "parent" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -945,7 +963,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "learner", "tutor", "parent"],
+      app_role: ["admin", "learner", "tutor", "parent", "super_admin"],
     },
   },
 } as const

@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,9 +33,23 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
-type User = Database['public']['Functions']['get_all_users']['Returns'][number];
+// Updated User type to include tenant_name
+type User = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: Database['public']['Enums']['app_role'];
+  created_at: string;
+  banned_until: string | null;
+  avatar_url: string | null;
+  grade: number | null;
+  subjects: any;
+  tenant_name: string | null;
+};
+
 type AppRole = Database['public']['Enums']['app_role'];
 
+// Exclude super_admin from regular role editing - only super admins can assign super_admin roles
 const ROLES = ['admin', 'learner', 'tutor', 'parent'] as const;
 
 const editRoleSchema = z.object({
@@ -58,8 +73,8 @@ export const EditRoleDialog: React.FC<EditRoleDialogProps> = ({ user, isOpen, on
   });
 
   React.useEffect(() => {
-    if (user) {
-      form.reset({ role: user.role });
+    if (user && user.role !== 'super_admin') {
+      form.reset({ role: user.role as any });
     }
   }, [user, form]);
 
@@ -95,7 +110,7 @@ export const EditRoleDialog: React.FC<EditRoleDialogProps> = ({ user, isOpen, on
     updateUserRole(data);
   };
 
-  if (!user) return null;
+  if (!user || user.role === 'super_admin') return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -103,7 +118,7 @@ export const EditRoleDialog: React.FC<EditRoleDialogProps> = ({ user, isOpen, on
         <DialogHeader>
           <DialogTitle>Edit Role for {user.full_name || user.email}</DialogTitle>
           <DialogDescription>
-            Select a new role for this user. This will change their permissions across the application.
+            Select a new role for this user. This will change their permissions within their organization.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
