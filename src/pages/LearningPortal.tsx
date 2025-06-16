@@ -1,9 +1,12 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,7 +22,7 @@ type UserSubject = { subject_id: string };
 const LearningPortal = () => {
   const { user } = useAuth();
 
-  const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
+  const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useQuery({
     queryKey: ["subjects"],
     queryFn: async (): Promise<Subject[]> => {
       const { data, error } = await supabase.from("subjects").select("*");
@@ -28,7 +31,7 @@ const LearningPortal = () => {
     },
   });
 
-  const { data: userSubjects, isLoading: isLoadingUserSubjects } = useQuery({
+  const { data: userSubjects, isLoading: isLoadingUserSubjects, error: userSubjectsError } = useQuery({
     queryKey: ["user_subjects", user?.id],
     queryFn: async (): Promise<UserSubject[]> => {
       if (!user) return [];
@@ -42,7 +45,7 @@ const LearningPortal = () => {
     enabled: !!user,
   });
 
-  const { data: studentProgress, isLoading: isLoadingProgress } = useQuery({
+  const { data: studentProgress, isLoading: isLoadingProgress, error: progressError } = useQuery({
     queryKey: ["student_progress", user?.id],
     queryFn: async (): Promise<StudentProgress[]> => {
       if (!user) return [];
@@ -56,8 +59,8 @@ const LearningPortal = () => {
     enabled: !!user,
   });
 
-  const isLoading =
-    isLoadingSubjects || (!!user && (isLoadingProgress || isLoadingUserSubjects));
+  const isLoading = isLoadingSubjects || (!!user && (isLoadingProgress || isLoadingUserSubjects));
+  const hasError = subjectsError || userSubjectsError || progressError;
 
   const userSubjectIds = user
     ? new Set(userSubjects?.map((us) => us.subject_id) ?? [])
@@ -79,6 +82,27 @@ const LearningPortal = () => {
 
   const userSubjectIdsArray = userSubjectIds ? Array.from(userSubjectIds) : [];
 
+  if (hasError) {
+    return (
+      <div className="container py-10">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to load learning portal data. Please try refreshing the page.
+            {(subjectsError || userSubjectsError || progressError) && (
+              <details className="mt-2">
+                <summary>Error details</summary>
+                <pre className="text-xs mt-1">
+                  {(subjectsError?.message || userSubjectsError?.message || progressError?.message)}
+                </pre>
+              </details>
+            )}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-10">
       <h1 id="learning-portal-title" className="text-4xl font-bold">Learning Portal</h1>
@@ -86,7 +110,9 @@ const LearningPortal = () => {
         Your gateway to knowledge. Select a subject to start learning.
       </p>
 
-      {user && userSubjectIdsArray.length > 0 && <ClassSchedule userSubjectIds={userSubjectIdsArray} />}
+      {user && userSubjectIdsArray.length > 0 && (
+        <ClassSchedule userSubjectIds={userSubjectIdsArray} />
+      )}
 
       <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading &&
@@ -153,4 +179,5 @@ const LearningPortal = () => {
     </div>
   );
 };
+
 export default LearningPortal;
