@@ -788,6 +788,7 @@ export type Database = {
           avatar_url: string
           grade: number
           subjects: Json
+          tenant_name: string
         }[]
       }
       get_user_lesson_deadlines: {

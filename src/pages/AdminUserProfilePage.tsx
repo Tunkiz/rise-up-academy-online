@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,20 @@ import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import { EditUserDetailsDialog } from '@/components/admin/EditUserDetailsDialog';
 import { EditUserSubjectsDialog } from '@/components/admin/EditUserSubjectsDialog';
 
+// Updated User type to match the get_user_details function return type
+type UserDetails = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: 'admin' | 'learner' | 'tutor' | 'parent' | 'super_admin';
+  created_at: string;
+  banned_until: string | null;
+  avatar_url: string | null;
+  grade: number | null;
+  subjects: any;
+  tenant_name: string | null;
+};
+
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const { user: currentUser } = useAuth();
@@ -28,7 +43,7 @@ const AdminUserProfilePage = () => {
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user-details', userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserDetails | null> => {
       if (!userId) return null;
       const { data, error } = await supabase.rpc('get_user_details', {
         p_user_id: userId,
@@ -98,6 +113,9 @@ const AdminUserProfilePage = () => {
                 <div>
                   <h2 className="text-2xl font-bold">{user.full_name || 'N/A'}</h2>
                   <p className="text-sm text-muted-foreground font-mono">{user.id}</p>
+                  {user.tenant_name && (
+                    <p className="text-sm text-muted-foreground">Organization: {user.tenant_name}</p>
+                  )}
                 </div>
               </div>
 
