@@ -25,12 +25,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAdminRole = async () => {
-      const { data, error } = await supabase.rpc('is_admin');
-      if (error) {
-        console.error("Error checking admin status:", error.message);
+      try {
+        const { data, error } = await supabase.rpc('is_admin');
+        if (error) {
+          console.error("Error checking admin status:", error.message);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
         setIsAdmin(false);
-      } else {
-        setIsAdmin(data);
       }
     };
 
@@ -38,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      
       if (currentUser) {
         await checkAdminRole();
       } else {
@@ -46,16 +52,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
 
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Set loading to true on auth change to prevent flicker of content
-      setLoading(true);
       handleAuthChange(session);
     });
 
-    // Initial check
-    setLoading(true);
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-        handleAuthChange(session);
+      handleAuthChange(session);
     });
 
     return () => {

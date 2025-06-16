@@ -1,20 +1,13 @@
+
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, BookOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthProvider";
-
-interface TutorNote {
-  id: string;
-  prompt: string;
-  response: string;
-  created_at: string;
-}
+import { useTutorNotes, useSaveTutorNote, useDeleteTutorNote } from "@/hooks/useTutorNotes";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessage {
   type: 'user' | 'ai';
@@ -33,69 +26,10 @@ export const AITutorChat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  const { data: savedNotes, isLoading: isLoadingNotes } = useQuery({
-    queryKey: ['tutor-notes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tutor_notes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as TutorNote[];
-    },
-  });
-
-  const deleteNoteMutation = useMutation({
-    mutationFn: async (noteId: string) => {
-      const { error } = await supabase
-        .from('tutor_notes')
-        .delete()
-        .eq('id', noteId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
-      toast.success('Note deleted successfully!');
-    },
-    onError: (error) => {
-      toast.error('Failed to delete note');
-    },
-  });
-
-  const saveNoteMutation = useMutation({
-    mutationFn: async ({ prompt, response }: { prompt: string; response: string }) => {
-      if (!user) throw new Error('Not authenticated');
-
-      // Get current user's tenant_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.tenant_id) {
-        throw new Error('User tenant not found');
-      }
-
-      const { error } = await supabase.from('tutor_notes').insert({
-        user_id: user.id,
-        prompt,
-        response,
-        tenant_id: profile.tenant_id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tutor-notes'] });
-      toast.success('Note saved successfully!');
-    },
-    onError: (error) => {
-      toast.error('Failed to save note');
-    },
-  });
+  const { data: savedNotes, isLoading: isLoadingNotes } = useTutorNotes();
+  const saveNoteMutation = useSaveTutorNote();
+  const deleteNoteMutation = useDeleteTutorNote();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

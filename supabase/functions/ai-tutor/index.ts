@@ -13,8 +13,7 @@ const system_prompt = `You are Edu, a friendly and encouraging AI tutor for stud
 - Keep your tone positive and supportive.
 - Format your responses using markdown for better readability (e.g., use lists, bold text, etc.).
 - For mathematical and scientific formulas, use LaTeX syntax. For inline formulas, wrap them in single dollar signs (e.g., $E=mc^2$). For block formulas, wrap them in double dollar signs (e.g., $$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$$).
-- For diagrams, try to use ASCII art or describe them clearly in text, as complex visual rendering is not supported yet.
-- CRITICAL: Your entire response must be plain text. Do NOT wrap your response in JSON or any other structured format.`;
+- For diagrams, try to use ASCII art or describe them clearly in text, as complex visual rendering is not supported yet.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,22 +21,22 @@ serve(async (req) => {
   }
 
   try {
-    const { history } = await req.json();
+    const { prompt } = await req.json();
+
+    if (!prompt) {
+      throw new Error("Prompt is required");
+    }
 
     const requestBody = {
       contents: [
-        ...history.map((turn: { role: string; parts: { text: string }[] }) => ({
-          role: turn.role,
-          parts: turn.parts,
-        })),
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
       ],
       systemInstruction: {
         role: "system",
-        parts: [
-          {
-            text: system_prompt,
-          },
-        ],
+        parts: [{ text: system_prompt }]
       },
     };
 
@@ -53,33 +52,37 @@ serve(async (req) => {
       throw new Error(`Gemini API error: ${geminiResponse.statusText}`);
     }
 
-    const stream = geminiResponse.body!
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(
-        new TransformStream({
-          transform(chunk, controller) {
-            const lines = chunk.split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const jsonString = line.substring(6);
-                  const json = JSON.parse(jsonString);
-                  const text = json.candidates[0]?.content?.parts[0]?.text;
-                  if (text) {
-                    controller.enqueue(text);
-                  }
-                } catch (e) {
-                  console.error("Failed to parse stream chunk:", e);
-                }
-              }
-            }
-          },
-        })
-      )
-      .pipeThrough(new TextEncoderStream());
+    let fullResponse = "";
+    const reader = geminiResponse.body?.getReader();
+    const decoder = new TextDecoder();
 
-    return new Response(stream, {
-      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+        
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const jsonString = line.substring(6);
+              const json = JSON.parse(jsonString);
+              const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                fullResponse += text;
+              }
+            } catch (e) {
+              console.error("Failed to parse stream chunk:", e);
+            }
+          }
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ response: fullResponse }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error in ai-tutor function:", error);
