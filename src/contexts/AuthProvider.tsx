@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,6 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
-  isSuperAdmin: boolean;
   isSuperAdmin: boolean;
 };
 
@@ -57,6 +55,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     
+    const checkAdminRole = async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_admin');
+        if (error) {
+          console.error("Error checking admin status:", error.message);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+
     const checkSuperAdminRole = async () => {
       try {
         const { data, error } = await supabase.rpc('is_super_admin');
