@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -18,7 +17,6 @@ import {
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tables } from "@/integrations/supabase/types";
 import {
@@ -31,6 +29,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminDashboard from "@/components/admin/AdminDashboard";
+import UserManagementTable from "@/components/admin/UserManagementTable";
+import SubjectManagement from "@/components/admin/SubjectManagement";
+import LessonManagement from "@/components/admin/LessonManagement";
 
 type Subject = Tables<'subjects'>;
 type Resource = Tables<'resources'>;
@@ -112,13 +115,12 @@ const AdminPage = () => {
       toast.error(`Failed to delete resource: ${error.message}`);
     },
   });
-
   useEffect(() => {
     if (!user) {
       toast.error("You must be logged in to access this page.");
     }
   }, [user]);
-
+  
   if (!user) {
     return null;
   }
@@ -129,13 +131,38 @@ const AdminPage = () => {
         <h1 className="text-4xl font-bold">Admin Dashboard</h1>
         <Button onClick={() => setOpen(true)}>Create Resource</Button>
       </div>
-
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create New Resource</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter the details for the new resource.
+      
+      <Tabs defaultValue="dashboard" className="space-y-8">        <TabsList className="grid grid-cols-5 w-full max-w-lg mx-auto">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="subjects">Subjects</TabsTrigger>
+          <TabsTrigger value="lessons">Lessons</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="dashboard" className="space-y-4">
+          <AdminDashboard />
+        </TabsContent>
+        
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage users in your organization</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UserManagementTable />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="resources">
+          <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Create New Resource</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Enter the details for the new resource.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-4 py-4">
@@ -210,8 +237,7 @@ const AdminPage = () => {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isLoadingResources ? (
+            <TableBody>              {isLoadingResources ? (
                 <>
                   <TableRow>
                     <TableCell><Skeleton /></TableCell>
@@ -255,6 +281,31 @@ const AdminPage = () => {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+          <TabsContent value="subjects" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Subject Management</CardTitle>
+              <CardDescription>Manage subjects for your organization</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SubjectManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="lessons" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Lesson Management</CardTitle>
+              <CardDescription>Create and manage lessons across all subjects</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LessonManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -101,22 +101,56 @@ interface CreateLessonFormProps {
     subjects: Subject[] | undefined;
     isLoadingSubjects: boolean;
     onLessonCreated: () => void;
+    initialTopicId?: string;
+    initialSubjectId?: string;
 }
 
-export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated }: CreateLessonFormProps) => {
+export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated, initialTopicId, initialSubjectId }: CreateLessonFormProps) => {
   const queryClient = useQueryClient();
   const [selectedLessonSubjectId, setSelectedLessonSubjectId] = useState<string | null>(null);
 
+  // Fetch the topic to get its subject_id
+  const { data: topicData } = useQuery({
+    queryKey: ['topic-details', initialTopicId],
+    queryFn: async () => {
+      if (!initialTopicId) return null;
+      const { data, error } = await supabase
+        .from('topics')
+        .select('subject_id')
+        .eq('id', initialTopicId)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!initialTopicId,
+  });
+  
+  // Set the selectedLessonSubjectId when topicData is loaded
+  useEffect(() => {
+    if (topicData?.subject_id) {
+      setSelectedLessonSubjectId(topicData.subject_id);
+    }
+  }, [topicData]);
   const lessonForm = useForm<LessonFormValues>({
     resolver: zodResolver(lessonFormSchema),
     defaultValues: {
         title: "",
         description: "",
         subject_id: "",
-        topic_id: "",
+        topic_id: initialTopicId || "",
         grade: "",
     },
   });
+    // Update subject_id when topicData is loaded or initialSubjectId is provided
+  useEffect(() => {
+    if (initialSubjectId) {
+      lessonForm.setValue('subject_id', initialSubjectId);
+      setSelectedLessonSubjectId(initialSubjectId);
+    } else if (topicData?.subject_id) {
+      lessonForm.setValue('subject_id', topicData.subject_id);
+      setSelectedLessonSubjectId(topicData.subject_id);
+    }
+  }, [topicData, lessonForm, initialSubjectId]);
   const lessonType = lessonForm.watch('lesson_type');
 
   const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
@@ -252,7 +286,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
             )} />
             <FormField control={lessonForm.control} name="description" render={({ field }) => (
                 <FormItem><FormLabel>Summary / Description (Optional)</FormLabel><FormControl><Textarea placeholder="A brief summary of the lesson." {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
+            )} />{!initialTopicId && (
             <FormField control={lessonForm.control} name="subject_id" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Subject</FormLabel>
@@ -263,6 +297,8 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                     <FormMessage />
                 </FormItem>
             )} />
+            )}
+            {!initialTopicId && (
             <FormField control={lessonForm.control} name="topic_id" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Topic</FormLabel>
@@ -273,6 +309,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated 
                     <FormMessage />
                 </FormItem>
             )} />
+            )}
             <FormField control={lessonForm.control} name="grade" render={({ field }) => (
               <FormItem>
                 <FormLabel>Grade</FormLabel>

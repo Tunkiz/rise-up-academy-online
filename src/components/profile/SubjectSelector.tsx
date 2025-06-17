@@ -15,6 +15,21 @@ type UserSubject = { subject_id: string };
 const SubjectSelector: React.FC = () => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    
+    // Check if the user is an admin
+    const { data: isAdmin, isLoading: isLoadingRole } = useQuery({
+        queryKey: ['is-admin', user?.id],
+        queryFn: async () => {
+            if (!user) return false;
+            const { data, error } = await supabase.rpc('is_admin');
+            if (error) {
+                console.error("Error checking admin role:", error);
+                return false;
+            }
+            return data || false;
+        },
+        enabled: !!user,
+    });
 
     const { data: allSubjects, isLoading: isLoadingAllSubjects } = useQuery<Subject[]>({
         queryKey: ['subjects'],
@@ -78,9 +93,7 @@ const SubjectSelector: React.FC = () => {
     const handleSubjectChange = (subjectId: string) => {
         const isSelected = !userSubjectIds.has(subjectId);
         subjectMutation.mutate({ subjectId, isSelected });
-    };
-
-    if (isLoadingAllSubjects || isLoadingUserSubjects) {
+    };    if (isLoadingAllSubjects || isLoadingUserSubjects || isLoadingRole) {
         return (
             <div className="space-y-2">
                 <Skeleton className="h-8 w-1/3" />
@@ -96,13 +109,18 @@ const SubjectSelector: React.FC = () => {
             </div>
         );
     }
-    
-    return (
+      return (
         <div className="space-y-4">
              <h3 className="text-lg font-medium">My Subjects</h3>
-             <p className="text-sm text-muted-foreground">
-                Select the subjects you are studying. This will help us tailor content for you.
-             </p>
+             {isAdmin ? (
+                <p className="text-sm text-muted-foreground">
+                    As an admin, you can manage your enrolled subjects below. Changes can only be made by users with administrative privileges.
+                </p>
+             ) : (
+                <p className="text-sm text-muted-foreground">
+                    These are the subjects assigned to you. Please contact an administrator if you need to change your subject enrollments.
+                </p>
+             )}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {allSubjects?.map((subject) => (
                     <div key={subject.id} className="flex items-center space-x-2">
@@ -110,14 +128,21 @@ const SubjectSelector: React.FC = () => {
                             id={`subject-${subject.id}`}
                             checked={userSubjectIds.has(subject.id)}
                             onCheckedChange={() => handleSubjectChange(subject.id)}
-                            disabled={subjectMutation.isPending}
+                            disabled={!isAdmin || subjectMutation.isPending}
                         />
-                        <Label htmlFor={`subject-${subject.id}`} className="font-normal cursor-pointer">
+                        <Label 
+                            htmlFor={`subject-${subject.id}`} 
+                            className={`font-normal ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}>
                             {subject.name}
                         </Label>
                     </div>
                 ))}
             </div>
+            {!isAdmin && userSubjectIds.size === 0 && (
+                <p className="text-sm text-amber-500 mt-2">
+                    No subjects have been assigned to you yet. Please contact your administrator.
+                </p>
+            )}
         </div>
     );
 };

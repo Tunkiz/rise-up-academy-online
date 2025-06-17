@@ -1,13 +1,13 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { Edit, Trash2, Video, FileText, CheckSquare, File as FileIcon, Loader2 } from "lucide-react";
+import { Edit, Trash2, Video, FileText, CheckSquare, File as FileIcon, Loader2, PlusCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { EditLessonDialog } from "./EditLessonDialog";
+import { CreateLessonDialog } from "./CreateLessonDialog";
 
 type Lesson = Tables<'lessons'>;
 
@@ -25,7 +25,23 @@ interface LessonListProps {
 const LessonList = ({ topicId }: LessonListProps) => {
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+
+  // Fetch topic details including subject_id
+  const { data: topicDetails } = useQuery({
+    queryKey: ['topic-details', topicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('topics')
+        .select('*, subject_id')
+        .eq('id', topicId)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!topicId,
+  });
 
   const { data: lessons, isLoading: isLoadingLessons } = useQuery({
     queryKey: ['lessons', topicId],
@@ -65,8 +81,17 @@ const LessonList = ({ topicId }: LessonListProps) => {
   }
 
   return (
-    <>
-      <div className="pl-8 pr-2 py-2 bg-muted/25 border-t">
+    <>      <div className="pl-8 pr-2 py-2 bg-muted/25 border-t">
+        <div className="flex justify-end mb-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setIsCreateDialogOpen(true)} 
+            className="text-xs"
+          >
+            <PlusCircle className="mr-1 h-3 w-3" /> Add Lesson
+          </Button>
+        </div>
         {lessons && lessons.length > 0 ? (
           <ul className="space-y-1">
             {lessons.map((lesson) => (
@@ -107,14 +132,18 @@ const LessonList = ({ topicId }: LessonListProps) => {
         ) : (
           <p className="px-3 py-4 text-center text-xs text-muted-foreground">No lessons found for this topic.</p>
         )}
-      </div>
-      {selectedLesson && (
+      </div>      {selectedLesson && (
         <EditLessonDialog
           isOpen={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           lesson={selectedLesson}
         />
-      )}
+      )}      <CreateLessonDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        topicId={topicId}
+        subjectId={topicDetails?.subject_id}
+      />
     </>
   );
 };

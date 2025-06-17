@@ -40,9 +40,8 @@ const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, on
   </NavLink>
 );
 
-export function Header() {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { user, isAdmin } = useAuth();
+export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -96,11 +95,16 @@ export function Header() {
                   <DropdownMenuItem onSelect={() => navigate('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
-                  </DropdownMenuItem>
-                  {isAdmin && (
+                  </DropdownMenuItem>                  {isAdmin && (
                     <DropdownMenuItem onSelect={() => navigate('/admin')}>
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Admin Panel</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isSuperAdmin && (
+                    <DropdownMenuItem onSelect={() => navigate('/super-admin')}>
+                      <Shield className="mr-2 h-4 w-4 text-amber-500" />
+                      <span>Super Admin</span>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -142,10 +146,14 @@ export function Header() {
                     <div className="space-y-4">
                       <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/profile'); setIsSheetOpen(false); }}>
                         <User className="mr-2 h-4 w-4" /> Profile
-                      </Button>
-                      {isAdmin && (
+                      </Button>                      {isAdmin && (
                         <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/admin'); setIsSheetOpen(false); }}>
                           <Shield className="mr-2 h-4 w-4" /> Admin Panel
+                        </Button>
+                      )}
+                      {isSuperAdmin && (
+                        <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/super-admin'); setIsSheetOpen(false); }}>
+                          <Shield className="mr-2 h-4 w-4 text-amber-500" /> Super Admin
                         </Button>
                       )}
                       <Button variant="outline" className="w-full justify-start" onClick={() => { handleLogout(); setIsSheetOpen(false); }}>

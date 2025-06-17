@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +7,20 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import SuperAdminDashboard from "@/components/admin/SuperAdminDashboard";
+
+interface TenantFormState {
+    name: string;
+    domain: string;
+    adminEmail: string;
+    adminPassword: string;
+    adminFullName: string;
+}
 
 const SuperAdminPage = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isSuperAdmin } = useAuth();
     const { toast } = useToast();
-    const [tenantForm, setTenantForm] = useState({
+    const [tenantForm, setTenantForm] = useState<TenantFormState>({
         name: "",
         domain: "",
         adminEmail: "",
@@ -22,17 +30,6 @@ const SuperAdminPage = () => {
     const [superAdminEmail, setSuperAdminEmail] = useState("");
     const [isCreatingTenant, setIsCreatingTenant] = useState(false);
     const [isAssigningSuperAdmin, setIsAssigningSuperAdmin] = useState(false);
-
-    // Check if current user is super admin
-    const { data: isSuperAdmin, isLoading: checkingRole } = useQuery({
-        queryKey: ['is-super-admin'],
-        queryFn: async () => {
-            const { data, error } = await supabase.rpc('is_super_admin');
-            if (error) throw error;
-            return data;
-        },
-        enabled: !!user,
-    });
 
     // Get all tenants
     const { data: tenants, refetch: refetchTenants } = useQuery({
@@ -45,7 +42,7 @@ const SuperAdminPage = () => {
             if (error) throw error;
             return data;
         },
-        enabled: isSuperAdmin,
+        enabled: !!isSuperAdmin,
     });
 
     const handleCreateTenant = async (e: React.FormEvent) => {
@@ -53,7 +50,7 @@ const SuperAdminPage = () => {
         setIsCreatingTenant(true);
 
         try {
-            // First create the tenant
+            // Create the tenant
             const { data, error } = await supabase.rpc('create_tenant', {
                 tenant_name: tenantForm.name,
                 tenant_domain: tenantForm.domain,
@@ -66,7 +63,7 @@ const SuperAdminPage = () => {
 
             toast({
                 title: "Tenant created successfully!",
-                description: `${tenantForm.name} has been created. Admin user should be created separately.`,
+                description: `${tenantForm.name} has been created.`,
             });
 
             setTenantForm({
@@ -94,16 +91,16 @@ const SuperAdminPage = () => {
         setIsAssigningSuperAdmin(true);
 
         try {
-            // First, get the user by email
+            // First, get the user by email/ID
             const { data: users, error: userError } = await supabase
                 .from('profiles')
                 .select('id')
-                .eq('id', superAdminEmail); // Note: This should be improved to search by email
+                .eq('id', superAdminEmail);
 
             if (userError) throw userError;
 
             if (!users || users.length === 0) {
-                throw new Error("User not found with that email");
+                throw new Error("User not found with that ID");
             }
 
             // Assign super admin role
@@ -131,7 +128,7 @@ const SuperAdminPage = () => {
         }
     };
 
-    if (authLoading || checkingRole) {
+    if (authLoading) {
         return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
 
@@ -156,6 +153,8 @@ const SuperAdminPage = () => {
                 <h1 className="text-3xl font-bold">Super Admin Panel</h1>
                 <p className="text-muted-foreground">Manage tenants and super administrators</p>
             </div>
+
+            <SuperAdminDashboard />
 
             <div className="grid gap-8 md:grid-cols-2">
                 {/* Create Tenant */}
