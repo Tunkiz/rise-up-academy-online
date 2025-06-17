@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useUserSubjects } from "@/hooks/useUserSubjects";
 
 const studyPlannerTourSteps = [
     { target: '#create-plan-card', title: 'Create Your Plan', content: 'Start by telling us your goals, timeframe, and how much you can study each week.', placement: 'right' as const },
@@ -43,21 +44,21 @@ interface CurrentPlanDetails extends FormValues {
   plan_content?: string;
 }
 
-const planTemplates: PlanTemplate[] = [
+const defaultPlanTemplates: PlanTemplate[] = [
   {
     title: "Exam Preparation",
     goal: "Prepare for upcoming exams with comprehensive revision",
     timeframe: "2 months",
     hours_per_week: 15,
-    subjects: ["mathematics", "physics", "chemistry"],
+    subjects: [], // Will be filled with user's subjects
     difficulty_level: "intermediate",
   },
   {
     title: "Language Learning",
-    goal: "Achieve conversational fluency in a new language",
+    goal: "Achieve conversational fluency",
     timeframe: "6 months",
     hours_per_week: 10,
-    subjects: ["english"],
+    subjects: [], // Will be filled with user's subjects
     difficulty_level: "beginner",
   },
   {
@@ -65,7 +66,7 @@ const planTemplates: PlanTemplate[] = [
     goal: "Master key skills for career advancement",
     timeframe: "3 months",
     hours_per_week: 8,
-    subjects: ["computer_science", "business_studies"],
+    subjects: [], // Will be filled with user's subjects
     difficulty_level: "advanced",
   },
 ];
@@ -78,6 +79,7 @@ const StudyPlanner = () => {
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [planTemplates, setPlanTemplates] = useState<PlanTemplate[]>(defaultPlanTemplates);
   const tourId = 'study-planner';
 
   const form = useForm<FormValues>({
@@ -112,6 +114,8 @@ const StudyPlanner = () => {
     isSaving 
   } = useStudyPlanGeneration();
 
+  const { data: userSubjects } = useUserSubjects();
+
   const filteredPlans = (pastPlans as DBStudyPlan[] | undefined)?.filter(plan => {    const matchesSearch = searchTerm === "" || 
       plan.goal.toLowerCase().includes(searchTerm.toLowerCase()) ||
       plan.plan_content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -122,17 +126,50 @@ const StudyPlanner = () => {
     return matchesSearch && matchesSubject;
   });
 
+  // Update templates when user subjects are loaded
+  useEffect(() => {
+    if (userSubjects) {
+      const userSubjectIds = userSubjects.map(us => us.subject_id);
+      const updatedTemplates = defaultPlanTemplates.map(template => ({
+        ...template,
+        subjects: userSubjectIds.slice(0, 3) // Take up to 3 subjects for each template
+      }));
+      setPlanTemplates(updatedTemplates);
+    }
+  }, [userSubjects]);
   const handleTemplateSelect = (template: PlanTemplate) => {
-    form.reset({
+    // Filter template subjects to only include user's subjects
+    const validSubjects = template.subjects.filter(subjectId => 
+      userSubjects?.some(us => us.subject_id === subjectId)
+    );
+
+    if (!validSubjects.length && userSubjects?.length) {
+      // If no valid subjects in template, use the first subject from user's subjects
+      validSubjects.push(userSubjects[0].subject_id);
+    }
+
+    const formValues = {
       goal: template.goal,
       timeframe: template.timeframe,
       hours_per_week: template.hours_per_week,
-      subjects: template.subjects,
+      subjects: validSubjects,
       difficulty_level: template.difficulty_level,
-    });
-  };
+      target_date: undefined // Reset target date when using template
+    };
 
+    form.reset(formValues);
+    
+    // Trigger form validation
+    form.trigger();
+
+    toast.success(`Template "${template.title}" applied successfully`);
+  };
   const onSubmit = (data: FormValues) => {
+    if (!data.subjects?.length) {
+      toast.error('Please select at least one subject');
+      return;
+    }
+
     const requestData = {
       goal: data.goal,
       timeframe: data.timeframe,
@@ -144,8 +181,13 @@ const StudyPlanner = () => {
     
     generatePlan.mutate(requestData, {
       onSuccess: (result) => {
-        setGeneratedPlan(result.plan);
-        setCurrentPlanDetails(data);
+        if (result?.plan) {
+          setGeneratedPlan(result.plan);
+          setCurrentPlanDetails(data);
+          toast.success('Study plan generated successfully!');
+        } else {
+          toast.error('Failed to generate plan: No plan content received');
+        }
       },
     });
   };
@@ -217,20 +259,40 @@ const StudyPlanner = () => {
                       Choose a template to quickly create a study plan.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {planTemplates.map((template) => (
-                      <Card key={template.title}className="cursor-pointer hover:bg-accent" onClick={() => handleTemplateSelect(template)}>
-                        <CardHeader>
-                          <CardTitle className="text-lg">{template.title}</CardTitle>
-                          <CardDescription>{template.goal}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-muted-foreground">
-                            {template.timeframe} • {template.hours_per_week} hours/week • {template.difficulty_level}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <CardContent className="grid gap-4">
+                    {planTemplates.map((template, index) => {
+                      const templateSubjects = template.subjects
+                        .map(subjectId => userSubjects?.find(us => us.subject_id === subjectId)?.subjects.name)
+                        .filter(Boolean);
+
+                      return (
+                        <Card key={index} className="p-4 cursor-pointer hover:bg-accent transition-colors"
+                              onClick={() => handleTemplateSelect(template)}>
+                          <CardHeader className="p-0">
+                            <CardTitle className="text-lg">{template.title}</CardTitle>
+                            <CardDescription>{template.goal}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-0 pt-4">
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <strong>Timeframe:</strong> {template.timeframe}
+                              </div>
+                              <div>
+                                <strong>Hours/week:</strong> {template.hours_per_week}
+                              </div>
+                              <div>
+                                <strong>Level:</strong> {template.difficulty_level}
+                              </div>
+                              <div>
+                                <strong>Subjects:</strong> {templateSubjects.length ? 
+                                  templateSubjects.join(", ") : 
+                                  "Based on your enrolled subjects"}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </TabsContent>

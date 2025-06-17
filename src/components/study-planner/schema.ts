@@ -44,5 +44,4 @@ export interface StudyPlanTemplate {
   hours_per_week: number;
   subjects: string[];
   difficulty_level: "beginner" | "intermediate" | "advanced";
-  target_date?: Date;
 }
