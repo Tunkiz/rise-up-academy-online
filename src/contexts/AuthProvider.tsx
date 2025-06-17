@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAdmin: false,
+  isSuperAdmin: false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -22,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   useEffect(() => {
     const checkAdminRole = async () => {
       try {
@@ -38,16 +40,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAdmin(false);
       }
     };
-
-    const handleAuthChange = async (session: Session | null) => {
+    
+    const checkSuperAdminRole = async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_super_admin');
+        if (error) {
+          console.error("Error checking super admin status:", error.message);
+          setIsSuperAdmin(false);
+        } else {
+          setIsSuperAdmin(data);
+        }
+      } catch (error) {
+        console.error("Error checking super admin status:", error);
+        setIsSuperAdmin(false);
+      }
+    };    const handleAuthChange = async (session: Session | null) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       
       if (currentUser) {
         await checkAdminRole();
+        await checkSuperAdminRole();
       } else {
         setIsAdmin(false);
+        setIsSuperAdmin(false);
       }
       setLoading(false);
     };
@@ -66,12 +83,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription?.unsubscribe();
     };
   }, []);
-
   const value = {
     session,
     user,
     loading,
     isAdmin,
+    isSuperAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

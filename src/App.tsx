@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
+import SuperAdminPage from "./pages/SuperAdminPage";
+import SuperAdminDiagnosticPage from "./pages/SuperAdminDiagnosticPage";
 import SubjectDashboard from "./pages/SubjectDashboard";
 import TopicPage from "./pages/TopicPage";
 import LessonPage from "./pages/LessonPage";
@@ -61,11 +62,12 @@ const App = () => (
                 <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
                 <Route path="/exam-assistance" element={<ExamAssistance />} />
                 <Route path="/tutor-notes" element={<TutorNotes />} />
-                <Route path="/study-planner" element={<StudyPlanner />} />
-                <Route path="/resource-library" element={<ResourceLibrary />} />
+                <Route path="/study-planner" element={<StudyPlanner />} />                <Route path="/resource-library" element={<ResourceLibrary />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/super-admin" element={<SuperAdminPage />} />
+                <Route path="/super-admin-debug" element={<SuperAdminDiagnosticPage />} />
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
