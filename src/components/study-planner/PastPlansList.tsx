@@ -10,12 +10,12 @@ type StudyPlan = Tables<'study_plans'>;
 interface PastPlansListProps {
   plans: StudyPlan[];
   isLoading: boolean;
-  onSelectPlan: (plan: StudyPlan) => void;
-  onDeletePlan: (planId: string) => void;
-  isDeletingPlan: boolean;
+  onPlanClick: (plan: StudyPlan) => void;
+  onPlanDelete: (planId: string) => void;
+  isDeleting: boolean;
 }
 
-export const PastPlansList = ({ plans, isLoading, onSelectPlan, onDeletePlan, isDeletingPlan }: PastPlansListProps) => {
+export const PastPlansList = ({ plans, isLoading, onPlanClick, onPlanDelete, isDeleting }: PastPlansListProps) => {
   return (
     <div id="past-plans-list" className="space-y-4">
       <h2 className="text-2xl font-bold">Your Past Plans</h2>
@@ -26,8 +26,15 @@ export const PastPlansList = ({ plans, isLoading, onSelectPlan, onDeletePlan, is
         </div>
       ) : plans && plans.length > 0 ? (
         plans.map(plan => (
-         <Card key={plan.id} className="group relative transition-colors hover:bg-muted/50">
-            <div onClick={() => onSelectPlan(plan)} className="cursor-pointer">
+         <Card key={plan.id} className="group relative transition-colors hover:bg-muted/50">            <button 
+              onClick={() => onPlanClick(plan)} 
+              className="w-full text-left cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  onPlanClick(plan);
+                }
+              }}
+            >
                 <CardHeader>
                     <CardTitle className="text-lg pr-10">{plan.goal}</CardTitle>
                     <CardDescription>Created on {format(new Date(plan.created_at), 'PPP')}</CardDescription>
@@ -35,18 +42,18 @@ export const PastPlansList = ({ plans, isLoading, onSelectPlan, onDeletePlan, is
                 <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-3">{plan.plan_content}</p>
                 </CardContent>
-            </div>
+            </button>
             <Button
               variant="ghost"
               size="icon"
               onClick={(e) => {
                 e.stopPropagation();
-                onDeletePlan(plan.id);
+                onPlanDelete(plan.id);
               }}
-              disabled={isDeletingPlan}
+              disabled={isDeleting}
               className="absolute top-2 right-2 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
             >
-              {isDeletingPlan ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash className="h-4 w-4 text-destructive" />}
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash className="h-4 w-4 text-destructive" />}
             </Button>
          </Card>
         ))

@@ -32,6 +32,7 @@ const StudyPlanner = () => {
   const { startTour, isTourCompleted, markTourAsCompleted } = useTour();
   const [showTourPrompt, setShowTourPrompt] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<any>(null);
+  const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
   const tourId = 'study-planner';
 
   const form = useForm<FormValues>({
@@ -42,7 +43,6 @@ const StudyPlanner = () => {
       hours_per_week: 1,
     },
   });
-
   const { 
     pastPlans, 
     isLoadingPastPlans, 
@@ -54,7 +54,15 @@ const StudyPlanner = () => {
     isDeletingPlan 
   } = usePastStudyPlans();
   
-  const { mutate: generatePlan, isPending: isGenerating } = useStudyPlanGeneration();
+  // Dialog state for viewing/editing plans
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  
+  const { 
+    generatePlan, 
+    savePlan,
+    isGenerating, 
+    isSaving 
+  } = useStudyPlanGeneration();
 
   const onSubmit = (data: FormValues) => {
     const requestData = {
@@ -65,10 +73,22 @@ const StudyPlanner = () => {
       currentLevel: "intermediate"
     };
     
-    generatePlan(requestData, {
+    generatePlan.mutate(requestData, {
       onSuccess: (result) => {
-        setCurrentPlanDetails({ ...data, plan: result.plan });
+        setGeneratedPlan(result.plan);
+        setCurrentPlanDetails(data);
       },
+    });
+  };
+
+  const handleSavePlan = () => {
+    if (!generatedPlan || !currentPlanDetails) return;
+    
+    savePlan.mutate({
+      plan: generatedPlan,
+      goal: currentPlanDetails.goal,
+      timeframe: currentPlanDetails.timeframe,
+      hoursPerWeek: currentPlanDetails.hours_per_week,
     });
   };
 
@@ -89,78 +109,78 @@ const StudyPlanner = () => {
   };
   
   const handleSkipTour = () => {
-      setShowTourPrompt(false);
-      markTourAsCompleted(tourId);
-  }
+    setShowTourPrompt(false);
+    markTourAsCompleted(tourId);
+  };
 
   return (
     <>
       <div className="container py-10">
         <div className="grid gap-12 lg:grid-cols-[1fr_2fr]">
           <div className="flex flex-col gap-8">
-            <div>
-              <h1 className="text-4xl font-bold">AI Study Planner</h1>
-              <p className="text-muted-foreground mt-2">Let our AI build the perfect study plan for you.</p>
-            </div>
             <Card id="create-plan-card">
               <CardHeader>
-                <CardTitle>Create Your Plan</CardTitle>
-                <CardDescription>Tell us your goals. We'll analyze your current progress to generate a truly personalized plan.</CardDescription>
+                <CardTitle>Create Study Plan</CardTitle>
+                <CardDescription>
+                  Our AI will help create a personalized study plan based on your goals.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <StudyPlanForm
-                  form={form}
-                  onSubmit={onSubmit}
-                  isGenerating={isGenerating}
-                  isLoadingProgress={false}
-                />
+                <StudyPlanForm form={form} onSubmit={onSubmit} isGenerating={isGenerating} />
               </CardContent>
-            </Card>
-            
+            </Card>          <div id="past-plans-list">
             <PastPlansList
               plans={pastPlans || []}
               isLoading={isLoadingPastPlans}
-              onSelectPlan={setSelectedPlan}
-              onDeletePlan={(planId) => deletePlan(planId)}
-              isDeletingPlan={isDeletingPlan}
+              onPlanClick={(plan) => {
+                setSelectedPlan(plan);
+                setIsViewDialogOpen(true);
+              }}
+              onPlanDelete={deletePlan}
+              isDeleting={isDeletingPlan}
             />
-
           </div>
-          <div id="generated-plan-view" className="sticky top-24 self-start">
+          </div>
+
+          <div id="generated-plan-view">
             <GeneratedPlanView
               currentPlanDetails={currentPlanDetails}
-              interactivePlan={null}
+              interactivePlan={generatedPlan}
               isGenerating={isGenerating}
-              isSaving={false}
-              onSavePlan={() => {}}
-              onCheckboxToggle={() => {}}
-              totalTasks={0}
-              completedTasks={0}
+              isSaving={isSaving}
+              onSavePlan={handleSavePlan}
             />
           </div>
         </div>
-        <ViewPlanDialog
-          plan={selectedPlan}
-          isOpen={!!selectedPlan}
-          onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
-          onUpdatePlan={({ planId, content }) => updatePlan({ planId, content })}
-          isUpdating={isUpdatingPlan}
-        />
       </div>
-      <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Study Planner Tour</AlertDialogTitle>
-            <AlertDialogDescription>
-              This is the AI Study Planner. Would you like a quick tour?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleSkipTour}>Skip</AlertDialogCancel>
-            <AlertDialogAction onClick={handleStartTour}>Start Tour</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+      {showTourPrompt && (
+        <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Welcome to Study Planner!</AlertDialogTitle>
+              <AlertDialogDescription>
+                Would you like a quick tour of the Study Planner interface? It will help you make the most of this feature.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleSkipTour}>Skip Tour</AlertDialogCancel>
+              <AlertDialogAction onClick={handleStartTour}>Take the Tour</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}      <ViewPlanDialog
+        plan={selectedPlan}
+        isOpen={isViewDialogOpen}
+        onOpenChange={(open) => {
+          setIsViewDialogOpen(open);
+          if (!open) {
+            setSelectedPlan(null);
+          }
+        }}
+        onUpdatePlan={({planId, content}) => updatePlan({ planId, content })}
+        isUpdating={isUpdatingPlan}
+      />
     </>
   );
 };

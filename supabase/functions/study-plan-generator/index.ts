@@ -13,11 +13,24 @@ serve(async (req) => {
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY is not set in environment variables.')
     }
-    
-    const { goal, timeframe, hours_per_week } = await req.json()
+      const body = await req.json()
+    const { goal, timeframe, hoursPerWeek, subjects = [], currentLevel = "intermediate" } = body
 
-    if (!goal || !timeframe || !hours_per_week) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: goal, timeframe, and hours_per_week are required.' }), {
+    // Validate required fields and types
+    if (!goal || typeof goal !== 'string') {
+      return new Response(JSON.stringify({ error: 'goal is required and must be a string' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    if (!timeframe || typeof timeframe !== 'string') {
+      return new Response(JSON.stringify({ error: 'timeframe is required and must be a string' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    if (!hoursPerWeek || typeof hoursPerWeek !== 'number' || hoursPerWeek <= 0) {
+      return new Response(JSON.stringify({ error: 'hoursPerWeek is required and must be a positive number' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
@@ -35,7 +48,7 @@ serve(async (req) => {
 **User's Goal and Constraints:**
 - **Goal:** "${goal}"
 - **Timeframe:** ${timeframe}
-- **Study hours per week:** ${hours_per_week}
+- **Study hours per week:** ${hoursPerWeek}
 
 Please generate the study plan now.`
 
