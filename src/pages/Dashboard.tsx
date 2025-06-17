@@ -1,11 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Book, Calendar } from "lucide-react";
+import { Book, Calendar, BookOpen, CheckCircle, Target, Clock, TrendingUp, Settings2, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { format, isToday, isAfter } from 'date-fns';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   ChartContainer,
   ChartTooltip,
@@ -24,18 +27,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const chartConfig = {
   progress: {
     label: "Progress (%)",
     color: "hsl(var(--primary))",
   },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 const dashboardTourSteps = [
+    { target: '#stats-cards', title: 'Learning Stats', content: 'Track your learning progress with these key metrics.', placement: 'bottom' as const },
     { target: '#progress-card', title: 'Your Progress', content: 'This section shows your progress across all subjects you are enrolled in.', placement: 'bottom' as const },
+    { target: '#activity-card', title: 'Recent Activity', content: 'See your most recent learning activities here.', placement: 'left' as const },
     { target: '#deadlines-card', title: 'Upcoming Deadlines', content: "Keep an eye on your upcoming lesson deadlines here. Don't miss them!", placement: 'left' as const },
-    { target: '#user-menu-button', title: 'Your Account', content: 'Manage your profile and account settings here.', placement: 'left' as const },
+    { target: '#quick-actions', title: 'Quick Actions', content: 'Access frequently used features and tools here.', placement: 'right' as const },
 ];
 
 const Dashboard = () => {
@@ -69,14 +75,28 @@ const Dashboard = () => {
       markTourAsCompleted(tourId);
   };
 
+  const { data: learningStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['learning_stats', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.rpc('get_user_learning_stats', {
+        p_user_id: user.id,
+      });
+      if (error) throw new Error(error.message);
+      return data?.[0];
+    },
+    enabled: !!user,
+  });
+
   const { data: progressData, isLoading: isProgressLoading } = useQuery({
     queryKey: ['progress', user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('student_progress')
-        .select(`progress, subjects (name)`)
-        .eq('user_id', user.id);
+        .select('progress, subjects (id, name)')
+        .eq('user_id', user.id)
+        .order('progress', { ascending: false });
       
       if (error) throw new Error(error.message);
       return data;
@@ -84,10 +104,22 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  const chartData = progressData?.map((item) => ({
-    subject: item.subjects?.name || 'Unnamed Subject',
-    progress: item.progress,
-  })) || [];
+  const { data: recentActivity, isLoading: isLoadingActivity } = useQuery({
+    queryKey: ['recent_activity', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('recent_activity')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: deadlinesData, isLoading: isDeadlinesLoading } = useQuery({
     queryKey: ['lesson_deadlines', user?.id],
@@ -106,6 +138,13 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  const chartData = progressData?.map((item) => ({
+    subject: item.subjects?.name || 'Unnamed Subject',
+    progress: item.progress,
+  })) || [];
+
+  const averageProgress = progressData?.reduce((acc, curr) => acc + (curr.progress || 0), 0) / (progressData?.length || 1);
+
   return (
   <>
     <div className="container py-10">
@@ -114,25 +153,94 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata.full_name || 'Student'}!</h1>
           <p className="text-muted-foreground mt-2">Here's a snapshot of your learning journey.</p>
         </div>
+        <div id="quick-actions" className="flex gap-3">          <Button variant="secondary" onClick={() => navigate('/study-planner')}>
+            <Target className="mr-2 h-4 w-4" />
+            Create Study Plan
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/exam-assistance')}>
+            <Settings2 className="mr-2 h-4 w-4" />
+            Get Exam Help
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div id="stats-cards" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Progress</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{Math.round(averageProgress)}%</div>
+                <Progress value={averageProgress} className="mt-2" />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{learningStats?.lessons_completed || 0}</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Study Time</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{learningStats?.total_study_hours || 0}h</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Subjects</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{learningStats?.active_subjects || 0}</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {/* My Progress Card */}
+        {/* Progress Card */}
         <Card id="progress-card" className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Book className="mr-2 h-5 w-5" />
-              My Progress
+              Subject Progress
             </CardTitle>
-            <CardDescription>Your overall progress across all subjects.</CardDescription>
+            <CardDescription>Your progress across all enrolled subjects.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {isProgressLoading ? <p>Loading progress...</p> : null}
-              {chartData && chartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                  <BarChart accessibilityLayer data={chartData}>
-                    <CartesianGrid vertical={false} />
+              {isProgressLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="subject"
                       tickLine={false}
@@ -144,49 +252,134 @@ const Dashboard = () => {
                       cursor={false}
                       content={<ChartTooltipContent />}
                     />
-                    <Bar dataKey="progress" fill="var(--color-progress)" radius={4} />
+                    <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
-                </ChartContainer>
-              ) : !isProgressLoading && (
-                <p className="text-muted-foreground text-sm">No progress tracked yet. Complete a lesson to see your progress!</p>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No progress tracked yet.</p>
+                  <p className="text-sm">Complete lessons to see your progress!</p>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Upcoming Deadlines Card */}
-        <Card id="deadlines-card">
+        {/* Recent Activity Card */}
+        <Card id="activity-card">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="mr-2 h-5 w-5" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>Your latest learning activities.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingActivity ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recentActivity && recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-4">
+                    <div className="rounded-full bg-muted p-2">
+                      <BookOpen className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm">{activity.activity}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(activity.date), 'PP p')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent activity.</p>
+                <p className="text-sm">Start learning to see your activities!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Deadlines Card */}
+        <Card id="deadlines-card" className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Calendar className="mr-2 h-5 w-5" />
               Upcoming Deadlines
             </CardTitle>
-            <CardDescription>Don't miss these important dates.</CardDescription>
+            <CardDescription>Stay on track with your lessons and assignments.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isDeadlinesLoading ? <p>Loading deadlines...</p> : null}
-            {deadlinesData && deadlinesData.length > 0 ? (
-              <ul className="space-y-3">
-                {deadlinesData.map((deadline) => (
-                  <li key={deadline.id}>
-                    <Link to={`/subject/${deadline.subject_id}/topic/${deadline.topic_id}/lesson/${deadline.id}`} className="flex items-start p-2 -m-2 rounded-lg hover:bg-muted transition-colors">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0"></div>
-                      <div>
-                        <p className="font-medium">{deadline.title}</p>
-                        <p className="text-sm text-muted-foreground">{deadline.subject_name}</p>
-                        <p className="text-sm text-muted-foreground">Due: {format(new Date(deadline.due_date), 'PPP')}</p>
-                      </div>
-                    </Link>
-                  </li>
+            {isDeadlinesLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <Skeleton className="h-12 w-12 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            ) : !isDeadlinesLoading && (
-              <p className="text-muted-foreground text-sm">No upcoming deadlines. You're all caught up!</p>
+              </div>
+            ) : deadlinesData && deadlinesData.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {deadlinesData.map((deadline) => (
+                  <Link
+                    key={deadline.id}
+                    to={`/subject/${deadline.subject_id}/topic/${deadline.topic_id}/lesson/${deadline.id}`}
+                    className="block"
+                  >
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CardHeader className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base line-clamp-1">{deadline.title}</CardTitle>
+                            <CardDescription className="line-clamp-1">{deadline.subject_name}</CardDescription>
+                          </div>
+                          {isToday(new Date(deadline.due_date)) ? (
+                            <Badge variant="destructive">Due Today</Badge>
+                          ) : isAfter(new Date(deadline.due_date), new Date()) ? (
+                            <Badge>Upcoming</Badge>
+                          ) : (
+                            <Badge variant="secondary">Past Due</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Due: {format(new Date(deadline.due_date), 'PPP')}
+                        </p>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No upcoming deadlines.</p>
+                <p className="text-sm">You're all caught up!</p>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
     </div>
+
+    {/* Tour Dialog */}
     <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -202,6 +395,7 @@ const Dashboard = () => {
       </AlertDialogContent>
     </AlertDialog>
   </>
-  )
+  );
 };
+
 export default Dashboard;
