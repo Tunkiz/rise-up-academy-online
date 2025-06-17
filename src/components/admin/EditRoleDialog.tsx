@@ -49,8 +49,8 @@ type User = {
 
 type AppRole = Database['public']['Enums']['app_role'];
 
-// Exclude super_admin from regular role editing - only super admins can assign super_admin roles
-const ROLES = ['admin', 'learner', 'tutor', 'parent'] as const;
+// Include all available roles, excluding super_admin from regular role editing
+const ROLES = ['admin', 'student', 'tutor', 'parent', 'learner'] as const;
 
 const editRoleSchema = z.object({
   role: z.enum(ROLES, {

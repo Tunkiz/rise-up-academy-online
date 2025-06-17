@@ -16,6 +16,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
+import SuperAdminPage from "./pages/SuperAdminPage";
 import SubjectDashboard from "./pages/SubjectDashboard";
 import TopicPage from "./pages/TopicPage";
 import LessonPage from "./pages/LessonPage";
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/study-planner" element={<StudyPlanner />} />
                 <Route path="/resource-library" element={<ResourceLibrary />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/super-admin" element={<SuperAdminPage />} />
                 <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

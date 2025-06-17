@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAdmin: false,
+  isSuperAdmin: false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -22,32 +24,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkRoles = async () => {
       try {
-        const { data, error } = await supabase.rpc('is_admin');
-        if (error) {
-          console.error("Error checking admin status:", error.message);
+        console.log("Checking user roles...");
+        
+        // Check admin role
+        const { data: adminData, error: adminError } = await supabase.rpc('is_admin');
+        if (adminError) {
+          console.error("Error checking admin status:", adminError.message);
           setIsAdmin(false);
         } else {
-          setIsAdmin(data);
+          console.log("Admin status:", adminData);
+          setIsAdmin(adminData || false);
+        }
+
+        // Check super admin role
+        const { data: superAdminData, error: superAdminError } = await supabase.rpc('is_super_admin');
+        if (superAdminError) {
+          console.error("Error checking super admin status:", superAdminError.message);
+          setIsSuperAdmin(false);
+        } else {
+          console.log("Super admin status:", superAdminData);
+          setIsSuperAdmin(superAdminData || false);
         }
       } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error checking roles:", error);
         setIsAdmin(false);
+        setIsSuperAdmin(false);
       }
     };
 
     const handleAuthChange = async (session: Session | null) => {
+      console.log("Auth state changed:", session?.user?.id || "No user");
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       
       if (currentUser) {
-        await checkAdminRole();
+        await checkRoles();
       } else {
         setIsAdmin(false);
+        setIsSuperAdmin(false);
       }
       setLoading(false);
     };
@@ -72,6 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     loading,
     isAdmin,
+    isSuperAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

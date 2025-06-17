@@ -28,33 +28,40 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         
+        console.log("Registration attempt with:", { fullName, email, grade });
+        
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
                         full_name: fullName,
-                        grade: grade,
+                        grade: grade || 'not_applicable',
                     },
                     emailRedirectTo: `${window.location.origin}/dashboard`
                 },
             });
             
+            console.log("Registration response:", { data, error });
+            
             if (error) {
+                console.error("Registration error:", error);
                 toast({
                     title: "Error signing up",
                     description: error.message,
                     variant: "destructive",
                 });
-            } else {
+            } else if (data.user) {
+                console.log("User created successfully:", data.user.id);
                 toast({
                     title: "Success!",
-                    description: "Account created. Please check your email for verification.",
+                    description: "Account created successfully. Please check your email for verification.",
                 });
                 navigate("/login");
             }
         } catch (error: any) {
+            console.error("Unexpected registration error:", error);
             toast({
                 title: "Error signing up",
                 description: error.message || "An unexpected error occurred",
@@ -108,10 +115,10 @@ const Register = () => {
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="grade">Grade</Label>
+                            <Label htmlFor="grade">Grade (Optional)</Label>
                             <Select onValueChange={setGrade} value={grade}>
                                 <SelectTrigger id="grade">
-                                    <SelectValue placeholder="Select your grade" />
+                                    <SelectValue placeholder="Select your grade (optional)" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="not_applicable">Not Applicable</SelectItem>
