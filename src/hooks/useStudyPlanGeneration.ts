@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 interface StudyPlanRequest {
   goal: string;
   timeframe: string;
-  hoursPerWeek: number;
+  hours_per_week: number;
   subjects: string[];
-  currentLevel: string;
+  difficulty_level: "beginner" | "intermediate" | "advanced";
+  target_date?: Date;
 }
 
 interface StudyPlanResponse {
