@@ -64,6 +64,7 @@ const App = () => (
                 <Route path="/tutor-notes" element={<TutorNotes />} />
                 <Route path="/study-planner" element={<StudyPlanner />} />                <Route path="/resource-library" element={<ResourceLibrary />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/super-admin" element={<SuperAdminPage />} />
                 <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/super-admin" element={<SuperAdminPage />} />

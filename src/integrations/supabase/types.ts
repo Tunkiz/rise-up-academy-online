@@ -560,19 +560,25 @@ export type Database = {
       tenants: {
         Row: {
           created_at: string
+          domain: string | null
           id: string
+          is_active: boolean | null
           name: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          domain?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          domain?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           updated_at?: string
         }
@@ -719,6 +725,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_super_admin_role: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      create_tenant: {
+        Args: {
+          tenant_name: string
+          tenant_domain: string
+          admin_email: string
+          admin_password: string
+          admin_full_name: string
+        }
+        Returns: {
+          tenant_id: string
+          admin_user_id: string
+        }[]
+      }
       get_admin_dashboard_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -848,7 +871,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "learner" | "tutor" | "parent" | "super_admin"
+      app_role:
+        | "admin"
+        | "learner"
+        | "tutor"
+        | "parent"
+        | "super_admin"
+        | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -964,7 +993,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "learner", "tutor", "parent", "super_admin"],
+      app_role: [
+        "admin",
+        "learner",
+        "tutor",
+        "parent",
+        "super_admin",
+        "student",
+      ],
     },
   },
 } as const

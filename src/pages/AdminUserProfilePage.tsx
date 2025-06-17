@@ -13,18 +13,18 @@ import { useAuth } from '@/contexts/AuthProvider';
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
 import UserStatsCard from '@/components/admin/UserStatsCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Database } from '@/integrations/supabase/types';
 import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import { EditUserDetailsDialog } from '@/components/admin/EditUserDetailsDialog';
 import { EditUserSubjectsDialog } from '@/components/admin/EditUserSubjectsDialog';
 
-// Updated User type to match the get_user_details function return type
+// Updated User type to include all possible roles from the database enum
 type UserDetails = {
   id: string;
   full_name: string | null;
   email: string;
-  role: 'admin' | 'learner' | 'tutor' | 'parent' | 'super_admin';
+  role: Database['public']['Enums']['app_role'];
   created_at: string;
   banned_until: string | null;
   avatar_url: string | null;
