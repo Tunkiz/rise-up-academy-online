@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import "./AITutorChat.css";
+import { SavedNote } from "./SavedNote";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, BookOpen, Trash2, Bookmark } from "lucide-react";
+import { Send, BookOpen, Trash2, Bookmark, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { useTutorNotes, useSaveTutorNote, useDeleteTutorNote } from "@/hooks/useTutorNotes";
+import { useTutorNotes, useSaveTutorNote, useDeleteTutorNote, type TutorNote } from "@/hooks/useTutorNotes";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessage {
@@ -16,6 +18,8 @@ interface ChatMessage {
   prompt?: string; // Store the prompt with AI responses for saving
   saved?: boolean; // Track if the message has been saved
 }
+
+
 
 export const AITutorChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -176,45 +180,24 @@ export const AITutorChat = () => {
         </Card>
       </div>
 
-      {/* Saved Notes */}
-      <div className="lg:col-span-1">
-        <Card className="h-[600px]">
-          <CardHeader>
+      {/* Saved Notes */}      <div className="lg:col-span-1 h-full">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="flex-none">
             <CardTitle>Saved Notes</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 overflow-y-auto min-h-0">
+          <CardContent className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[calc(100vh-280px)]">
             {isLoadingNotes ? (
               <div className="space-y-3">
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
-              </div>
-            ) : savedNotes && savedNotes.length > 0 ? (
+              </div>            ) : savedNotes && savedNotes.length > 0 ? (
               savedNotes.map((note) => (
-                <div key={note.id} className="border rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{note.prompt}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(note.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteNoteMutation.mutate(note.id)}
-                      disabled={deleteNoteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                    {note.response.length > 100 
-                      ? `${note.response.substring(0, 100)}...` 
-                      : note.response
-                    }
-                  </p>
-                </div>
+                <SavedNote 
+                  key={note.id} 
+                  note={note} 
+                  onDelete={(id) => deleteNoteMutation.mutate(id)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">
