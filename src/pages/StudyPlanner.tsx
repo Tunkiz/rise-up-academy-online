@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -145,7 +144,7 @@ const StudyPlanner = () => {
   };
 
   const handlePlanDelete = (planId: string) => {
-    deletePlan.mutate(planId);
+    deletePlan(planId);
   };
 
   return (
@@ -263,7 +262,7 @@ const StudyPlanner = () => {
         plan={selectedPlan}
         isOpen={!!selectedPlan}
         onOpenChange={(isOpen) => !isOpen && setSelectedPlan(null)}
-        onUpdatePlan={updatePlan.mutate}
+        onUpdatePlan={updatePlan}
         isUpdating={isUpdatingPlan}
       />
     </div>
