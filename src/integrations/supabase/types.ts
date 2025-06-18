@@ -161,6 +161,7 @@ export type Database = {
           content: string | null
           description: string | null
           due_date: string | null
+          duration_minutes: number | null
           grade: number | null
           id: string
           lesson_type: string
@@ -176,6 +177,7 @@ export type Database = {
           content?: string | null
           description?: string | null
           due_date?: string | null
+          duration_minutes?: number | null
           grade?: number | null
           id?: string
           lesson_type: string
@@ -191,6 +193,7 @@ export type Database = {
           content?: string | null
           description?: string | null
           due_date?: string | null
+          duration_minutes?: number | null
           grade?: number | null
           id?: string
           lesson_type?: string
@@ -812,6 +815,14 @@ export type Database = {
           grade: number
           subjects: Json
           tenant_name: string
+        }[]
+      }
+      get_user_learning_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          lessons_completed: number
+          total_study_hours: number
+          active_subjects: number
         }[]
       }
       get_user_lesson_deadlines: {
