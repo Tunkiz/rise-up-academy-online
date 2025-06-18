@@ -250,8 +250,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               {isProgressLoading ? (
                 <Skeleton className="h-[200px] w-full" />
-              ) : chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
+              ) : chartData.length > 0 ? (                <ChartContainer config={chartConfig} className="aspect-[4/3]">
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
@@ -261,13 +260,14 @@ const Dashboard = () => {
                       axisLine={false}
                     />
                     <YAxis />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent />}
+                    <ChartTooltip />
+                    <Bar 
+                      dataKey="progress" 
+                      fill="var(--color-progress)" 
+                      radius={[4, 4, 0, 0]} 
                     />
-                    <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />

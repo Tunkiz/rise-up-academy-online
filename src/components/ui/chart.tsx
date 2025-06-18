@@ -98,7 +98,24 @@ ${colorConfig
   )
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+const ChartTooltip = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof RechartsPrimitive.Tooltip>
+>((props, ref) => {
+  return (
+    <RechartsPrimitive.Tooltip
+      {...props}
+      content={
+        props.content ? (
+          <ChartTooltipContent 
+            ref={ref} 
+            {...(props.content as React.ComponentProps<typeof ChartTooltipContent>)} 
+          />
+        ) : undefined
+      }
+    />
+  )
+})
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
