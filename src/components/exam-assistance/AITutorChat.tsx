@@ -1,10 +1,10 @@
-
 import { useState, useRef, useEffect } from "react";
+import "./AITutorChat.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, BookOpen, Trash2 } from "lucide-react";
+import { Send, BookOpen, Trash2, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { useTutorNotes, useSaveTutorNote, useDeleteTutorNote } from "@/hooks/useTutorNotes";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,8 @@ interface ChatMessage {
   type: 'user' | 'ai';
   content: string;
   timestamp: Date;
+  prompt?: string; // Store the prompt with AI responses for saving
+  saved?: boolean; // Track if the message has been saved
 }
 
 export const AITutorChat = () => {
@@ -59,13 +61,14 @@ export const AITutorChat = () => {
 
       const aiResponse = data.response;
       
-      // Add AI response
-      setMessages(prev => [...prev, { type: 'ai', content: aiResponse, timestamp: new Date() }]);
-      
-      // Save the conversation
-      await saveNoteMutation.mutateAsync({ prompt: userMessage, response: aiResponse });
-      
-    } catch (error) {
+      // Add AI response      // Add AI response without auto-saving
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        content: aiResponse, 
+        timestamp: new Date(),
+        prompt: userMessage, // Store the prompt with the response for saving later
+        saved: false // Track save state
+      }]);} catch (error) {
       console.error('Error calling AI tutor:', error);
       setMessages(prev => [...prev, { 
         type: 'ai', 
@@ -75,6 +78,25 @@ export const AITutorChat = () => {
       toast.error('Failed to get response from AI tutor');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveResponse = async (message: ChatMessage, index: number) => {
+    if (!message.prompt || message.saved || message.type !== 'ai') return;
+    
+    try {
+      await saveNoteMutation.mutateAsync({
+        prompt: message.prompt,
+        response: message.content
+      });
+      
+      // Update the message to show it's saved
+      setMessages(prev => prev.map((msg, i) => 
+        i === index ? { ...msg, saved: true } : msg
+      ));
+    } catch (error) {
+      console.error('Error saving response:', error);
+      toast.error('Failed to save response');
     }
   };
 
@@ -96,15 +118,31 @@ export const AITutorChat = () => {
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
+                  className={`max-w-[80%] p-3 rounded-lg relative group ${
                     message.type === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
+                      ? 'bg-primary text-primary-foreground ml-12'
+                      : 'bg-muted'
                   }`}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  <div className="text-xs opacity-70 mt-1">
-                    {message.timestamp.toLocaleTimeString()}
+                >                  <div className="relative">
+                    <div className="whitespace-pre-wrap pr-8">{message.content}</div>
+                    {message.type === 'ai' && (
+                      <div className="absolute top-0 right-0 mt-1">
+                        {!message.saved && message.prompt ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                            onClick={() => handleSaveResponse(message, index)}
+                          >
+                            <Bookmark className="h-4 w-4" />
+                          </Button>
+                        ) : message.saved && (
+                          <div className="text-sm text-muted-foreground p-1">
+                            <Bookmark className="h-4 w-4 text-primary fill-primary" />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -112,10 +150,9 @@ export const AITutorChat = () => {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-muted p-3 rounded-lg">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="flex space-x-1">                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce typing-dot"></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce typing-dot"></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce typing-dot"></div>
                   </div>
                 </div>
               </div>
