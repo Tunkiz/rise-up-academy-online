@@ -45,6 +45,10 @@ export function useQuizSubmission() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts'] });
+      queryClient.invalidateQueries({ queryKey: ['lesson-completions'] });
+      queryClient.invalidateQueries({ queryKey: ['learning_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['progress'] });
+      queryClient.invalidateQueries({ queryKey: ['recent_activity'] });
       if (data.passed) {
         toast.success(`Quiz passed with ${data.score}%!`);
       } else {

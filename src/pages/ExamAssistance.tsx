@@ -1,3 +1,4 @@
+
 import { AITutorChat } from "@/components/exam-assistance/AITutorChat";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -51,7 +52,7 @@ const ExamAssistance = () => {
 
   return (
     <>
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto py-10 min-h-[calc(100vh-theme(spacing.32))]">
         <div className="flex justify-between items-center mb-8">
           <div className="space-y-4">
             <h1 id="exam-assistance-title" className="text-4xl font-bold">Exam Assistance</h1>
@@ -63,7 +64,9 @@ const ExamAssistance = () => {
             <Link to="/tutor-notes">View Saved Notes</Link>
           </Button>
         </div>
-        <AITutorChat />
+        <div className="pb-8">
+          <AITutorChat />
+        </div>
       </div>
       <AlertDialog open={showTourPrompt} onOpenChange={setShowTourPrompt}>
         <AlertDialogContent>

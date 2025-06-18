@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 
 type QuizQuestionWithOptions = Tables<'quiz_questions'> & {
   quiz_options: Tables<'quiz_options'>[];
@@ -51,7 +52,6 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
   
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const saveQuizAttemptMutation = useMutation({
     mutationFn: async ({ score, passed }: { score: number; passed: boolean }) => {
@@ -92,26 +92,20 @@ const Quiz = ({ lessonId, passMark }: QuizProps) => {
     },
     onSuccess: (_, { passed }) => {
       queryClient.invalidateQueries({ queryKey: ['quiz_attempts', user?.id, lessonId] });
+      queryClient.invalidateQueries({ queryKey: ['lesson-completions'] });
+      queryClient.invalidateQueries({ queryKey: ['learning_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['progress'] });
+      queryClient.invalidateQueries({ queryKey: ['recent_activity'] });
       if (passed) {
-        toast({
-          title: "Quiz Passed!",
-          description: "Lesson marked as complete.",
-        });
-        queryClient.invalidateQueries({ queryKey: ["lesson_completions"] });
+        toast.success("Quiz Passed! Lesson marked as complete.");
         queryClient.invalidateQueries({ queryKey: ["topics"] });
       } else {
-        toast({
-          title: "Quiz Submitted",
-          description: "You didn't pass this time. Feel free to retake the quiz.",
-        });
+        toast.error("You didn't pass this time. Feel free to retake the quiz.");
       }
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to save quiz result: ${error.message}`,
-        variant: "destructive",
-      });
+      console.error('Error saving quiz result:', error);
+      toast.error(`Failed to save quiz result: ${error.message}`);
     },
   });
 

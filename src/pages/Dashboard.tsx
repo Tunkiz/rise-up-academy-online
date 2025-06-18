@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, Calendar, BookOpen, CheckCircle, Target, Clock, TrendingUp, Settings2, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -82,8 +83,11 @@ const Dashboard = () => {
       const { data, error } = await supabase.rpc('get_user_learning_stats', {
         p_user_id: user.id,
       });
-      if (error) throw new Error(error.message);
-      return data?.[0];
+      if (error) {
+        console.error("Error fetching learning stats:", error);
+        throw new Error(error.message);
+      }
+      return data?.[0] || { lessons_completed: 0, total_study_hours: 0, active_subjects: 0 };
     },
     enabled: !!user,
   });
@@ -98,8 +102,11 @@ const Dashboard = () => {
         .eq('user_id', user.id)
         .order('progress', { ascending: false });
       
-      if (error) throw new Error(error.message);
-      return data;
+      if (error) {
+        console.error("Error fetching progress:", error);
+        throw new Error(error.message);
+      }
+      return data || [];
     },
     enabled: !!user,
   });
@@ -112,11 +119,14 @@ const Dashboard = () => {
         .from('recent_activity')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('date', { ascending: false })
         .limit(5);
       
-      if (error) throw new Error(error.message);
-      return data;
+      if (error) {
+        console.error("Error fetching recent activity:", error);
+        throw new Error(error.message);
+      }
+      return data || [];
     },
     enabled: !!user,
   });
@@ -133,7 +143,7 @@ const Dashboard = () => {
         console.error("Error fetching lesson deadlines:", error);
         throw new Error(error.message);
       }
-      return data;
+      return data || [];
     },
     enabled: !!user,
   });
@@ -143,7 +153,9 @@ const Dashboard = () => {
     progress: item.progress,
   })) || [];
 
-  const averageProgress = progressData?.reduce((acc, curr) => acc + (curr.progress || 0), 0) / (progressData?.length || 1);
+  const averageProgress = progressData && progressData.length > 0 
+    ? progressData.reduce((acc, curr) => acc + (curr.progress || 0), 0) / progressData.length
+    : 0;
 
   return (
   <>
@@ -153,7 +165,8 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata.full_name || 'Student'}!</h1>
           <p className="text-muted-foreground mt-2">Here's a snapshot of your learning journey.</p>
         </div>
-        <div id="quick-actions" className="flex gap-3">          <Button variant="secondary" onClick={() => navigate('/study-planner')}>
+        <div id="quick-actions" className="flex gap-3">
+          <Button variant="secondary" onClick={() => navigate('/study-planner')}>
             <Target className="mr-2 h-4 w-4" />
             Create Study Plan
           </Button>
@@ -172,7 +185,7 @@ const Dashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoadingStats ? (
+            {isLoadingStats || isProgressLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
