@@ -79,10 +79,10 @@ export const AITutorChat = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Chat Interface */}
       <div className="lg:col-span-2">
-        <Card id="ai-tutor-chat-card" className="h-full flex flex-col">
+        <Card id="ai-tutor-chat-card" className="h-[600px] flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
@@ -141,7 +141,7 @@ export const AITutorChat = () => {
 
       {/* Saved Notes */}
       <div className="lg:col-span-1">
-        <Card className="h-full">
+        <Card className="h-[600px]">
           <CardHeader>
             <CardTitle>Saved Notes</CardTitle>
           </CardHeader>
