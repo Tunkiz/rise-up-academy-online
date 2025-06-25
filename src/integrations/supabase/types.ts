@@ -530,6 +530,7 @@ export type Database = {
       }
       subjects: {
         Row: {
+          category: Database["public"]["Enums"]["subject_category"]
           class_time: string | null
           id: string
           name: string
@@ -537,6 +538,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          category: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
           id?: string
           name: string
@@ -544,6 +546,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
           id?: string
           name?: string
@@ -889,6 +892,7 @@ export type Database = {
         | "parent"
         | "super_admin"
         | "student"
+      subject_category: "matric_amended" | "national_senior" | "senior_phase"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1012,6 +1016,7 @@ export const Constants = {
         "super_admin",
         "student",
       ],
+      subject_category: ["matric_amended", "national_senior", "senior_phase"],
     },
   },
 } as const

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 interface CreateSubjectData {
   name: string;
+  category: 'matric_amended' | 'national_senior' | 'senior_phase';
   teams_link?: string;
   class_time?: string;
 }

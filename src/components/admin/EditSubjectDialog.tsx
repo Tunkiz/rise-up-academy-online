@@ -11,12 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 type Subject = Tables<'subjects'>;
 
 const editSubjectSchema = z.object({
   name: z.string().min(2, "Subject name must be at least 2 characters."),
+  category: z.enum(['matric_amended', 'national_senior', 'senior_phase'], {
+    required_error: "Please select a category."
+  }),
   class_time: z.string().optional(),
   teams_link: z.string().url({ message: "Please enter a valid URL." }).or(z.literal('')).optional(),
 });
@@ -36,6 +40,7 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     resolver: zodResolver(editSubjectSchema),
     defaultValues: {
       name: "",
+      category: undefined,
       class_time: "",
       teams_link: "",
     },
@@ -45,6 +50,7 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     if (subject) {
       form.reset({
         name: subject.name,
+        category: subject.category || 'national_senior',
         class_time: subject.class_time || "",
         teams_link: subject.teams_link || "",
       });
@@ -57,6 +63,7 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
         .from('subjects')
         .update({
           name: values.name,
+          category: values.category,
           class_time: values.class_time || null,
           teams_link: values.teams_link || null,
         })
@@ -95,6 +102,28 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="matric_amended">Matric Amended Senior Certificate</SelectItem>
+                      <SelectItem value="national_senior">National Senior Certificate</SelectItem>
+                      <SelectItem value="senior_phase">Senior Phase Certificate</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
