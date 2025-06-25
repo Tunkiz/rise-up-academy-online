@@ -1,6 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BookMarked, BrainCircuit, CalendarCheck, Library } from "lucide-react";
+import { ArrowRight, BookMarked, BrainCircuit, CalendarCheck, Library, GraduationCap, Users, Award, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTour } from "@/hooks/useTour";
 import { useEffect, useState } from "react";
@@ -37,6 +38,37 @@ const features = [
     title: "Resource Library",
     description: "Access a vast library of downloadable study guides and past papers for effective revision.",
   },
+];
+
+const subjectCategories = [
+  {
+    title: "Matric Amended Senior Certificate",
+    description: "Comprehensive curriculum for students completing their amended matric qualification",
+    subjects: ["Mathematics", "English", "Physical Sciences", "Life Sciences", "Geography"],
+    icon: <GraduationCap className="h-12 w-12 text-blue-600" />,
+    color: "from-blue-500 to-blue-600"
+  },
+  {
+    title: "National Senior Certificate",
+    description: "Full NSC curriculum preparing students for university and career success",
+    subjects: ["Mathematics", "English", "Physical Sciences", "Life Sciences", "History"],
+    icon: <Award className="h-12 w-12 text-green-600" />,
+    color: "from-green-500 to-green-600"
+  },
+  {
+    title: "Senior Phase Certificate",
+    description: "Foundation subjects for grades 7-9 building essential academic skills",
+    subjects: ["Mathematics", "English", "Natural Sciences", "Social Sciences", "Technology"],
+    icon: <Users className="h-12 w-12 text-purple-600" />,
+    color: "from-purple-500 to-purple-600"
+  }
+];
+
+const stats = [
+  { number: "1000+", label: "Students Enrolled", icon: <Users className="h-6 w-6" /> },
+  { number: "50+", label: "Expert Tutors", icon: <GraduationCap className="h-6 w-6" /> },
+  { number: "95%", label: "Pass Rate", icon: <Award className="h-6 w-6" /> },
+  { number: "24/7", label: "Support Available", icon: <Clock className="h-6 w-6" /> },
 ];
 
 const tourSteps = [
@@ -143,6 +175,65 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Stats Section */}
+        <section className="bg-muted/30 py-16">
+          <div className="container">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {stats.map((stat, index) => (
+                <div key={stat.label} className="text-center animate-fade-in-up" style={{ animationDelay: `${0.1 * index}s` }}>
+                  <div className="flex justify-center mb-2 text-primary">
+                    {stat.icon}
+                  </div>
+                  <div className="text-3xl font-bold text-primary mb-1">{stat.number}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Subject Categories Section */}
+        <section className="container py-24 sm:py-32 space-y-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl lg:text-4xl font-bold">
+              Educational{" "}
+              <span className="bg-gradient-to-r from-[#61DAFB] to-[#03a3d7] text-transparent bg-clip-text">
+                Pathways
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Choose from our comprehensive curriculum designed to meet your educational goals and certification requirements.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {subjectCategories.map((category, index) => (
+              <Card key={category.title} className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 animate-fade-in-up" style={{ animationDelay: `${0.2 * index}s` }}>
+                <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
+                <CardHeader className="text-center pb-4">
+                  <div className="flex justify-center mb-4">
+                    {category.icon}
+                  </div>
+                  <CardTitle className="text-lg leading-tight">{category.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground text-center">{category.description}</p>
+                  <div className="space-y-2">
+                    <p className="font-medium text-sm">Key Subjects:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {category.subjects.map((subject) => (
+                        <span key={subject} className="text-xs bg-muted px-2 py-1 rounded-full">
+                          {subject}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
         {/* Features Section */}
         <section className="container py-24 sm:py-32 space-y-8">
             <h2 className="text-3xl lg:text-4xl font-bold md:text-center">
@@ -163,6 +254,58 @@ const Index = () => {
                       </CardContent>
                   </Card>
               ))}
+          </div>
+        </section>
+
+        {/* Why Choose EduRise Section */}
+        <section className="bg-muted/30 py-24">
+          <div className="container">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <h2 className="text-3xl lg:text-4xl font-bold">
+                  Why Choose{" "}
+                  <span className="bg-gradient-to-r from-[#61DAFB] to-[#03a3d7] text-transparent bg-clip-text">
+                    EduRise?
+                  </span>
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Certified Curriculum</h3>
+                      <p className="text-muted-foreground">All our courses align with official educational standards and certification requirements.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Expert Instructors</h3>
+                      <p className="text-muted-foreground">Learn from qualified educators with years of teaching experience and subject expertise.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Flexible Learning</h3>
+                      <p className="text-muted-foreground">Study at your own pace with 24/7 access to lessons, resources, and support materials.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop" 
+                  alt="Students learning" 
+                  className="rounded-lg shadow-xl"
+                />
+              </div>
+            </div>
           </div>
         </section>
         
