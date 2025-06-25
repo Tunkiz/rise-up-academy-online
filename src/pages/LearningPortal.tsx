@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock, Video } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -141,14 +141,34 @@ const LearningPortal = () => {
                 <CardHeader>
                   <CardTitle>{subject.name}</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Your progress:
-                  </p>
-                  <Progress value={subject.progress} className="w-full" />
-                  <p className="text-right text-sm text-muted-foreground mt-1">
-                    {subject.progress}%
-                  </p>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Your progress:
+                    </p>
+                    <Progress value={subject.progress} className="w-full" />
+                    <p className="text-right text-sm text-muted-foreground mt-1">
+                      {subject.progress}%
+                    </p>
+                  </div>
+                  
+                  {(subject.class_time || subject.teams_link) && (
+                    <div className="border-t pt-3 space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Class Details:</p>
+                      {subject.class_time && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>{subject.class_time}</span>
+                        </div>
+                      )}
+                      {subject.teams_link && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Video className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-blue-600 hover:text-blue-800">Meeting available</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
