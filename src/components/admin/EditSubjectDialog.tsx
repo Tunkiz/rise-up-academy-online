@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { useSubjectCategories } from "@/hooks/useSubjectCategories";
 
 type Subject = Tables<'subjects'>;
+type SubjectCategory = Tables<'subject_categories'>;
 
 const categoryLabels = {
   'matric_amended': 'Matric Amended Senior Certificate',
@@ -23,18 +24,34 @@ const categoryLabels = {
   'senior_phase': 'Senior Phase Certificate'
 };
 
-const createEditSubjectSchema = (existingSubjects: Subject[] = [], currentSubjectId?: string) => z.object({
+const createEditSubjectSchema = (existingSubjects: Subject[] = [], subjectCategories: SubjectCategory[] = [], currentSubjectId?: string) => z.object({
   name: z.string()
-    .min(2, "Subject name must be at least 2 characters.")
-    .refine(
-      (name) => !existingSubjects.some(subject => 
-        subject.id !== currentSubjectId && subject.name.toLowerCase() === name.toLowerCase()
-      ),
-      "A subject with this name already exists."
-    ),
-  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase'])).min(1, "Please select at least one category."),
+    .min(2, "Subject name must be at least 2 characters."),
+  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase']))
+    .min(1, "Please select at least one category."),
   class_time: z.string().optional(),
   teams_link: z.string().url({ message: "Please enter a valid URL." }).or(z.literal('')).optional(),
+}).refine((data) => {
+  // Check if the name conflicts with existing subjects in any of the selected categories
+  for (const category of data.categories) {
+    const subjectsInCategory = subjectCategories
+      .filter(sc => sc.category === category)
+      .map(sc => sc.subject_id);
+    
+    const conflictingSubject = existingSubjects.find(subject => 
+      subjectsInCategory.includes(subject.id) &&
+      subject.id !== currentSubjectId &&
+      subject.name.toLowerCase() === data.name.toLowerCase()
+    );
+    
+    if (conflictingSubject) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "A subject with this name already exists in one of the selected categories.",
+  path: ["name"]
 });
 
 type EditSubjectFormValues = z.infer<ReturnType<typeof createEditSubjectSchema>>;
@@ -59,8 +76,18 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     },
   });
 
+  // Get subject categories for validation
+  const { data: subjectCategories } = useQuery({
+    queryKey: ['subject-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('subject_categories').select('*');
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
   // Create dynamic schema for validation
-  const editSubjectSchema = createEditSubjectSchema(allSubjects, subject?.id);
+  const editSubjectSchema = createEditSubjectSchema(allSubjects, subjectCategories, subject?.id);
   
   const form = useForm<EditSubjectFormValues>({
     resolver: zodResolver(editSubjectSchema),
@@ -73,9 +100,9 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
   });
 
   useEffect(() => {
-    if (subject && currentCategories && allSubjects) {
+    if (subject && currentCategories && allSubjects && subjectCategories) {
       // Update schema when data changes
-      const newSchema = createEditSubjectSchema(allSubjects, subject.id);
+      const newSchema = createEditSubjectSchema(allSubjects, subjectCategories, subject.id);
       form.reset({
         name: subject.name,
         categories: currentCategories,
@@ -85,7 +112,7 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
         resolver: zodResolver(newSchema)
       });
     }
-  }, [subject, currentCategories, allSubjects, form, isOpen]);
+  }, [subject, currentCategories, allSubjects, subjectCategories, form, isOpen]);
 
   const { mutate: updateSubject, isPending } = useMutation({
     mutationFn: async (values: EditSubjectFormValues) => {
@@ -118,12 +145,15 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
       let errorTitle = "Failed to update subject";
       
       // Handle specific error cases
-      if (error.message.includes('duplicate key value violates unique constraint "subjects_tenant_id_name_key"')) {
-        errorTitle = "Subject name already exists";
-        errorMessage = "A subject with this name already exists. Please choose a different name.";
+      if (error.message.includes('already exists in category')) {
+        errorTitle = "Subject name conflict";
+        errorMessage = error.message; // Use the specific category error message from server
+      } else if (error.message.includes('duplicate key value violates unique constraint')) {
+        errorTitle = "Subject name conflict";
+        errorMessage = "A subject with this name already exists in one of the selected categories.";
       } else if (error.message.includes('duplicate')) {
         errorTitle = "Duplicate subject name";
-        errorMessage = "A subject with this name already exists.";
+        errorMessage = "A subject with this name already exists in one of the selected categories.";
       }
       
       toast({ 
