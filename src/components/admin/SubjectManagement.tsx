@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
@@ -12,14 +12,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { EditSubjectDialog } from "./EditSubjectDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import TopicList from "./TopicList";
 import { ChevronsUpDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type Subject = Tables<'subjects'>;
+type SubjectCategory = Tables<'subject_categories'>;
 
 const categoryLabels = {
   'matric_amended': 'Matric Amended Senior Certificate',
@@ -27,33 +29,60 @@ const categoryLabels = {
   'senior_phase': 'Senior Phase Certificate'
 };
 
-const subjectFormSchema = z.object({
-  name: z.string().min(2, "Subject name must be at least 2 characters."),
-  category: z.enum(['matric_amended', 'national_senior', 'senior_phase'], {
-    required_error: "Please select a category."
-  })
+const createSubjectFormSchema = (existingSubjects: Subject[] = []) => z.object({
+  name: z.string()
+    .min(2, "Subject name must be at least 2 characters.")
+    .refine(
+      (name) => !existingSubjects.some(subject => 
+        subject.name.toLowerCase() === name.toLowerCase()
+      ),
+      "A subject with this name already exists."
+    ),
+  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase'])).min(1, "Please select at least one category.")
 });
 
-type SubjectFormValues = z.infer<typeof subjectFormSchema>;
+type SubjectFormValues = z.infer<ReturnType<typeof createSubjectFormSchema>>;
 
 const SubjectManagement = () => {
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
 
+  // Fetch subjects with their categories
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('subjects').select('*').order('category', { ascending: true }).order('name');
+      const { data, error } = await supabase.from('subjects').select('*').order('name');
       if (error) throw new Error(error.message);
       return data;
     },
   });
 
+  // Fetch subject categories
+  const { data: subjectCategories } = useQuery({
+    queryKey: ['subject-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('subject_categories').select('*');
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+  // Create dynamic form schema that checks for duplicates
+  const subjectFormSchema = createSubjectFormSchema(subjects);
+
   const addForm = useForm<SubjectFormValues>({
     resolver: zodResolver(subjectFormSchema),
-    defaultValues: { name: "", category: undefined },
+    defaultValues: { name: "", categories: [] },
   });
+
+  // Update form resolver when subjects change
+  useEffect(() => {
+    const newSchema = createSubjectFormSchema(subjects);
+    addForm.reset({ name: "", categories: [] }, {
+      resolver: zodResolver(newSchema)
+    });
+  }, [subjects, addForm]);
 
   const { mutate: addSubject, isPending: isAdding } = useMutation({
     mutationFn: async (values: SubjectFormValues) => {
@@ -68,20 +97,50 @@ const SubjectManagement = () => {
         throw new Error('User tenant not found');
       }
 
-      const { error } = await supabase.from('subjects').insert({ 
-        name: values.name,
-        category: values.category,
-        tenant_id: profile.tenant_id
+      // Create the subject first
+      const { data: subject, error: subjectError } = await supabase
+        .from('subjects')
+        .insert({ 
+          name: values.name,
+          tenant_id: profile.tenant_id
+        })
+        .select()
+        .single();
+
+      if (subjectError) throw new Error(subjectError.message);
+
+      // Set the subject categories using the new function
+      const { error: categoriesError } = await supabase.rpc('set_subject_categories', {
+        p_subject_id: subject.id,
+        p_categories: values.categories
       });
-      if (error) throw new Error(error.message);
+
+      if (categoriesError) throw new Error(categoriesError.message);
     },
     onSuccess: () => {
       toast({ title: "Subject added successfully!" });
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['subject-categories'] });
       addForm.reset();
     },
     onError: (error) => {
-      toast({ variant: "destructive", title: "Failed to add subject", description: error.message });
+      let errorMessage = error.message;
+      let errorTitle = "Failed to add subject";
+      
+      // Handle specific error cases
+      if (error.message.includes('duplicate key value violates unique constraint "subjects_tenant_id_name_key"')) {
+        errorTitle = "Subject already exists";
+        errorMessage = "A subject with this name already exists. Please choose a different name.";
+      } else if (error.message.includes('duplicate')) {
+        errorTitle = "Duplicate subject";
+        errorMessage = "A subject with this name already exists.";
+      }
+      
+      toast({ 
+        variant: "destructive", 
+        title: errorTitle, 
+        description: errorMessage 
+      });
     },
   });
 
@@ -93,6 +152,7 @@ const SubjectManagement = () => {
     onSuccess: () => {
       toast({ title: "Subject deleted successfully." });
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['subject-categories'] });
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Failed to delete subject", description: "This subject might be in use by lessons or resources." });
@@ -104,15 +164,42 @@ const SubjectManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Group subjects by category
-  const groupedSubjects = subjects?.reduce((acc, subject) => {
-    const category = subject.category || 'national_senior';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(subject);
-    return acc;
-  }, {} as Record<string, Subject[]>) || {};
+  // Helper function to get categories for a subject
+  const getSubjectCategories = (subjectId: string) => {
+    return subjectCategories?.filter(sc => sc.subject_id === subjectId).map(sc => sc.category) || [];
+  };
+
+  // Group subjects by their categories (a subject can appear in multiple groups)
+  const groupedSubjects = () => {
+    const groups: Record<string, { subject: Subject; categories: string[] }[]> = {};
+    
+    // Initialize all category groups
+    Object.keys(categoryLabels).forEach(category => {
+      groups[category] = [];
+    });
+
+    // Add subjects to their respective category groups
+    subjects?.forEach(subject => {
+      const categories = getSubjectCategories(subject.id);
+      
+      if (categories.length === 0) {
+        // If no categories found in junction table, check legacy category field
+        const legacyCategory = subject.category;
+        if (legacyCategory) {
+          if (!groups[legacyCategory]) groups[legacyCategory] = [];
+          groups[legacyCategory].push({ subject, categories: [legacyCategory] });
+        }
+      } else {
+        // Add to each category group
+        categories.forEach(category => {
+          if (!groups[category]) groups[category] = [];
+          groups[category].push({ subject, categories });
+        });
+      }
+    });
+
+    return groups;
+  };
 
   return (
     <>
@@ -125,7 +212,7 @@ const SubjectManagement = () => {
           <div className="space-y-6">
             <Form {...addForm}>
               <form onSubmit={addForm.handleSubmit((d) => addSubject(d))} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <FormField
                     control={addForm.control}
                     name="name"
@@ -141,28 +228,51 @@ const SubjectManagement = () => {
                   />
                   <FormField
                     control={addForm.control}
-                    name="category"
-                    render={({ field }) => (
+                    name="categories"
+                    render={() => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="matric_amended">Matric Amended Senior Certificate</SelectItem>
-                            <SelectItem value="national_senior">National Senior Certificate</SelectItem>
-                            <SelectItem value="senior_phase">Senior Phase Certificate</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Categories</FormLabel>
+                        <div className="space-y-2">
+                          {Object.entries(categoryLabels).map(([value, label]) => (
+                            <FormField
+                              key={value}
+                              control={addForm.control}
+                              name="categories"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={value}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(value as 'matric_amended' | 'national_senior' | 'senior_phase')}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, value])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                  (val) => val !== value
+                                                )
+                                              )
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                      {label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )
+                              }}
+                            />
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                <Button type="submit" disabled={isAdding} className="w-full md:w-auto">
+                <Button type="submit" disabled={isAdding} className="w-full sm:w-auto">
                   {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                   Add Subject
                 </Button>
@@ -173,31 +283,47 @@ const SubjectManagement = () => {
               <div className="p-4 text-center">Loading subjects...</div>
             ) : (
               <div className="space-y-6">
-                {Object.entries(groupedSubjects).map(([category, categorySubjects]) => (
+                {Object.entries(groupedSubjects()).map(([category, categorySubjects]) => (
                   <div key={category} className="space-y-2">
                     <h3 className="text-lg font-semibold text-muted-foreground">
                       {categoryLabels[category as keyof typeof categoryLabels]}
                     </h3>
                     <div className="border rounded-md">
                       <ul className="divide-y">
-                        {categorySubjects.map((subject) => (
+                        {categorySubjects.map(({ subject, categories }) => (
                           <Collapsible asChild key={subject.id}>
                             <li className="list-none">
-                              <div className="flex items-center justify-between p-3 hover:bg-muted/50">
+                              <div className="flex items-start sm:items-center justify-between p-3 hover:bg-muted/50 gap-2">
                                 <CollapsibleTrigger asChild>
-                                  <button className="flex items-center gap-2 flex-grow text-left">
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                    <span className="font-medium">{subject.name}</span>
+                                  <button className="flex items-start sm:items-center gap-2 flex-grow text-left min-w-0">
+                                    <ChevronsUpDown className="h-4 w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                                    <div className="min-w-0 flex-grow">
+                                      <div className="font-medium truncate pr-2">{subject.name}</div>
+                                      <div className="flex flex-wrap gap-1 mt-1 sm:mt-0 sm:inline-flex">
+                                        {categories.map(cat => (
+                                          <Badge key={cat} variant="secondary" className="text-xs">
+                                            <span className="hidden sm:inline">{categoryLabels[cat as keyof typeof categoryLabels]}</span>
+                                            <span className="sm:hidden">
+                                              {cat === 'matric_amended' ? 'Matric' : 
+                                               cat === 'national_senior' ? 'NSC' : 
+                                               'Senior'}
+                                            </span>
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
                                   </button>
                                 </CollapsibleTrigger>
-                                <div className="space-x-2">
-                                  <Button variant="ghost" size="icon" onClick={() => handleEditClick(subject)}>
-                                    <Edit className="h-4 w-4" />
+                                <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
+                                  <Button variant="ghost" size="sm" onClick={() => handleEditClick(subject)} className="h-8 w-8 p-0 sm:h-10 sm:w-10">
+                                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span className="sr-only">Edit {subject.name}</span>
                                   </Button>
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 sm:h-10 sm:w-10">
+                                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                                        <span className="sr-only">Delete {subject.name}</span>
                                       </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>

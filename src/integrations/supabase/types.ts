@@ -528,9 +528,48 @@ export type Database = {
           },
         ]
       }
-      subjects: {
+      subject_categories: {
         Row: {
           category: Database["public"]["Enums"]["subject_category"]
+          created_at: string
+          id: string
+          subject_id: string
+          tenant_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["subject_category"]
+          created_at?: string
+          id?: string
+          subject_id: string
+          tenant_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["subject_category"]
+          created_at?: string
+          id?: string
+          subject_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_categories_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          category: Database["public"]["Enums"]["subject_category"] | null
           class_time: string | null
           id: string
           name: string
@@ -538,7 +577,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["subject_category"]
+          category?: Database["public"]["Enums"]["subject_category"] | null
           class_time?: string | null
           id?: string
           name: string
@@ -546,7 +585,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["subject_category"]
+          category?: Database["public"]["Enums"]["subject_category"] | null
           class_time?: string | null
           id?: string
           name?: string
@@ -881,6 +920,31 @@ export type Database = {
       }
       update_user_subjects_by_admin: {
         Args: { target_user_id: string; new_subject_ids: string[] }
+        Returns: undefined
+      }
+      get_subject_categories: {
+        Args: { p_subject_id: string }
+        Returns: { category: Database["public"]["Enums"]["subject_category"] }[]
+      }
+      add_subject_category: {
+        Args: {
+          p_subject_id: string
+          p_category: Database["public"]["Enums"]["subject_category"]
+        }
+        Returns: undefined
+      }
+      remove_subject_category: {
+        Args: {
+          p_subject_id: string
+          p_category: Database["public"]["Enums"]["subject_category"]
+        }
+        Returns: undefined
+      }
+      set_subject_categories: {
+        Args: {
+          p_subject_id: string
+          p_categories: Database["public"]["Enums"]["subject_category"][]
+        }
         Returns: undefined
       }
     }
