@@ -108,8 +108,6 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
         categories: currentCategories,
         class_time: subject.class_time || "",
         teams_link: subject.teams_link || "",
-      }, {
-        resolver: zodResolver(newSchema)
       });
     }
   }, [subject, currentCategories, allSubjects, subjectCategories, form, isOpen]);

@@ -114,9 +114,7 @@ const SubjectManagement = () => {
   // Update form resolver when subjects or categories change
   useEffect(() => {
     const newSchema = createSubjectFormSchema(subjects, subjectCategories);
-    addForm.reset({ name: "", categories: [] }, {
-      resolver: zodResolver(newSchema)
-    });
+    addForm.reset({ name: "", categories: [] });
   }, [subjects, subjectCategories, addForm]);
 
   const { mutate: addSubject, isPending: isAdding } = useMutation({
@@ -137,7 +135,8 @@ const SubjectManagement = () => {
         .from('subjects')
         .insert({ 
           name: values.name,
-          tenant_id: profile.tenant_id
+          tenant_id: profile.tenant_id,
+          category: 'national_senior' // Default category, will be overridden by subject_categories
         })
         .select()
         .single();
