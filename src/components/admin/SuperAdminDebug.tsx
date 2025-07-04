@@ -13,6 +13,20 @@ export const SuperAdminDebug = () => {
   const [loading, setLoading] = useState(false);
   const [roleInfo, setRoleInfo] = useState<any>(null);
 
+  // Only super admins can access this component
+  if (!isSuperAdmin) {
+    return (
+      <Card className="w-full max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle>Access Denied</CardTitle>
+          <CardDescription>
+            This diagnostic tool is only available to super administrators.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   const checkSuperAdmin = async () => {
     setLoading(true);
     try {
