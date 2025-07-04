@@ -29,16 +29,51 @@ const categoryLabels = {
   'senior_phase': 'Senior Phase Certificate'
 };
 
-const createSubjectFormSchema = (existingSubjects: Subject[] = []) => z.object({
+const createSubjectFormSchema = (existingSubjects: Subject[] = [], subjectCategories: SubjectCategory[] = []) => z.object({
   name: z.string()
-    .min(2, "Subject name must be at least 2 characters.")
-    .refine(
-      (name) => !existingSubjects.some(subject => 
-        subject.name.toLowerCase() === name.toLowerCase()
-      ),
-      "A subject with this name already exists."
-    ),
-  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase'])).min(1, "Please select at least one category.")
+    .min(2, "Subject name must be at least 2 characters."),
+  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase']))
+    .min(1, "Please select at least one category.")
+    .refine((categories) => {
+      return (name: string) => {
+        // Check if the name conflicts with existing subjects in any of the selected categories
+        for (const category of categories) {
+          const subjectsInCategory = subjectCategories
+            .filter(sc => sc.category === category)
+            .map(sc => sc.subject_id);
+          
+          const conflictingSubject = existingSubjects.find(subject => 
+            subjectsInCategory.includes(subject.id) &&
+            subject.name.toLowerCase() === name.toLowerCase()
+          );
+          
+          if (conflictingSubject) {
+            return false;
+          }
+        }
+        return true;
+      };
+    }, "A subject with this name already exists in one of the selected categories.")
+}).refine((data) => {
+  // Check if the name conflicts with existing subjects in any of the selected categories
+  for (const category of data.categories) {
+    const subjectsInCategory = subjectCategories
+      .filter(sc => sc.category === category)
+      .map(sc => sc.subject_id);
+    
+    const conflictingSubject = existingSubjects.find(subject => 
+      subjectsInCategory.includes(subject.id) &&
+      subject.name.toLowerCase() === data.name.toLowerCase()
+    );
+    
+    if (conflictingSubject) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "A subject with this name already exists in one of the selected categories.",
+  path: ["name"]
 });
 
 type SubjectFormValues = z.infer<ReturnType<typeof createSubjectFormSchema>>;
@@ -68,21 +103,21 @@ const SubjectManagement = () => {
     },
   });
 
-  // Create dynamic form schema that checks for duplicates
-  const subjectFormSchema = createSubjectFormSchema(subjects);
+  // Create dynamic form schema that checks for duplicates per category
+  const subjectFormSchema = createSubjectFormSchema(subjects, subjectCategories);
 
   const addForm = useForm<SubjectFormValues>({
     resolver: zodResolver(subjectFormSchema),
     defaultValues: { name: "", categories: [] },
   });
 
-  // Update form resolver when subjects change
+  // Update form resolver when subjects or categories change
   useEffect(() => {
-    const newSchema = createSubjectFormSchema(subjects);
+    const newSchema = createSubjectFormSchema(subjects, subjectCategories);
     addForm.reset({ name: "", categories: [] }, {
       resolver: zodResolver(newSchema)
     });
-  }, [subjects, addForm]);
+  }, [subjects, subjectCategories, addForm]);
 
   const { mutate: addSubject, isPending: isAdding } = useMutation({
     mutationFn: async (values: SubjectFormValues) => {
@@ -128,12 +163,15 @@ const SubjectManagement = () => {
       let errorTitle = "Failed to add subject";
       
       // Handle specific error cases
-      if (error.message.includes('duplicate key value violates unique constraint "subjects_tenant_id_name_key"')) {
-        errorTitle = "Subject already exists";
-        errorMessage = "A subject with this name already exists. Please choose a different name.";
+      if (error.message.includes('already exists in category')) {
+        errorTitle = "Subject name conflict";
+        errorMessage = error.message; // Use the specific category error message from server
+      } else if (error.message.includes('duplicate key value violates unique constraint')) {
+        errorTitle = "Subject name conflict";
+        errorMessage = "A subject with this name already exists in one of the selected categories.";
       } else if (error.message.includes('duplicate')) {
         errorTitle = "Duplicate subject";
-        errorMessage = "A subject with this name already exists.";
+        errorMessage = "A subject with this name already exists in one of the selected categories.";
       }
       
       toast({ 
