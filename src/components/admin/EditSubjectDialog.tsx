@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useForm } from "react-hook-form";
@@ -11,21 +11,33 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
+import { useSubjectCategories } from "@/hooks/useSubjectCategories";
 
 type Subject = Tables<'subjects'>;
 
-const editSubjectSchema = z.object({
-  name: z.string().min(2, "Subject name must be at least 2 characters."),
-  category: z.enum(['matric_amended', 'national_senior', 'senior_phase'], {
-    required_error: "Please select a category."
-  }),
+const categoryLabels = {
+  'matric_amended': 'Matric Amended Senior Certificate',
+  'national_senior': 'National Senior Certificate',
+  'senior_phase': 'Senior Phase Certificate'
+};
+
+const createEditSubjectSchema = (existingSubjects: Subject[] = [], currentSubjectId?: string) => z.object({
+  name: z.string()
+    .min(2, "Subject name must be at least 2 characters.")
+    .refine(
+      (name) => !existingSubjects.some(subject => 
+        subject.id !== currentSubjectId && subject.name.toLowerCase() === name.toLowerCase()
+      ),
+      "A subject with this name already exists."
+    ),
+  categories: z.array(z.enum(['matric_amended', 'national_senior', 'senior_phase'])).min(1, "Please select at least one category."),
   class_time: z.string().optional(),
   teams_link: z.string().url({ message: "Please enter a valid URL." }).or(z.literal('')).optional(),
 });
 
-type EditSubjectFormValues = z.infer<typeof editSubjectSchema>;
+type EditSubjectFormValues = z.infer<ReturnType<typeof createEditSubjectSchema>>;
 
 interface EditSubjectDialogProps {
   isOpen: boolean;
@@ -35,48 +47,90 @@ interface EditSubjectDialogProps {
 
 export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubjectDialogProps) => {
   const queryClient = useQueryClient();
+  const { categories: currentCategories } = useSubjectCategories(subject?.id);
+
+  // Get all subjects for duplicate name validation
+  const { data: allSubjects } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('subjects').select('*').order('name');
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+  // Create dynamic schema for validation
+  const editSubjectSchema = createEditSubjectSchema(allSubjects, subject?.id);
   
   const form = useForm<EditSubjectFormValues>({
     resolver: zodResolver(editSubjectSchema),
     defaultValues: {
       name: "",
-      category: undefined,
+      categories: [],
       class_time: "",
       teams_link: "",
     },
   });
 
   useEffect(() => {
-    if (subject) {
+    if (subject && currentCategories && allSubjects) {
+      // Update schema when data changes
+      const newSchema = createEditSubjectSchema(allSubjects, subject.id);
       form.reset({
         name: subject.name,
-        category: subject.category || 'national_senior',
+        categories: currentCategories,
         class_time: subject.class_time || "",
         teams_link: subject.teams_link || "",
+      }, {
+        resolver: zodResolver(newSchema)
       });
     }
-  }, [subject, form, isOpen]);
+  }, [subject, currentCategories, allSubjects, form, isOpen]);
 
   const { mutate: updateSubject, isPending } = useMutation({
     mutationFn: async (values: EditSubjectFormValues) => {
+      // Update subject basic info
       const { error } = await supabase
         .from('subjects')
         .update({
           name: values.name,
-          category: values.category,
           class_time: values.class_time || null,
           teams_link: values.teams_link || null,
         })
         .eq('id', subject.id);
       if (error) throw new Error(error.message);
+
+      // Update categories using the RPC function
+      const { error: categoriesError } = await supabase.rpc('set_subject_categories', {
+        p_subject_id: subject.id,
+        p_categories: values.categories
+      });
+      if (categoriesError) throw new Error(categoriesError.message);
     },
     onSuccess: () => {
       toast({ title: "Subject updated successfully!" });
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['subject-categories'] });
       onOpenChange(false);
     },
     onError: (error) => {
-      toast({ variant: "destructive", title: "Failed to update subject", description: error.message });
+      let errorMessage = error.message;
+      let errorTitle = "Failed to update subject";
+      
+      // Handle specific error cases
+      if (error.message.includes('duplicate key value violates unique constraint "subjects_tenant_id_name_key"')) {
+        errorTitle = "Subject name already exists";
+        errorMessage = "A subject with this name already exists. Please choose a different name.";
+      } else if (error.message.includes('duplicate')) {
+        errorTitle = "Duplicate subject name";
+        errorMessage = "A subject with this name already exists.";
+      }
+      
+      toast({ 
+        variant: "destructive", 
+        title: errorTitle, 
+        description: errorMessage 
+      });
     },
   });
 
@@ -84,9 +138,16 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
     updateSubject(data);
   };
 
+  const createCheckboxHandler = (field: { value: string[]; onChange: (value: string[]) => void }, value: string) => {
+    const addCategory = () => field.onChange([...field.value, value]);
+    const removeCategory = () => field.onChange(field.value?.filter((val: string) => val !== value));
+    
+    return (checked: boolean) => checked ? addCategory() : removeCategory();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Subject</DialogTitle>
           <DialogDescription>Change the details of the subject below.</DialogDescription>
@@ -108,22 +169,41 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
             />
             <FormField
               control={form.control}
-              name="category"
-              render={({ field }) => (
+              name="categories"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="matric_amended">Matric Amended Senior Certificate</SelectItem>
-                      <SelectItem value="national_senior">National Senior Certificate</SelectItem>
-                      <SelectItem value="senior_phase">Senior Phase Certificate</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Categories</FormLabel>
+                  <div className="space-y-3">
+                    {Object.entries(categoryLabels).map(([value, label]) => {
+                      return (
+                        <FormField
+                          key={value}
+                          control={form.control}
+                          name="categories"
+                          render={({ field }) => {
+                            const isChecked = field.value?.includes(value as 'matric_amended' | 'national_senior' | 'senior_phase');
+                            
+                            return (
+                              <FormItem
+                                key={value}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={createCheckboxHandler(field, value)}
+                                  />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                  {label}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -154,11 +234,11 @@ export const EditSubjectDialog = ({ isOpen, onOpenChange, subject }: EditSubject
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
