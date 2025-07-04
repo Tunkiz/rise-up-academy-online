@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
   grade: z.coerce.number().min(1, "Grade must be between 1 and 12").optional().nullable(),
+  learner_category: z.string().optional(),
 });
 
 const ProfilePage = () => {
@@ -28,7 +29,7 @@ const ProfilePage = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, grade')
+        .select('full_name, avatar_url, grade, learner_category')
         .eq('id', user.id)
         .single();
       
@@ -45,6 +46,7 @@ const ProfilePage = () => {
     defaultValues: {
       full_name: "",
       grade: null,
+      learner_category: "",
     },
   });
   
@@ -53,11 +55,13 @@ const ProfilePage = () => {
       form.reset({
         full_name: profile.full_name || user?.user_metadata.full_name || "",
         grade: profile.grade || null,
+        learner_category: profile.learner_category || "",
       });
     } else if (user) {
        form.reset({
         full_name: user.user_metadata.full_name || "",
         grade: null,
+        learner_category: "",
       });
     }
   }, [profile, user, form.reset]);
@@ -90,7 +94,7 @@ const ProfilePage = () => {
               <Form {...form}>
                 <form className="space-y-4 w-full">
                    <p className="text-sm text-muted-foreground text-center p-3 bg-muted/50 rounded-lg">
-                    Your name and grade level can only be changed by an administrator. Please contact support if you need to update them.
+                    Your personal details can only be changed by an administrator. Please contact support if you need to update them.
                   </p>
                   <FormField
                     control={form.control}
@@ -100,6 +104,27 @@ const ProfilePage = () => {
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Your full name" {...field} readOnly className="bg-muted/50" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="learner_category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Learning Level</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Not set" 
+                            {...field}
+                            value={field.value === 'senior_phase' ? 'Senior Phase (Grades 7-9)' : 
+                                   field.value === 'national_senior' ? 'National Senior Certificate (Grades 10-12)' :
+                                   field.value === 'matric_amended' ? 'Matric Amended' : 'Not set'}
+                            readOnly
+                            className="bg-muted/50"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

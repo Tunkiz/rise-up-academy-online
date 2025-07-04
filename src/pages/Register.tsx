@@ -20,6 +20,7 @@ const Register = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [grade, setGrade] = useState("");
+    const [learnerCategory, setLearnerCategory] = useState("");
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -28,7 +29,7 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         
-        console.log("Registration attempt with:", { fullName, email, grade });
+        console.log("Registration attempt with:", { fullName, email, grade, learnerCategory });
         
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -38,6 +39,7 @@ const Register = () => {
                     data: {
                         full_name: fullName,
                         grade: grade || 'not_applicable',
+                        learner_category: learnerCategory || 'national_senior',
                     },
                     emailRedirectTo: `${window.location.origin}/dashboard`
                 },
@@ -113,6 +115,19 @@ const Register = () => {
                                 value={password} 
                                 onChange={(e) => setPassword(e.target.value)} 
                             />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="learner-category">Learning Level</Label>
+                            <Select onValueChange={setLearnerCategory} value={learnerCategory} required>
+                                <SelectTrigger id="learner-category">
+                                    <SelectValue placeholder="Select your learning level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="senior_phase">Senior Phase (Grades 7-9)</SelectItem>
+                                    <SelectItem value="national_senior">National Senior Certificate (Grades 10-12)</SelectItem>
+                                    <SelectItem value="matric_amended">Matric Amended</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="grade">Grade (Optional)</Label>
