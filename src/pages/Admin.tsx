@@ -34,15 +34,37 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import UserManagementTable from "@/components/admin/UserManagementTable";
 import SubjectManagement from "@/components/admin/SubjectManagement";
 import LessonManagement from "@/components/admin/LessonManagement";
+import { FileText, ExternalLink, Upload } from "lucide-react";
 
 type Subject = Tables<'subjects'>;
 type Resource = Tables<'resources'>;
+
+// Helper function to determine file type and icon
+const getFileIcon = (url: string) => {
+  if (!url) return null;
+  
+  const extension = url.split('.').pop()?.toLowerCase() || '';
+  
+  if (['pdf'].includes(extension)) {
+    return <FileText className="w-4 h-4 text-red-600" />;
+  } else if (['doc', 'docx'].includes(extension)) {
+    return <FileText className="w-4 h-4 text-blue-600" />;
+  } else if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
+    return <FileText className="w-4 h-4 text-green-600" />;
+  } else if (url.startsWith('http')) {
+    return <ExternalLink className="w-4 h-4 text-purple-600" />;
+  }
+  
+  return <FileText className="w-4 h-4 text-gray-600" />;
+};
 
 const AdminPage = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [fileUrl, setFileUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState<'url' | 'file'>('url');
   const [grade, setGrade] = useState(9);
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
@@ -67,7 +89,7 @@ const AdminPage = () => {
   });
 
   const createResourceMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string; subject_id: string; file_url: string; grade: number }) => {
+    mutationFn: async (data: { title: string; description: string; subject_id: string; grade: number }) => {
       if (!user) throw new Error('Not authenticated');
       
       // Get current user's tenant_id
@@ -81,8 +103,35 @@ const AdminPage = () => {
         throw new Error('User tenant not found');
       }
 
+      let finalFileUrl = '';
+
+      // Handle file upload if file is selected
+      if (uploadType === 'file' && selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `resources/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('resource_files')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) {
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('resource_files')
+          .getPublicUrl(filePath);
+
+        finalFileUrl = publicUrl;
+      } else if (uploadType === 'url') {
+        finalFileUrl = fileUrl;
+      }
+
       const { error } = await supabase.from('resources').insert({
         ...data,
+        file_url: finalFileUrl,
         tenant_id: profile.tenant_id,
       });
       if (error) throw error;
@@ -94,6 +143,8 @@ const AdminPage = () => {
       setDescription("");
       setSubjectId("");
       setFileUrl("");
+      setSelectedFile(null);
+      setUploadType('url');
       setGrade(9);
       setOpen(false);
     },
@@ -194,11 +245,51 @@ const AdminPage = () => {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fileUrl" className="text-right">
-                File URL
+              <Label htmlFor="uploadType" className="text-right">
+                Upload Type
               </Label>
-              <Input id="fileUrl" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} className="col-span-3" />
+              <Select value={uploadType} onValueChange={(value: 'url' | 'file') => setUploadType(value)}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="url">External URL</SelectItem>
+                  <SelectItem value="file">Upload File</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {uploadType === 'url' ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fileUrl" className="text-right">
+                  File URL
+                </Label>
+                <Input 
+                  id="fileUrl" 
+                  value={fileUrl} 
+                  onChange={(e) => setFileUrl(e.target.value)} 
+                  className="col-span-3" 
+                  placeholder="https://example.com/document.pdf"
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="file" className="text-right">
+                  Upload File
+                </Label>
+                <div className="col-span-3">
+                  <Input 
+                    id="file" 
+                    type="file" 
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    className="cursor-pointer"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Supports PDF, Word documents, and images
+                  </p>
+                </div>
+              </div>
+            )}
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="grade" className="text-right">
                 Grade
@@ -214,7 +305,7 @@ const AdminPage = () => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => createResourceMutation.mutate({ title, description, subject_id: subjectId, file_url: fileUrl, grade })}>
+            <AlertDialogAction onClick={() => createResourceMutation.mutate({ title, description, subject_id: subjectId, grade })}>
               {createResourceMutation.isPending ? "Creating..." : "Create"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -263,26 +354,35 @@ const AdminPage = () => {
                   </TableRow>
                 </>
               ) : resources?.map((resource) => (
-                <TableRow key={resource.id}>
-                  <TableCell>{resource.title}</TableCell>
-                  <TableCell>{resource.description}</TableCell>
-                  <TableCell>{subjects?.find(subject => subject.id === resource.subject_id)?.name || 'N/A'}</TableCell>
+                 <TableRow key={resource.id}>
+                   <TableCell>
+                     <div className="flex items-center gap-2">
+                       {getFileIcon(resource.file_url || '')}
+                       {resource.title}
+                     </div>
+                   </TableCell>
+                   <TableCell>{resource.description}</TableCell>
+                   <TableCell>{subjects?.find(subject => subject.id === resource.subject_id)?.name || 'N/A'}</TableCell>
                    <TableCell>{resource.grade}</TableCell>
                    <TableCell className="text-right">
-                     {resource.file_url ? (
-                       <Button variant="ghost" size="sm" asChild>
-                         <a href={resource.file_url} target="_blank" rel="noopener noreferrer">View</a>
+                     <div className="flex items-center gap-2 justify-end">
+                       {resource.file_url ? (
+                         <Button variant="ghost" size="sm" asChild>
+                           <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
+                             View
+                           </a>
+                         </Button>
+                       ) : (
+                         <Button variant="ghost" size="sm" disabled>
+                           No File
+                         </Button>
+                       )}
+                       <Button variant="destructive" size="sm" onClick={() => deleteResourceMutation.mutate(resource.id)}>
+                         Delete
                        </Button>
-                     ) : (
-                       <Button variant="ghost" size="sm" disabled>
-                         No File
-                       </Button>
-                     )}
-                    <Button variant="destructive" size="sm" onClick={() => deleteResourceMutation.mutate(resource.id)}>
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                     </div>
+                   </TableCell>
+                 </TableRow>
               ))}
             </TableBody>
           </Table>
