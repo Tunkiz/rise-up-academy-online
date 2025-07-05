@@ -268,10 +268,16 @@ const AdminPage = () => {
                   <TableCell>{resource.description}</TableCell>
                   <TableCell>{subjects?.find(subject => subject.id === resource.subject_id)?.name || 'N/A'}</TableCell>
                    <TableCell>{resource.grade}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/user/${resource.id}`}>View</Link>
-                    </Button>
+                   <TableCell className="text-right">
+                     {resource.file_url ? (
+                       <Button variant="ghost" size="sm" asChild>
+                         <a href={resource.file_url} target="_blank" rel="noopener noreferrer">View</a>
+                       </Button>
+                     ) : (
+                       <Button variant="ghost" size="sm" disabled>
+                         No File
+                       </Button>
+                     )}
                     <Button variant="destructive" size="sm" onClick={() => deleteResourceMutation.mutate(resource.id)}>
                       Delete
                     </Button>
