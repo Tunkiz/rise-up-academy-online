@@ -237,7 +237,8 @@ const AdminPage = () => {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>              {isLoadingResources ? (
+            <TableBody>
+              {isLoadingResources ? (
                 <>
                   <TableRow>
                     <TableCell><Skeleton /></TableCell>
