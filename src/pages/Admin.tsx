@@ -89,7 +89,15 @@ const AdminPage = () => {
   });
 
   const createResourceMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string; subject_id: string; grade: number }) => {
+    mutationFn: async (data: { 
+      title: string; 
+      description: string; 
+      subject_id: string; 
+      grade: number; 
+      uploadType: 'url' | 'file';
+      fileUrl?: string;
+      selectedFile?: File | null;
+    }) => {
       if (!user) throw new Error('Not authenticated');
       
       // Get current user's tenant_id
@@ -106,14 +114,14 @@ const AdminPage = () => {
       let finalFileUrl = '';
 
       // Handle file upload if file is selected
-      if (uploadType === 'file' && selectedFile) {
-        const fileExt = selectedFile.name.split('.').pop();
+      if (data.uploadType === 'file' && data.selectedFile) {
+        const fileExt = data.selectedFile.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `resources/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('resource_files')
-          .upload(filePath, selectedFile);
+          .upload(filePath, data.selectedFile);
 
         if (uploadError) {
           throw new Error(`Upload failed: ${uploadError.message}`);
@@ -125,12 +133,15 @@ const AdminPage = () => {
           .getPublicUrl(filePath);
 
         finalFileUrl = publicUrl;
-      } else if (uploadType === 'url') {
-        finalFileUrl = fileUrl;
+      } else if (data.uploadType === 'url' && data.fileUrl) {
+        finalFileUrl = data.fileUrl;
       }
 
       const { error } = await supabase.from('resources').insert({
-        ...data,
+        title: data.title,
+        description: data.description,
+        subject_id: data.subject_id,
+        grade: data.grade,
         file_url: finalFileUrl,
         tenant_id: profile.tenant_id,
       });
@@ -305,7 +316,40 @@ const AdminPage = () => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => createResourceMutation.mutate({ title, description, subject_id: subjectId, grade })}>
+            <AlertDialogAction 
+              onClick={() => {
+                console.log('Create button clicked', { title, description, subjectId, uploadType, fileUrl, selectedFile });
+                
+                // Validation
+                if (!title.trim()) {
+                  toast.error('Title is required');
+                  return;
+                }
+                if (!subjectId) {
+                  toast.error('Please select a subject');
+                  return;
+                }
+                if (uploadType === 'url' && !fileUrl.trim()) {
+                  toast.error('Please provide a file URL');
+                  return;
+                }
+                if (uploadType === 'file' && !selectedFile) {
+                  toast.error('Please select a file to upload');
+                  return;
+                }
+                
+                createResourceMutation.mutate({ 
+                  title, 
+                  description, 
+                  subject_id: subjectId, 
+                  grade,
+                  uploadType,
+                  fileUrl,
+                  selectedFile
+                });
+              }}
+              disabled={createResourceMutation.isPending}
+            >
               {createResourceMutation.isPending ? "Creating..." : "Create"}
             </AlertDialogAction>
           </AlertDialogFooter>
