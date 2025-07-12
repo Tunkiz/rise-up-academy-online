@@ -1,7 +1,7 @@
 
 -- First create a default tenant if it doesn't exist
-INSERT INTO public.tenants (id, name, domain, is_active) 
-VALUES ('00000000-0000-0000-0000-000000000001', 'Default Organization', 'default.edu', true)
+INSERT INTO public.tenants (id, name) 
+VALUES ('00000000-0000-0000-0000-000000000001', 'Default Organization')
 ON CONFLICT (id) DO NOTHING;
 
 -- Create or replace the handle_new_user function to assign default tenant
@@ -27,8 +27,8 @@ BEGIN
   );
   
   -- Assign default student role
-  INSERT INTO public.user_roles (user_id, role)
-  VALUES (new.id, 'student');
+  INSERT INTO public.user_roles (user_id, role, tenant_id)
+  VALUES (new.id, 'student', default_tenant_id);
   
   RETURN new;
 END;

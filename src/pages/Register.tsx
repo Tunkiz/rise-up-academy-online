@@ -1,70 +1,60 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { MultiStepRegistrationForm } from "@/components/registration/MultiStepRegistrationForm";
+import { MultiStepRegistrationData } from "@/types/enrollment";
 
 const Register = () => {
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [grade, setGrade] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showMultiStep, setShowMultiStep] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleStudentRegistration = () => {
+        setShowMultiStep(true);
+    };
+
+    const handleRegistrationComplete = async (data: MultiStepRegistrationData) => {
         setLoading(true);
         
-        console.log("Registration attempt with:", { fullName, email, grade });
-        
         try {
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
+            // Create temporary user account
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: data.email,
+                password: data.password,
                 options: {
                     data: {
-                        full_name: fullName,
-                        grade: grade || 'not_applicable',
+                        full_name: data.fullName,
+                        subject_category: data.subjectCategory,
+                        selected_subjects: data.selectedSubjects,
+                        grade: data.subjectCategory === 'grade_1_12' ? 'not_specified' : 'not_applicable',
                     },
-                    emailRedirectTo: `${window.location.origin}/dashboard`
                 },
             });
-            
-            console.log("Registration response:", { data, error });
-            
-            if (error) {
-                console.error("Registration error:", error);
-                toast({
-                    title: "Error signing up",
-                    description: error.message,
-                    variant: "destructive",
-                });
-            } else if (data.user) {
-                console.log("User created successfully:", data.user.id);
-                toast({
-                    title: "Success!",
-                    description: "Account created successfully. Please check your email for verification.",
-                });
-                navigate("/login");
+
+            if (authError) {
+                throw authError;
             }
-        } catch (error: any) {
-            console.error("Unexpected registration error:", error);
+
+            if (!authData.user) {
+                throw new Error('Failed to create user account');
+            }
+
             toast({
-                title: "Error signing up",
-                description: error.message || "An unexpected error occurred",
+                title: "Account Created Successfully!",
+                description: "Your temporary account has been created. You can now explore the platform and complete payment later.",
+            });
+
+            navigate("/dashboard");
+        } catch (error) {
+            console.error("Registration error:", error);
+            toast({
+                title: "Registration Failed",
+                description: error instanceof Error ? error.message : "An unexpected error occurred",
                 variant: "destructive",
             });
         } finally {
@@ -72,77 +62,61 @@ const Register = () => {
         }
     };
 
+    if (showMultiStep) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+                <MultiStepRegistrationForm
+                    onComplete={handleRegistrationComplete}
+                    loading={loading}
+                />
+            </div>
+        );
+    }
+
     return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Card className="w-full max-w-sm">
-                <form onSubmit={handleRegister}>
-                    <CardHeader>
-                        <CardTitle className="text-2xl">Sign Up</CardTitle>
-                        <CardDescription>
-                            Create your account to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="full-name">Full Name</Label>
-                            <Input 
-                                id="full-name" 
-                                placeholder="John Doe" 
-                                required 
-                                value={fullName} 
-                                onChange={(e) => setFullName(e.target.value)} 
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input 
-                                id="email" 
-                                type="email" 
-                                placeholder="m@example.com" 
-                                required 
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input 
-                                id="password" 
-                                type="password" 
-                                required 
-                                value={password} 
-                                onChange={(e) => setPassword(e.target.value)} 
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="grade">Grade (Optional)</Label>
-                            <Select onValueChange={setGrade} value={grade}>
-                                <SelectTrigger id="grade">
-                                    <SelectValue placeholder="Select your grade (optional)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="not_applicable">Not Applicable</SelectItem>
-                                    {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
-                                        <SelectItem key={g} value={String(g)}>
-                                            Grade {g}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col">
-                        <Button className="w-full" type="submit" disabled={loading}>
-                            {loading ? "Creating account..." : "Create Account"}
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md mx-auto">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl font-bold">Join Rise Up Academy</CardTitle>
+                    <CardDescription>
+                        Choose your registration type to get started
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                        <Button 
+                            onClick={handleStudentRegistration}
+                            className="w-full h-20 flex flex-col items-center justify-center space-y-2"
+                            size="lg"
+                        >
+                            <div className="text-lg font-semibold">Student Registration</div>
+                            <div className="text-sm opacity-90">Create temporary account - Pay later</div>
                         </Button>
-                        <p className="mt-4 text-xs text-center text-muted-foreground">
+                        
+                        <Button 
+                            variant="outline"
+                            onClick={() => navigate('/register/tutor')}
+                            className="w-full h-20 flex flex-col items-center justify-center space-y-2"
+                            size="lg"
+                        >
+                            <div className="text-lg font-semibold">Tutor Registration</div>
+                            <div className="text-sm opacity-70">Apply to become a tutor</div>
+                        </Button>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex flex-col space-y-4">
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">
                             Already have an account?{" "}
-                            <Link to="/login" className="underline">
-                                Login
+                            <Link 
+                                to="/login" 
+                                className="text-primary hover:underline font-medium"
+                            >
+                                Sign in
                             </Link>
                         </p>
-                    </CardFooter>
-                </form>
+                    </div>
+                </CardFooter>
             </Card>
         </div>
     );

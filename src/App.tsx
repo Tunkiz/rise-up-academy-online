@@ -25,6 +25,7 @@ import AdminUserProfilePage from "./pages/AdminUserProfilePage";
 import TutorNotes from "./pages/TutorNotes";
 import { TourProvider } from "./components/tour/TourProvider";
 import { TourGuide } from "./components/tour/TourGuide";
+import PaymentProofPage from "./pages/PaymentProofPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +33,7 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors
         if (error && typeof error === 'object' && 'status' in error) {
-          const status = (error as any).status;
+          const status = (error as { status: number }).status;
           if (status >= 400 && status < 500) {
             return false;
           }
@@ -62,7 +63,8 @@ const App = () => (
                 <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
                 <Route path="/exam-assistance" element={<ExamAssistance />} />
                 <Route path="/tutor-notes" element={<TutorNotes />} />
-                <Route path="/study-planner" element={<StudyPlanner />} />                <Route path="/resource-library" element={<ResourceLibrary />} />
+                <Route path="/study-planner" element={<StudyPlanner />} />
+                <Route path="/payment-proof" element={<PaymentProofPage />} />                <Route path="/resource-library" element={<ResourceLibrary />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/super-admin" element={<SuperAdminPage />} />
                 <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />

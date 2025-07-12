@@ -10,7 +10,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/hooks/useNotifications';
-import { SimpleNotification } from '@/types/enrollment';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  enrollment_id?: string;
+  created_at: string;
+}
 
 const NotificationBell = () => {
   const { user } = useAuth();
@@ -29,7 +38,7 @@ const NotificationBell = () => {
         .limit(10);
       
       if (error) throw error;
-      return data as SimpleNotification[];
+      return data as Notification[];
     },
     enabled: !!user,
   });
@@ -53,7 +62,7 @@ const NotificationBell = () => {
     }
   };
 
-  const handleNotificationClick = (notification: SimpleNotification) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
       markAsRead.mutate(notification.id);
     }

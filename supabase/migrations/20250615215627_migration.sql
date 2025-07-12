@@ -2,7 +2,7 @@
 -- Phase 1: Multi-tenancy Foundation
 
 -- Step 1: Create the tenants table to represent each organization
-CREATE TABLE public.tenants (
+CREATE TABLE IF NOT EXISTS public.tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -11,6 +11,7 @@ CREATE TABLE public.tenants (
 COMMENT ON TABLE public.tenants IS 'Represents an organization or tenant in the SaaS platform.';
 
 -- Trigger to automatically update `updated_at` on tenants table
+DROP TRIGGER IF EXISTS handle_tenants_updated_at ON public.tenants;
 CREATE TRIGGER handle_tenants_updated_at
 BEFORE UPDATE ON public.tenants
 FOR EACH ROW

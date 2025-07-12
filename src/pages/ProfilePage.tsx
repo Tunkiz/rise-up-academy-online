@@ -13,6 +13,7 @@ import AvatarUpload from "@/components/profile/AvatarUpload";
 import React from "react";
 import SubjectSelector from "@/components/profile/SubjectSelector";
 import { Separator } from "@/components/ui/separator";
+import { TemporaryAccountStatus } from "@/components/profile/TemporaryAccountStatus";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
@@ -136,6 +137,7 @@ const ProfilePage = () => {
                 <SubjectSelector />
               </div>
 
+              <TemporaryAccountStatus />
             </div>
           )}
         </CardContent>

@@ -32,8 +32,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import EnrollmentManagement from '@/components/admin/EnrollmentManagement';
-import SubjectManagement from '@/components/admin/SubjectManagement';
-import UserManagementTable from '@/components/admin/UserManagementTable';
 import { 
   BarChart3, 
   Users, 
@@ -139,14 +137,10 @@ const AdminPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-fit lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4 lg:w-fit lg:grid-cols-4">
           <TabsTrigger value="resources" className="flex items-center gap-2">
             <BookOpen className="w-4 h-4" />
             <span className="hidden sm:inline">Resources</span>
-          </TabsTrigger>
-          <TabsTrigger value="subjects" className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4" />
-            <span className="hidden sm:inline">Subjects</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -302,21 +296,6 @@ const AdminPage = () => {
           </Card>
         </TabsContent>
 
-        {/* Subjects Tab */}
-        <TabsContent value="subjects" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5" />
-                Subject Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SubjectManagement />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
@@ -327,7 +306,16 @@ const AdminPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <UserManagementTable />
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">User Management</h3>
+                <p className="text-muted-foreground mb-4">
+                  View and manage user accounts, roles, and permissions.
+                </p>
+                <Button asChild>
+                  <Link to="/admin/users">Go to User Management</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -23,6 +23,7 @@ const navLinks = [
   { to: "/exam-assistance", label: "Exam Assistance" },
   { to: "/study-planner", label: "Study Planner" },
   { to: "/resource-library", label: "Resource Library" },
+  { to: "/payment-proof", label: "Submit Payment" },
 ];
 
 const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, onClick: () => void; id?: string; }) => (

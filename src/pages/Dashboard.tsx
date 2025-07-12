@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, Calendar, BookOpen, CheckCircle, Target, Clock, TrendingUp, Settings2, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -10,6 +9,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
   ChartTooltip,
@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EnrollmentGate } from "@/components/enrollment/EnrollmentGate";
 
 const chartConfig = {
   progress: {
@@ -158,8 +158,8 @@ const Dashboard = () => {
     : 0;
 
   return (
-  <>
-    <div className="container py-10">
+    <EnrollmentGate>
+      <div className="container py-10">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata.full_name || 'Student'}!</h1>
@@ -407,7 +407,7 @@ const Dashboard = () => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  </>
+    </EnrollmentGate>
   );
 };
 
