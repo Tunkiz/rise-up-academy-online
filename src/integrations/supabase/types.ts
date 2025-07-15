@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       class_schedules: {
@@ -82,6 +87,146 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deadlines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enrollment_reminders: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          id: string
+          is_active: boolean | null
+          max_reminders: number | null
+          next_reminder_at: string | null
+          reminder_count: number | null
+          reminder_interval: unknown | null
+          reminder_type: string
+          scheduled_for: string
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          is_active?: boolean | null
+          max_reminders?: number | null
+          next_reminder_at?: string | null
+          reminder_count?: number | null
+          reminder_interval?: unknown | null
+          reminder_type: string
+          scheduled_for: string
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          is_active?: boolean | null
+          max_reminders?: number | null
+          next_reminder_at?: string | null
+          reminder_count?: number | null
+          reminder_interval?: unknown | null
+          reminder_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollment_reminders_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enrollments: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          created_at: string
+          enrolled_at: string | null
+          id: string
+          payment_amount: number | null
+          payment_currency: string | null
+          payment_due_date: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_proof_filename: string | null
+          payment_proof_uploaded_at: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["enrollment_status"]
+          subject_id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          created_at?: string
+          enrolled_at?: string | null
+          id?: string
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_due_date?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_proof_filename?: string | null
+          payment_proof_uploaded_at?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          subject_id: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          created_at?: string
+          enrolled_at?: string | null
+          id?: string
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_due_date?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_proof_filename?: string | null
+          payment_proof_uploaded_at?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          subject_id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -221,13 +366,131 @@ export type Database = {
           },
         ]
       }
+      notification_templates: {
+        Row: {
+          body_template: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          subject_template: string | null
+          template_name: string
+          template_type: string
+          tenant_id: string | null
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          body_template: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          subject_template?: string | null
+          template_name: string
+          template_type: string
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          body_template?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          subject_template?: string | null
+          template_name?: string
+          template_type?: string
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivery_method: string
+          enrollment_id: string | null
+          error_message: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          notification_type: string
+          opened_at: string | null
+          recipient_address: string
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_method: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          opened_at?: string | null
+          recipient_address: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_method?: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          opened_at?: string | null
+          recipient_address?: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           full_name: string | null
           grade: number | null
           id: string
-          learner_category: Database["public"]["Enums"]["subject_category"]
           tenant_id: string
         }
         Insert: {
@@ -235,7 +498,6 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id: string
-          learner_category: Database["public"]["Enums"]["subject_category"]
           tenant_id: string
         }
         Update: {
@@ -243,7 +505,6 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id?: string
-          learner_category?: Database["public"]["Enums"]["subject_category"]
           tenant_id?: string
         }
         Relationships: [
@@ -574,26 +835,32 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["subject_category"]
           class_time: string | null
+          created_at: string
           id: string
           name: string
           teams_link: string | null
           tenant_id: string
+          updated_at: string
         }
         Insert: {
           category: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
+          created_at?: string
           id?: string
           name: string
           teams_link?: string | null
           tenant_id: string
+          updated_at?: string
         }
         Update: {
           category?: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
+          created_at?: string
           id?: string
           name?: string
           teams_link?: string | null
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -773,13 +1040,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_subject_category: {
-        Args: {
-          p_subject_id: string
-          p_category: Database["public"]["Enums"]["subject_category"]
-        }
-        Returns: undefined
-      }
       assign_super_admin_role: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -836,12 +1096,6 @@ export type Database = {
           title: string
         }[]
       }
-      get_subject_categories: {
-        Args: { p_subject_id: string }
-        Returns: {
-          category: Database["public"]["Enums"]["subject_category"]
-        }[]
-      }
       get_super_admin_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -895,14 +1149,6 @@ export type Database = {
           subject_id: string
         }[]
       }
-      get_user_stats: {
-        Args: { p_user_id: string }
-        Returns: {
-          lessons_completed_count: number
-          quizzes_attempted_count: number
-          average_quiz_score: number
-        }[]
-      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -919,32 +1165,11 @@ export type Database = {
         Args: { target_user_id: string; action: string }
         Returns: undefined
       }
-      remove_subject_category: {
-        Args: {
-          p_subject_id: string
-          p_category: Database["public"]["Enums"]["subject_category"]
-        }
-        Returns: undefined
-      }
-      set_subject_categories: {
-        Args: {
-          p_subject_id: string
-          p_categories: Database["public"]["Enums"]["subject_category"][]
-        }
-        Returns: undefined
-      }
       update_user_details_by_admin: {
         Args: {
           target_user_id: string
           new_full_name: string
           new_grade: number
-        }
-        Returns: undefined
-      }
-      update_user_learner_category: {
-        Args: {
-          target_user_id: string
-          new_category: Database["public"]["Enums"]["subject_category"]
         }
         Returns: undefined
       }
@@ -968,6 +1193,20 @@ export type Database = {
         | "parent"
         | "super_admin"
         | "student"
+      enrollment_status:
+        | "pending_payment"
+        | "payment_submitted"
+        | "payment_approved"
+        | "payment_rejected"
+        | "enrollment_active"
+        | "enrollment_suspended"
+      payment_method:
+        | "bank_transfer"
+        | "credit_card"
+        | "paypal"
+        | "cryptocurrency"
+        | "cash"
+        | "other"
       subject_category: "matric_amended" | "national_senior" | "senior_phase"
     }
     CompositeTypes: {
@@ -976,21 +1215,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -1008,14 +1251,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -1031,14 +1276,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -1054,14 +1301,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -1069,14 +1318,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
@@ -1091,6 +1342,22 @@ export const Constants = {
         "parent",
         "super_admin",
         "student",
+      ],
+      enrollment_status: [
+        "pending_payment",
+        "payment_submitted",
+        "payment_approved",
+        "payment_rejected",
+        "enrollment_active",
+        "enrollment_suspended",
+      ],
+      payment_method: [
+        "bank_transfer",
+        "credit_card",
+        "paypal",
+        "cryptocurrency",
+        "cash",
+        "other",
       ],
       subject_category: ["matric_amended", "national_senior", "senior_phase"],
     },
