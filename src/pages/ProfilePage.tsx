@@ -12,12 +12,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import AvatarUpload from "@/components/profile/AvatarUpload";
 import React from "react";
 import SubjectSelector from "@/components/profile/SubjectSelector";
+import PaymentProofUpload from "@/components/profile/PaymentProofUpload";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
   grade: z.coerce.number().min(1, "Grade must be between 1 and 12").optional().nullable(),
-  learner_category: z.string().optional(),
 });
 
 const ProfilePage = () => {
@@ -29,7 +30,7 @@ const ProfilePage = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, grade, learner_category')
+        .select('full_name, avatar_url, grade')
         .eq('id', user.id)
         .single();
       
@@ -46,7 +47,6 @@ const ProfilePage = () => {
     defaultValues: {
       full_name: "",
       grade: null,
-      learner_category: "",
     },
   });
   
@@ -55,13 +55,11 @@ const ProfilePage = () => {
       form.reset({
         full_name: profile.full_name || user?.user_metadata.full_name || "",
         grade: profile.grade || null,
-        learner_category: profile.learner_category || "",
       });
     } else if (user) {
        form.reset({
         full_name: user.user_metadata.full_name || "",
         grade: null,
-        learner_category: "",
       });
     }
   }, [profile, user, form.reset]);
@@ -111,27 +109,6 @@ const ProfilePage = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="learner_category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Learning Level</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Not set" 
-                            {...field}
-                            value={field.value === 'senior_phase' ? 'Senior Phase (Grades 7-9)' : 
-                                   field.value === 'national_senior' ? 'National Senior Certificate (Grades 10-12)' :
-                                   field.value === 'matric_amended' ? 'Matric Amended' : 'Not set'}
-                            readOnly
-                            className="bg-muted/50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="grade"
                     render={({ field }) => (
                       <FormItem>
@@ -155,11 +132,24 @@ const ProfilePage = () => {
 
               <Separator className="my-4" />
               
-              <div className="w-full">
-                <h3 className="text-lg font-medium mb-2">My Subjects</h3>
-                <p className="text-sm text-muted-foreground mb-4">Select the subjects you are studying to personalize your learning experience.</p>
-                <SubjectSelector />
-              </div>
+              <Tabs defaultValue="subjects" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="subjects">My Subjects</TabsTrigger>
+                  <TabsTrigger value="payments">Payments</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="subjects" className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">My Subjects</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Select the subjects you are studying to personalize your learning experience.</p>
+                    <SubjectSelector />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="payments" className="space-y-4">
+                  <PaymentProofUpload />
+                </TabsContent>
+              </Tabs>
 
             </div>
           )}

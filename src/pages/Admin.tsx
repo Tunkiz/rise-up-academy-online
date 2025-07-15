@@ -34,6 +34,7 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import UserManagementTable from "@/components/admin/UserManagementTable";
 import SubjectManagement from "@/components/admin/SubjectManagement";
 import LessonManagement from "@/components/admin/LessonManagement";
+import PaymentApprovalTable from "@/components/admin/PaymentApprovalTable";
 import { FileText, ExternalLink, Upload } from "lucide-react";
 
 type Subject = Tables<'subjects'>;
@@ -194,9 +195,10 @@ const AdminPage = () => {
         <Button onClick={() => setOpen(true)}>Create Resource</Button>
       </div>
       
-      <Tabs defaultValue="dashboard" className="space-y-8">        <TabsList className="grid grid-cols-5 w-full max-w-lg mx-auto">
+      <Tabs defaultValue="dashboard" className="space-y-8">        <TabsList className="grid grid-cols-6 w-full max-w-2xl mx-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="subjects">Subjects</TabsTrigger>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
@@ -216,6 +218,10 @@ const AdminPage = () => {
               <UserManagementTable />
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentApprovalTable />
         </TabsContent>
         
         <TabsContent value="resources">
