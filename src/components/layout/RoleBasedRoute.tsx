@@ -11,7 +11,7 @@ interface RoleBasedRouteProps {
 export const RoleBasedRoute = ({ 
   children, 
   allowedRoles, 
-  fallbackPath = "/learning-portal" 
+  fallbackPath 
 }: RoleBasedRouteProps) => {
   const { user, userRole, loading } = useAuth();
   const location = useLocation();
@@ -29,6 +29,12 @@ export const RoleBasedRoute = ({
     return <>{children}</>;
   }
 
+  // Determine fallback path based on user role if not specified
+  let defaultFallback = "/dashboard";
+  if (userRole === 'student') {
+    defaultFallback = "/learning-portal";
+  }
+
   // Redirect to fallback path if role is not allowed
-  return <Navigate to={fallbackPath} replace />;
+  return <Navigate to={fallbackPath || defaultFallback} replace />;
 };

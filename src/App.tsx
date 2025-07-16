@@ -56,29 +56,59 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route element={<MainLayout />}>
-                <Route path="/dashboard" element={
-                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
-                    <Dashboard />
-                  </RoleBasedRoute>
-                } />
-                <Route path="/learning-portal" element={<LearningPortal />} />
-                <Route path="/subject/:subjectId" element={<SubjectDashboard />} />
-                <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
-                <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
-                <Route path="/exam-assistance" element={<ExamAssistance />} />
-                <Route path="/tutor-notes" element={<TutorNotes />} />
-                <Route path="/study-planner" element={<StudyPlanner />} />
-                <Route path="/resource-library" element={<ResourceLibrary />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 
-                {/* Admin-only routes */}
+                {/* Student-only routes */}
+                <Route path="/learning-portal" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <LearningPortal />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/subject/:subjectId" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <SubjectDashboard />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/subject/:subjectId/topic/:topicId" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <TopicPage />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <LessonPage />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/exam-assistance" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <ExamAssistance />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/tutor-notes" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <TutorNotes />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/study-planner" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <StudyPlanner />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/resource-library" element={
+                  <RoleBasedRoute allowedRoles={['student']}>
+                    <ResourceLibrary />
+                  </RoleBasedRoute>
+                } />
+                
+                {/* Admin/Teacher-only routes */}
                 <Route path="/admin" element={
-                  <RoleBasedRoute allowedRoles={['admin']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
                     <AdminPage />
                   </RoleBasedRoute>
                 } />
                 <Route path="/admin/user/:userId" element={
-                  <RoleBasedRoute allowedRoles={['admin']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
                     <AdminUserProfilePage />
                   </RoleBasedRoute>
                 } />
