@@ -1040,6 +1040,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_subject_category: {
+        Args: {
+          p_subject_id: string
+          p_category: Database["public"]["Enums"]["subject_category"]
+        }
+        Returns: undefined
+      }
       assign_super_admin_role: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -1096,6 +1103,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_subject_categories: {
+        Args: { p_subject_id: string }
+        Returns: {
+          category: Database["public"]["Enums"]["subject_category"]
+        }[]
+      }
       get_super_admin_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1149,6 +1162,14 @@ export type Database = {
           subject_id: string
         }[]
       }
+      get_user_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          lessons_completed_count: number
+          quizzes_attempted_count: number
+          average_quiz_score: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1163,6 +1184,20 @@ export type Database = {
       }
       manage_user_suspension: {
         Args: { target_user_id: string; action: string }
+        Returns: undefined
+      }
+      remove_subject_category: {
+        Args: {
+          p_subject_id: string
+          p_category: Database["public"]["Enums"]["subject_category"]
+        }
+        Returns: undefined
+      }
+      set_subject_categories: {
+        Args: {
+          p_subject_id: string
+          p_categories: Database["public"]["Enums"]["subject_category"][]
+        }
         Returns: undefined
       }
       update_user_details_by_admin: {
