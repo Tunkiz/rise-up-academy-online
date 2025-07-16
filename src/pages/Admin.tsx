@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tables } from "@/integrations/supabase/types";
@@ -60,6 +60,8 @@ const getFileIcon = (url: string) => {
 };
 
 const AdminPage = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -70,6 +72,16 @@ const AdminPage = () => {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Get the tab from URL parameters, default to "dashboard"
+  const activeTab = searchParams.get('tab') || 'dashboard';
+
+  // Handle tab changes
+  const handleTabChange = (newTab: string) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('tab', newTab);
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
+  };
 
   const { data: resources, isLoading: isLoadingResources } = useQuery({
     queryKey: ['admin-resources'],
@@ -195,7 +207,8 @@ const AdminPage = () => {
         <Button onClick={() => setOpen(true)}>Create Resource</Button>
       </div>
       
-      <Tabs defaultValue="dashboard" className="space-y-8">        <TabsList className="grid grid-cols-6 w-full max-w-2xl mx-auto">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
+        <TabsList className="grid grid-cols-6 w-full max-w-2xl mx-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
