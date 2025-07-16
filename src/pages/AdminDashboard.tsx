@@ -159,16 +159,6 @@ const AdminDashboard = () => {
             Welcome back, {user?.user_metadata.full_name}! Here's your platform overview.
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => navigate('/admin')}>
-            <ClipboardList className="mr-2 h-4 w-4" />
-            Admin Panel
-          </Button>
-          <Button variant="secondary" onClick={() => navigate('/admin/users')}>
-            <Users className="mr-2 h-4 w-4" />
-            Manage Users
-          </Button>
-        </div>
       </div>
 
       {/* Admin Stats Cards */}
@@ -354,7 +344,7 @@ const AdminDashboard = () => {
               <Button 
                 variant="outline" 
                 className="h-auto p-4 flex flex-col items-center gap-2"
-                onClick={() => navigate('/admin/subjects')}
+                onClick={() => navigate('/admin?tab=subjects')}
               >
                 <BookOpen className="h-6 w-6" />
                 <span>Manage Subjects</span>
@@ -362,7 +352,7 @@ const AdminDashboard = () => {
               <Button 
                 variant="outline" 
                 className="h-auto p-4 flex flex-col items-center gap-2"
-                onClick={() => navigate('/admin/lessons')}
+                onClick={() => navigate('/admin?tab=lessons')}
               >
                 <GraduationCap className="h-6 w-6" />
                 <span>Manage Lessons</span>
@@ -370,18 +360,18 @@ const AdminDashboard = () => {
               <Button 
                 variant="outline" 
                 className="h-auto p-4 flex flex-col items-center gap-2"
-                onClick={() => navigate('/admin/analytics')}
+                onClick={() => navigate('/admin?tab=payments')}
               >
                 <BarChart3 className="h-6 w-6" />
-                <span>Analytics</span>
+                <span>Payment Approvals</span>
               </Button>
               <Button 
                 variant="outline" 
                 className="h-auto p-4 flex flex-col items-center gap-2"
-                onClick={() => navigate('/admin/settings')}
+                onClick={() => navigate('/admin?tab=users')}
               >
-                <AlertCircle className="h-6 w-6" />
-                <span>System Settings</span>
+                <Users className="h-6 w-6" />
+                <span>Manage Users</span>
               </Button>
             </div>
           </CardContent>
