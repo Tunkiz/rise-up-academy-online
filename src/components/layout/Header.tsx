@@ -23,7 +23,18 @@ const navLinks = [
   { to: "/exam-assistance", label: "Exam Assistance" },
   { to: "/study-planner", label: "Study Planner" },
   { to: "/resource-library", label: "Resource Library" },
+  { to: "/admin", label: "Administration" },
 ];
+
+// Helper function to filter navigation links based on user role
+const getFilteredNavLinks = (isAdmin: boolean, isTeacher: boolean) => {
+  // For admins and teachers, only show Dashboard and Administration
+  if (isAdmin || isTeacher) {
+    return navLinks.filter(link => link.to === "/dashboard" || link.to === "/admin");
+  }
+  // For students and other roles, show all navigation links except Administration
+  return navLinks.filter(link => link.to !== "/admin");
+};
 
 const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, onClick: () => void; id?: string; }) => (
   <NavLink
@@ -40,9 +51,13 @@ const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, on
   </NavLink>
 );
 
-export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { user, isAdmin, isSuperAdmin } = useAuth();
+export function Header() {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { user, isAdmin, isSuperAdmin, isTeacher } = useAuth();
   const navigate = useNavigate();
+
+  // Get filtered navigation links based on user role
+  const filteredNavLinks = getFilteredNavLinks(isAdmin, isTeacher);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -67,7 +82,7 @@ export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false
           <span className="font-bold">EduRise</span>
         </Link>
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          {navLinks.map((link) => (
+          {filteredNavLinks.map((link) => (
             <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => {}} id={`nav${link.to.replace(/\//g, '-')}`} />
           ))}
         </nav>
@@ -95,12 +110,7 @@ export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false
                   <DropdownMenuItem onSelect={() => navigate('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
-                  </DropdownMenuItem>                  {isAdmin && (
-                    <DropdownMenuItem onSelect={() => navigate('/admin')}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Admin Panel</span>
-                    </DropdownMenuItem>
-                  )}
+                  </DropdownMenuItem>
                   {isSuperAdmin && (
                     <DropdownMenuItem onSelect={() => navigate('/super-admin')}>
                       <Shield className="mr-2 h-4 w-4 text-amber-500" />
@@ -138,7 +148,7 @@ export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false
                   <BookOpenCheck className="h-6 w-6 text-primary" />
                   <span className="font-bold">EduRise</span>
                 </Link>
-                {navLinks.map((link) => (
+                {filteredNavLinks.map((link) => (
                    <NavLinkItem key={link.to} to={link.to} label={link.label} onClick={() => setIsSheetOpen(false)} />
                 ))}
                 <div className="border-t pt-6 mt-4">
@@ -146,11 +156,7 @@ export function Header() {  const [isSheetOpen, setIsSheetOpen] = useState(false
                     <div className="space-y-4">
                       <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/profile'); setIsSheetOpen(false); }}>
                         <User className="mr-2 h-4 w-4" /> Profile
-                      </Button>                      {isAdmin && (
-                        <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/admin'); setIsSheetOpen(false); }}>
-                          <Shield className="mr-2 h-4 w-4" /> Admin Panel
-                        </Button>
-                      )}
+                      </Button>
                       {isSuperAdmin && (
                         <Button variant="outline" className="w-full justify-start" onClick={() => { navigate('/super-admin'); setIsSheetOpen(false); }}>
                           <Shield className="mr-2 h-4 w-4 text-amber-500" /> Super Admin
