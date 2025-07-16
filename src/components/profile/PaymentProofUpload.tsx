@@ -23,17 +23,23 @@ const PaymentProofUpload = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
 
-  // Fetch user's available subjects
+  // Fetch user's enrolled subjects only
   const { data: subjects } = useQuery({
-    queryKey: ['available-subjects', user?.id],
+    queryKey: ['user-enrolled-subjects', user?.id],
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('name');
+        .from('user_subjects')
+        .select(`
+          subjects (
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('subjects(name)');
       if (error) throw error;
-      return data;
+      return data?.map(item => item.subjects).filter(Boolean) || [];
     },
     enabled: !!user,
   });

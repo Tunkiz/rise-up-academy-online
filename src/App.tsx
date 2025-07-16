@@ -25,6 +25,7 @@ import AdminUserProfilePage from "./pages/AdminUserProfilePage";
 import TutorNotes from "./pages/TutorNotes";
 import { TourProvider } from "./components/tour/TourProvider";
 import { TourGuide } from "./components/tour/TourGuide";
+import { RoleBasedRoute } from "./components/layout/RoleBasedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,13 +63,31 @@ const App = () => (
                 <Route path="/subject/:subjectId/topic/:topicId/lesson/:lessonId" element={<LessonPage />} />
                 <Route path="/exam-assistance" element={<ExamAssistance />} />
                 <Route path="/tutor-notes" element={<TutorNotes />} />
-                <Route path="/study-planner" element={<StudyPlanner />} />                <Route path="/resource-library" element={<ResourceLibrary />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/super-admin" element={<SuperAdminPage />} />
-                <Route path="/admin/user/:userId" element={<AdminUserProfilePage />} />
+                <Route path="/study-planner" element={<StudyPlanner />} />
+                <Route path="/resource-library" element={<ResourceLibrary />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/super-admin" element={<SuperAdminPage />} />
-                <Route path="/super-admin-debug" element={<SuperAdminDiagnosticPage />} />
+                
+                {/* Admin-only routes */}
+                <Route path="/admin" element={
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <AdminPage />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/admin/user/:userId" element={
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <AdminUserProfilePage />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/super-admin" element={
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <SuperAdminPage />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/super-admin-debug" element={
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <SuperAdminDiagnosticPage />
+                  </RoleBasedRoute>
+                } />
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
