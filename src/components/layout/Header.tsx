@@ -28,9 +28,13 @@ const navLinks = [
 
 // Helper function to filter navigation links based on user role
 const getFilteredNavLinks = (isAdmin: boolean, isTeacher: boolean) => {
-  // For admins and teachers, only show Dashboard and Administration
-  if (isAdmin || isTeacher) {
+  // For admins only, show Dashboard and Administration
+  if (isAdmin && !isTeacher) {
     return navLinks.filter(link => link.to === "/dashboard" || link.to === "/admin");
+  }
+  // For teachers, only show Dashboard (no admin access)
+  if (isTeacher) {
+    return navLinks.filter(link => link.to === "/dashboard");
   }
   // For students and other roles, show all navigation links except Administration
   return navLinks.filter(link => link.to !== "/admin");
