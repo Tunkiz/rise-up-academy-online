@@ -11,9 +11,9 @@ interface RoleBasedRouteProps {
 export const RoleBasedRoute = ({ 
   children, 
   allowedRoles, 
-  fallbackPath = "/dashboard" 
+  fallbackPath = "/learning-portal" 
 }: RoleBasedRouteProps) => {
-  const { user, isAdmin, isSuperAdmin, loading } = useAuth();
+  const { user, userRole, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -23,17 +23,6 @@ export const RoleBasedRoute = ({
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  // Determine user's role
-  let userRole: 'admin' | 'teacher' | 'student' = 'student';
-  
-  if (isSuperAdmin) {
-    userRole = 'admin'; // Super admin has admin access
-  } else if (isAdmin) {
-    userRole = 'admin'; // Regular admin
-  }
-  // For now, treating all admins as having admin access
-  // In the future, you might want to distinguish between admin and teacher roles
 
   // Check if user's role is in allowed roles
   if (allowedRoles.includes(userRole)) {

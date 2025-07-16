@@ -56,7 +56,11 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route element={<MainLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
+                    <Dashboard />
+                  </RoleBasedRoute>
+                } />
                 <Route path="/learning-portal" element={<LearningPortal />} />
                 <Route path="/subject/:subjectId" element={<SubjectDashboard />} />
                 <Route path="/subject/:subjectId/topic/:topicId" element={<TopicPage />} />
