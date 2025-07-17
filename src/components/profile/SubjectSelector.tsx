@@ -104,25 +104,31 @@ const SubjectSelector: React.FC = () => {
             return groupedSubjects;
         }
         
-        // If student has no enrolled subjects, show all categories
+        // If student has no enrolled subjects, show all categories so they can choose one
         if (enrolledCategories.size === 0) {
             return groupedSubjects;
         }
         
-        // Only show the category the student is enrolled in
+        // Only show the single category the student is enrolled in
         const filtered: Record<string, Subject[]> = {};
-        enrolledCategories.forEach(category => {
-            if (groupedSubjects[category]) {
-                filtered[category] = groupedSubjects[category];
-            }
-        });
+        const enrolledCategory = Array.from(enrolledCategories)[0]; // Get the first (and only) enrolled category
+        
+        if (groupedSubjects[enrolledCategory]) {
+            filtered[enrolledCategory] = groupedSubjects[enrolledCategory];
+        }
+        
         return filtered;
     }, [groupedSubjects, enrolledCategories, isAdmin]);
 
     // Initialize open categories to show enrolled categories by default
     React.useEffect(() => {
-        setOpenCategories(enrolledCategories);
-    }, [enrolledCategories]);
+        if (enrolledCategories.size > 0) {
+            setOpenCategories(new Set([Array.from(enrolledCategories)[0]]));
+        } else {
+            // If no enrolled categories, open all categories for selection
+            setOpenCategories(new Set(Object.keys(groupedSubjects)));
+        }
+    }, [enrolledCategories, groupedSubjects]);
 
     const subjectMutation = useMutation({
         mutationFn: async ({ subjectId, isSelected }: { subjectId: string, isSelected: boolean }) => {
@@ -168,10 +174,13 @@ const SubjectSelector: React.FC = () => {
         const subject = allSubjects?.find(s => s.id === subjectId);
         if (!subject) return;
         
-        // If selecting a subject and user already has subjects in a different category, prevent it
-        if (isSelected && !isAdmin && enrolledCategories.size > 0 && !enrolledCategories.has(subject.category)) {
-            toast.error('You can only enroll in subjects from one category. Please contact an administrator to change your category.');
-            return;
+        // For non-admin users, prevent enrollment in multiple categories
+        if (isSelected && !isAdmin && enrolledCategories.size > 0) {
+            const enrolledCategory = Array.from(enrolledCategories)[0];
+            if (subject.category !== enrolledCategory) {
+                toast.error('You can only enroll in subjects from one category. Please contact an administrator to change your category.');
+                return;
+            }
         }
         
         subjectMutation.mutate({ subjectId, isSelected });

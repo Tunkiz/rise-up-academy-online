@@ -23,12 +23,31 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Database, Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '../ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 type User = Database['public']['Functions']['get_user_details']['Returns'][number];
 type Subject = Tables<'subjects'>;
+
+// Category display names
+const categoryDisplayNames: Record<string, string> = {
+  matric_amended: 'Matric Amended',
+  national_senior: 'National Senior Certificate',
+  senior_phase: 'Senior Phase'
+};
+
+// Group subjects by category
+const groupSubjectsByCategory = (subjects: Subject[]) => {
+  return subjects.reduce((acc, subject) => {
+    if (!acc[subject.category]) {
+      acc[subject.category] = [];
+    }
+    acc[subject.category].push(subject);
+    return acc;
+  }, {} as Record<string, Subject[]>);
+};
 
 const editSubjectsSchema = z.object({
   subject_ids: z.array(z.string().uuid()),
@@ -44,6 +63,20 @@ interface EditUserSubjectsDialogProps {
 
 export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ user, isOpen, onOpenChange }) => {
   const queryClient = useQueryClient();
+  const [openCategories, setOpenCategories] = React.useState<Set<string>>(new Set());
+  
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(editSubjectsSchema),
     defaultValues: {
@@ -60,8 +93,50 @@ export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ 
     },
   });
 
+  // Group subjects by category
+  const groupedSubjects = React.useMemo(() => {
+    return groupSubjectsByCategory(allSubjects || []);
+  }, [allSubjects]);
+
+  // Get currently enrolled categories
+  const enrolledCategories = React.useMemo(() => {
+    if (!user?.subjects || !Array.isArray(user.subjects)) return new Set<string>();
+    const userSubjectIds = new Set((user.subjects as Subject[]).map(s => s.id));
+    const categories = new Set<string>();
+    
+    Object.entries(groupedSubjects).forEach(([category, subjects]) => {
+      if (subjects.some(subject => userSubjectIds.has(subject.id))) {
+        categories.add(category);
+      }
+    });
+    
+    return categories;
+  }, [user?.subjects, groupedSubjects]);
+
+  // Filter to show only enrolled categories, or all categories if no enrollment
+  const filteredGroupedSubjects = React.useMemo(() => {
+    if (enrolledCategories.size === 0) {
+      // If no enrollment, show all categories
+      return groupedSubjects;
+    }
+    
+    // If enrolled, show only enrolled categories
+    const filtered: Record<string, Subject[]> = {};
+    enrolledCategories.forEach(category => {
+      if (groupedSubjects[category]) {
+        filtered[category] = groupedSubjects[category];
+      }
+    });
+    return filtered;
+  }, [groupedSubjects, enrolledCategories]);
+
+  // Initialize open categories
   React.useEffect(() => {
-    if (user && user.subjects) {
+    setOpenCategories(enrolledCategories);
+  }, [enrolledCategories]);
+
+  React.useEffect(() => {
+    if (user?.subjects) {
       const userSubjectIds = (user.subjects as Subject[]).map(s => s.id);
       form.reset({ subject_ids: userSubjectIds });
     }
@@ -105,7 +180,10 @@ export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ 
         <DialogHeader>
           <DialogTitle>Manage Subjects for {user.full_name || user.email}</DialogTitle>
           <DialogDescription>
-            Select the subjects this user is enrolled in.
+            Select the subjects this user is enrolled in. {enrolledCategories.size > 0 
+              ? `Showing subjects from the ${Array.from(enrolledCategories).map(cat => categoryDisplayNames[cat] || cat).join(', ')} category.`
+              : 'This student can be enrolled in subjects from any category.'
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -116,7 +194,12 @@ export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ 
               render={() => (
                 <FormItem>
                   <FormLabel>Available Subjects</FormLabel>
-                  <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded-md">
+                  {enrolledCategories.size > 0 && (
+                    <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded mb-2">
+                      <strong>Category:</strong> {Array.from(enrolledCategories).map(cat => categoryDisplayNames[cat] || cat).join(', ')}
+                    </div>
+                  )}
+                  <div className="space-y-3 max-h-80 overflow-y-auto p-2 border rounded-md">
                     {isLoadingSubjects ? (
                       <div className="space-y-2">
                         <Skeleton className="h-6 w-full" />
@@ -129,36 +212,61 @@ export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ 
                         <span>Error loading subjects.</span>
                       </div>
                     ) : (
-                      allSubjects?.map((subject) => (
-                        <FormField
-                          key={subject.id}
-                          control={form.control}
-                          name="subject_ids"
-                          render={({ field }) => {
-                            return (
-                              <FormItem key={subject.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(subject.id)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...(field.value || []), subject.id])
-                                        : field.onChange(
-                                            field.value?.filter(
-                                              (value) => value !== subject.id
-                                            )
-                                          );
-                                    }}
+                      Object.entries(filteredGroupedSubjects).map(([category, subjects]) => {
+                        const isOpen = openCategories.has(category);
+                        const currentSubjectIds = form.watch('subject_ids') || [];
+                        
+                        return (
+                          <div key={category} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleCategory(category)}
+                                className="flex items-center gap-2 text-sm font-medium hover:text-primary"
+                              >
+                                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                {categoryDisplayNames[category] || category}
+                              </button>
+                              <Badge variant="default" className="text-xs">
+                                {subjects.filter(s => currentSubjectIds.includes(s.id)).length} selected
+                              </Badge>
+                            </div>
+                            
+                            {isOpen && (
+                              <div className="grid grid-cols-1 gap-2 ml-4">
+                                {subjects.map((subject) => (
+                                  <FormField
+                                    key={subject.id}
+                                    control={form.control}
+                                    name="subject_ids"
+                                    render={({ field }) => (
+                                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(subject.id)}
+                                            onCheckedChange={(checked) => {
+                                              if (checked) {
+                                                field.onChange([...(field.value || []), subject.id]);
+                                              } else {
+                                                field.onChange(
+                                                  field.value?.filter(value => value !== subject.id)
+                                                );
+                                              }
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                          {subject.name}
+                                        </FormLabel>
+                                      </FormItem>
+                                    )}
                                   />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  {subject.name}
-                                </FormLabel>
-                              </FormItem>
-                            );
-                          }}
-                        />
-                      ))
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </FormItem>
