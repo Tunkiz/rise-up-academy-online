@@ -1253,6 +1253,7 @@ export type Database = {
         | "parent"
         | "super_admin"
         | "student"
+        | "teacher"
       enrollment_status:
         | "pending_payment"
         | "payment_submitted"
@@ -1402,6 +1403,7 @@ export const Constants = {
         "parent",
         "super_admin",
         "student",
+        "teacher",
       ],
       enrollment_status: [
         "pending_payment",
