@@ -236,25 +236,33 @@ const TeacherDashboard = () => {
 
         if (resourcesError) throw resourcesError;
 
-        // Try to get enrollments, but handle access restrictions gracefully
-        let enrollments: { user_id: string; subject_id: string }[] = [];
+        // Get students enrolled in subjects this teacher/tutor manages
         let totalStudents = 0;
+        let students: Array<{
+          id: string;
+          full_name: string;
+          email: string;
+          role: string;
+          created_at: string;
+          banned_until?: string;
+          avatar_url?: string;
+          grade?: number;
+          subjects: unknown;
+          tenant_name: string;
+        }> = [];
 
         try {
-          const { data: enrollmentData, error: enrollmentsError } = await supabase
-            .from('enrollments')
-            .select('user_id, subject_id')
-            .eq('status', 'payment_approved')
-            .in('subject_id', subjects?.map(s => s.id) || []);
+          const { data: studentsData, error: studentsError } = await supabase
+            .rpc('get_teacher_students');
 
-          if (enrollmentsError) {
-            console.warn('Could not fetch enrollment data:', enrollmentsError);
+          if (studentsError) {
+            console.warn('Could not fetch student data:', studentsError);
           } else {
-            enrollments = enrollmentData || [];
-            totalStudents = new Set(enrollments.map(e => e.user_id)).size;
+            students = studentsData || [];
+            totalStudents = students.length;
           }
         } catch (error) {
-          console.warn('Enrollment access restricted for teacher role:', error);
+          console.warn('Student access restricted or function not available:', error);
         }
 
         return {
@@ -263,7 +271,7 @@ const TeacherDashboard = () => {
           totalLessons: lessons?.length || 0,
           totalResources: resources?.length || 0,
           subjects: subjects || [],
-          enrollments: enrollments,
+          students: students,
           recentLessons: lessons?.slice(-5) || [],
           recentResources: resources?.slice(-5) || [],
         };
