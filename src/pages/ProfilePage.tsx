@@ -14,6 +14,7 @@ import React from "react";
 import SubjectSelector from "@/components/profile/SubjectSelector";
 import PaymentProofUpload from "@/components/profile/PaymentProofUpload";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const profileSchema = z.object({
@@ -42,6 +43,48 @@ const ProfilePage = () => {
     enabled: !!user,
   });
 
+  // Get user's enrolled subjects with categories
+  const { data: userSubjectsWithCategories } = useQuery({
+    queryKey: ['user-subjects-with-categories', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('user_subjects')
+        .select(`
+          subjects (
+            id,
+            name,
+            category
+          )
+        `)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error fetching user subjects:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const enrolledCategories = React.useMemo(() => {
+    if (!userSubjectsWithCategories) return [];
+    const categories = new Set<string>();
+    userSubjectsWithCategories.forEach(us => {
+      if (us.subjects?.category) {
+        categories.add(us.subjects.category);
+      }
+    });
+    return Array.from(categories);
+  }, [userSubjectsWithCategories]);
+
+  const categoryDisplayNames: Record<string, string> = {
+    matric_amended: 'Matric Amended',
+    national_senior: 'National Senior Certificate',
+    senior_phase: 'Senior Phase'
+  };
+
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -62,7 +105,7 @@ const ProfilePage = () => {
         grade: null,
       });
     }
-  }, [profile, user, form.reset]);
+  }, [profile, user, form]);
 
   return (
     <div className="container py-10">
@@ -142,6 +185,20 @@ const ProfilePage = () => {
                   <div>
                     <h3 className="text-lg font-medium mb-2">My Subjects</h3>
                     <p className="text-sm text-muted-foreground mb-4">Select the subjects you are studying to personalize your learning experience.</p>
+                    
+                    {enrolledCategories.length > 0 && (
+                      <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                        <h4 className="text-sm font-medium mb-2">Enrolled Categories:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {enrolledCategories.map(category => (
+                            <Badge key={category} variant="outline">
+                              {categoryDisplayNames[category] || category}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <SubjectSelector />
                   </div>
                 </TabsContent>
