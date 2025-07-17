@@ -381,7 +381,9 @@ const SubjectManagement = () => {
                                 </div>
                               </div>
                               <CollapsibleContent>
-                                <TopicList subjectId={subject.id} />
+                                <div className="p-4 text-muted-foreground text-sm">
+                                  Topic and lesson management has been moved to dedicated sections.
+                                </div>
                               </CollapsibleContent>
                             </li>
                           </Collapsible>
