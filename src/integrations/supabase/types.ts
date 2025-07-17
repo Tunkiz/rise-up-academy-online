@@ -1146,6 +1146,21 @@ export type Database = {
           tenants_with_stats: Json
         }[]
       }
+      get_teacher_students: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          banned_until: string
+          avatar_url: string
+          grade: number
+          subjects: Json
+          tenant_name: string
+        }[]
+      }
       get_user_activity: {
         Args: { p_user_id: string }
         Returns: {
