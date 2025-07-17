@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Users, 
@@ -21,7 +20,9 @@ import {
   Clock,
   Edit,
   Trash2,
-  LinkIcon
+  LinkIcon,
+  FileText,
+  ExternalLink
 } from "lucide-react";
 import { format } from 'date-fns';
 import { toast } from "sonner";
@@ -49,40 +50,6 @@ import TopicList from "@/components/admin/TopicList";
 
 // Import existing components we'll reuse
 import UserManagementTable from "@/components/admin/UserManagementTable";
-import LessonManagement from "@/components/admin/LessonManagement";
-
-// Helper function to generate recurring schedules
-const generateRecurringSchedules = (
-  startDate: string, 
-  type: 'weekly' | 'monthly' | 'custom', 
-  interval: number, 
-  endDate: string
-): string[] => {
-  const schedules: string[] = [];
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  const current = new Date(start);
-  
-  while (current <= end) {
-    schedules.push(current.toISOString());
-    
-    // Calculate next occurrence
-    switch (type) {
-      case 'weekly':
-        current.setDate(current.getDate() + (7 * interval));
-        break;
-      case 'monthly':
-        current.setMonth(current.getMonth() + interval);
-        break;
-      case 'custom':
-        current.setDate(current.getDate() + interval);
-        break;
-    }
-  }
-  
-  return schedules;
-};
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -93,12 +60,9 @@ const TeacherDashboard = () => {
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [classLink, setClassLink] = useState("");
-  const [classDate, setClassDate] = useState("");
-  const [classTime, setClassTime] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringType, setRecurringType] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
-  const [recurringInterval, setRecurringInterval] = useState(1);
-  const [recurringEndDate, setRecurringEndDate] = useState("");
+  const [classTitle, setClassTitle] = useState("");
+  const [classStartTime, setClassStartTime] = useState("");
+  const [classEndTime, setClassEndTime] = useState("");
   const [editingSchedule, setEditingSchedule] = useState<Tables<'class_schedules'> | null>(null);
 
   // Get user profile - MOVED TO TOP
@@ -121,12 +85,9 @@ const TeacherDashboard = () => {
   const resetForm = () => {
     setSelectedSubject("");
     setClassLink("");
-    setClassDate("");
-    setClassTime("");
-    setIsRecurring(false);
-    setRecurringType('weekly');
-    setRecurringInterval(1);
-    setRecurringEndDate("");
+    setClassTitle("");
+    setClassStartTime("");
+    setClassEndTime("");
     setEditingSchedule(null);
   };
 
@@ -138,7 +99,7 @@ const TeacherDashboard = () => {
         .from('class_schedules')
         .select('*')
         .eq('tenant_id', profile?.tenant_id)
-        .order('scheduled_at', { ascending: false });
+        .order('start_time', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -154,74 +115,37 @@ const TeacherDashboard = () => {
   const createClassScheduleMutation = useMutation({
     mutationFn: async (data: {
       subject_id: string;
-      class_link: string;
-      scheduled_at: string;
-      is_recurring?: boolean;
-      recurring_type?: 'weekly' | 'monthly' | 'custom';
-      recurring_interval?: number;
-      recurring_end_date?: string;
+      title: string;
+      meeting_link: string;
+      start_time: string;
+      end_time: string;
     }) => {
       if (!profile?.tenant_id) {
         throw new Error('User tenant not found');
       }
 
+      const scheduleData = {
+        subject_id: data.subject_id,
+        title: data.title,
+        meeting_link: data.meeting_link,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        tenant_id: profile.tenant_id,
+      };
+
       if (editingSchedule) {
         // Update existing schedule
         const { error } = await supabase
           .from('class_schedules')
-          .update({
-            subject_id: data.subject_id,
-            class_link: data.class_link,
-            scheduled_at: data.scheduled_at,
-            is_recurring: data.is_recurring || false,
-            recurring_type: data.recurring_type || null,
-            recurring_interval: data.recurring_interval || null,
-            recurring_end_date: data.recurring_end_date || null,
-          })
+          .update(scheduleData)
           .eq('id', editingSchedule.id);
         if (error) throw error;
       } else {
-        // Create new schedule(s)
-        if (data.is_recurring && data.recurring_end_date) {
-          // Generate recurring schedules
-          const schedules = generateRecurringSchedules(
-            data.scheduled_at,
-            data.recurring_type || 'weekly',
-            data.recurring_interval || 1,
-            data.recurring_end_date
-          );
-
-          const schedulesToInsert = schedules.map(scheduledAt => ({
-            subject_id: data.subject_id,
-            class_link: data.class_link,
-            scheduled_at: scheduledAt,
-            is_recurring: true,
-            recurring_type: data.recurring_type,
-            recurring_interval: data.recurring_interval,
-            recurring_end_date: data.recurring_end_date,
-            tenant_id: profile.tenant_id,
-          }));
-
-          const { error } = await supabase
-            .from('class_schedules')
-            .insert(schedulesToInsert);
-          if (error) throw error;
-        } else {
-          // Create single schedule
-          const { error } = await supabase
-            .from('class_schedules')
-            .insert({
-              subject_id: data.subject_id,
-              class_link: data.class_link,
-              scheduled_at: data.scheduled_at,
-              is_recurring: data.is_recurring || false,
-              recurring_type: data.recurring_type || null,
-              recurring_interval: data.recurring_interval || null,
-              recurring_end_date: data.recurring_end_date || null,
-              tenant_id: profile.tenant_id,
-            });
-          if (error) throw error;
-        }
+        // Create new schedule
+        const { error } = await supabase
+          .from('class_schedules')
+          .insert(scheduleData);
+        if (error) throw error;
       }
     },
     onSuccess: () => {
@@ -256,25 +180,17 @@ const TeacherDashboard = () => {
   // Handle form submission
   const handleCreateSchedule = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSubject || !classLink || !classDate || !classTime) {
+    if (!selectedSubject || !classTitle || !classStartTime || !classEndTime) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (isRecurring && !recurringEndDate) {
-      toast.error('Please select an end date for recurring classes');
-      return;
-    }
-
-    const scheduledAt = new Date(`${classDate}T${classTime}`).toISOString();
     createClassScheduleMutation.mutate({
       subject_id: selectedSubject,
-      class_link: classLink,
-      scheduled_at: scheduledAt,
-      is_recurring: isRecurring,
-      recurring_type: isRecurring ? recurringType : undefined,
-      recurring_interval: isRecurring ? recurringInterval : undefined,
-      recurring_end_date: isRecurring ? recurringEndDate : undefined,
+      title: classTitle,
+      meeting_link: classLink,
+      start_time: classStartTime,
+      end_time: classEndTime,
     });
   };
 
@@ -282,19 +198,15 @@ const TeacherDashboard = () => {
   const handleEditSchedule = (schedule: Tables<'class_schedules'>) => {
     setEditingSchedule(schedule);
     setSelectedSubject(schedule.subject_id);
-    setClassLink(schedule.class_link);
-    const date = new Date(schedule.scheduled_at);
-    setClassDate(date.toISOString().split('T')[0]);
-    setClassTime(date.toTimeString().substring(0, 5));
-    setIsRecurring(schedule.is_recurring || false);
-    setRecurringType(schedule.recurring_type || 'weekly');
-    setRecurringInterval(schedule.recurring_interval || 1);
-    setRecurringEndDate(schedule.recurring_end_date || '');
+    setClassTitle(schedule.title);
+    setClassLink(schedule.meeting_link || '');
+    setClassStartTime(schedule.start_time);
+    setClassEndTime(schedule.end_time);
     setIsClassDialogOpen(true);
   };
 
   // Overview stats for teachers
-  const { data: teacherStats, isLoading: isLoadingStats } = useQuery({
+  const { data: teacherStats } = useQuery({
     queryKey: ['teacher_stats', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -496,15 +408,10 @@ const TeacherDashboard = () => {
                                               <div className="flex items-center gap-2">
                                                 <Clock className="h-3 w-3 text-muted-foreground" />
                                                 <div>
-                                                  <span className="text-sm">
-                                                    {format(new Date(schedule.scheduled_at), 'PPP p')}
-                                                  </span>
-                                                  {schedule.is_recurring && (
-                                                    <div className="text-xs text-muted-foreground">
-                                                      Recurring {schedule.recurring_type} 
-                                                      {schedule.recurring_interval && schedule.recurring_interval > 1 && ` (every ${schedule.recurring_interval} ${schedule.recurring_type === 'weekly' ? 'weeks' : schedule.recurring_type === 'monthly' ? 'months' : 'days'})`}
-                                                    </div>
-                                                  )}
+                                                  <div className="text-sm font-medium">{schedule.title}</div>
+                                                  <div className="text-xs text-muted-foreground">
+                                                    {format(new Date(schedule.start_time), 'PPP p')} - {format(new Date(schedule.end_time), 'p')}
+                                                  </div>
                                                 </div>
                                               </div>
                                               <div className="flex items-center gap-1">
@@ -512,7 +419,8 @@ const TeacherDashboard = () => {
                                                   variant="ghost"
                                                   size="sm"
                                                   className="h-6 w-6 p-0"
-                                                  onClick={() => window.open(schedule.class_link, '_blank')}
+                                                  onClick={() => window.open(schedule.meeting_link, '_blank')}
+                                                  disabled={!schedule.meeting_link}
                                                 >
                                                   <LinkIcon className="h-3 w-3" />
                                                 </Button>
@@ -618,91 +526,47 @@ const TeacherDashboard = () => {
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="classLink">Class Link</Label>
+                  <Label htmlFor="classTitle">Class Title</Label>
+                  <Input
+                    id="classTitle"
+                    type="text"
+                    value={classTitle}
+                    onChange={(e) => setClassTitle(e.target.value)}
+                    placeholder="Enter class title"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="classLink">Meeting Link (Optional)</Label>
                   <Input
                     id="classLink"
                     type="url"
                     value={classLink}
                     onChange={(e) => setClassLink(e.target.value)}
                     placeholder="https://meet.google.com/your-meeting-link"
-                    required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="classDate">Date</Label>
+                    <Label htmlFor="classStartTime">Start Time</Label>
                     <Input
-                      id="classDate"
-                      type="date"
-                      value={classDate}
-                      onChange={(e) => setClassDate(e.target.value)}
+                      id="classStartTime"
+                      type="datetime-local"
+                      value={classStartTime}
+                      onChange={(e) => setClassStartTime(e.target.value)}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="classTime">Time</Label>
+                    <Label htmlFor="classEndTime">End Time</Label>
                     <Input
-                      id="classTime"
-                      type="time"
-                      value={classTime}
-                      onChange={(e) => setClassTime(e.target.value)}
+                      id="classEndTime"
+                      type="datetime-local"
+                      value={classEndTime}
+                      onChange={(e) => setClassEndTime(e.target.value)}
                       required
                     />
                   </div>
-                </div>
-                
-                {/* Recurring Options */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isRecurring"
-                      checked={isRecurring}
-                      onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-                    />
-                    <Label htmlFor="isRecurring">Make this a recurring class</Label>
-                  </div>
-                  
-                  {isRecurring && (
-                    <div className="grid gap-4 p-4 bg-muted/50 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="recurringType">Repeat</Label>
-                          <Select value={recurringType} onValueChange={(value: 'weekly' | 'monthly' | 'custom') => setRecurringType(value)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="custom">Custom (days)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="recurringInterval">
-                            Every {recurringType === 'weekly' ? 'week(s)' : recurringType === 'monthly' ? 'month(s)' : 'day(s)'}
-                          </Label>
-                          <Input
-                            id="recurringInterval"
-                            type="number"
-                            min="1"
-                            value={recurringInterval}
-                            onChange={(e) => setRecurringInterval(parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="recurringEndDate">End Date</Label>
-                        <Input
-                          id="recurringEndDate"
-                          type="date"
-                          value={recurringEndDate}
-                          onChange={(e) => setRecurringEndDate(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -725,6 +589,611 @@ const TeacherDashboard = () => {
     );
   };
 
+  // Teacher Lesson Management Component
+  const TeacherResourceManagement = () => {
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [selectedResource, setSelectedResource] = useState<Tables<'resources'> | null>(null);
+    
+    // Resource form state
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [subjectId, setSubjectId] = useState("");
+    const [fileUrl, setFileUrl] = useState("");
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [uploadType, setUploadType] = useState<'url' | 'file'>('url');
+    const [grade, setGrade] = useState(9);
+
+    // Get teacher's subjects only
+    const { data: teacherSubjects } = useQuery({
+      queryKey: ['teacher-subjects-for-resources'],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('tenant_id', profile?.tenant_id)
+          .order('name');
+        if (error) throw error;
+        return data;
+      },
+      enabled: !!profile?.tenant_id,
+    });
+
+    // Get resources filtered by teacher's subjects
+    const { data: resources, isLoading: isLoadingResources } = useQuery({
+      queryKey: ['teacher-resources', selectedSubject],
+      queryFn: async () => {
+        let query = supabase
+          .from('resources')
+          .select('*')
+          .eq('tenant_id', profile?.tenant_id);
+
+        if (selectedSubject) {
+          query = query.eq('subject_id', selectedSubject);
+        } else if (teacherSubjects?.length) {
+          // Filter to only teacher's subjects
+          query = query.in('subject_id', teacherSubjects.map(s => s.id));
+        }
+
+        const { data, error } = await query.order('title');
+        if (error) throw error;
+        return data;
+      },
+      enabled: !!profile?.tenant_id && !!teacherSubjects,
+    });
+
+    // Helper function to determine file type and icon
+    const getFileIcon = (url: string) => {
+      if (!url) return null;
+      
+      const extension = url.split('.').pop()?.toLowerCase() || '';
+      
+      if (['pdf'].includes(extension)) {
+        return <FileText className="w-4 h-4 text-red-600" />;
+      } else if (['doc', 'docx'].includes(extension)) {
+        return <FileText className="w-4 h-4 text-blue-600" />;
+      } else if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
+        return <FileText className="w-4 h-4 text-green-600" />;
+      } else if (url.startsWith('http')) {
+        return <ExternalLink className="w-4 h-4 text-purple-600" />;
+      }
+      
+      return <FileText className="w-4 h-4 text-gray-600" />;
+    };
+
+    // Reset form function
+    const resetResourceForm = () => {
+      setTitle("");
+      setDescription("");
+      setSubjectId("");
+      setFileUrl("");
+      setSelectedFile(null);
+      setUploadType('url');
+      setGrade(9);
+      setSelectedResource(null);
+    };
+
+    // Create/Update resource mutation
+    const createResourceMutation = useMutation({
+      mutationFn: async (data: { 
+        title: string; 
+        description: string; 
+        subject_id: string; 
+        grade: number; 
+        uploadType: 'url' | 'file';
+        fileUrl?: string;
+        selectedFile?: File | null;
+      }) => {
+        if (!profile?.tenant_id) {
+          throw new Error('User tenant not found');
+        }
+
+        let finalFileUrl = '';
+
+        // Handle file upload if file is selected
+        if (data.uploadType === 'file' && data.selectedFile) {
+          const fileExt = data.selectedFile.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const filePath = `resources/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('resource_files')
+            .upload(filePath, data.selectedFile);
+
+          if (uploadError) {
+            throw new Error(`Upload failed: ${uploadError.message}`);
+          }
+
+          // Get the public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('resource_files')
+            .getPublicUrl(filePath);
+
+          finalFileUrl = publicUrl;
+        } else if (data.uploadType === 'url' && data.fileUrl) {
+          finalFileUrl = data.fileUrl;
+        }
+
+        const resourceData = {
+          title: data.title,
+          description: data.description,
+          subject_id: data.subject_id,
+          grade: data.grade,
+          file_url: finalFileUrl,
+          tenant_id: profile.tenant_id,
+        };
+
+        if (selectedResource) {
+          // Update existing resource
+          const { error } = await supabase
+            .from('resources')
+            .update(resourceData)
+            .eq('id', selectedResource.id);
+          if (error) throw error;
+        } else {
+          // Create new resource
+          const { error } = await supabase
+            .from('resources')
+            .insert(resourceData);
+          if (error) throw error;
+        }
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['teacher-resources'] });
+        toast.success(selectedResource ? 'Resource updated successfully!' : 'Resource created successfully!');
+        resetResourceForm();
+        setIsCreateDialogOpen(false);
+        setIsEditDialogOpen(false);
+      },
+      onError: (error) => {
+        toast.error(`Failed to ${selectedResource ? 'update' : 'create'} resource: ${error.message}`);
+      },
+    });
+
+    // Delete resource mutation
+    const deleteResourceMutation = useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from('resources').delete().eq('id', id);
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['teacher-resources'] });
+        toast.success('Resource deleted successfully!');
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete resource: ${error.message}`);
+      },
+    });
+
+    const handleSubjectChange = (value: string) => {
+      setSelectedSubject(value === "all" ? null : value);
+    };
+
+    const handleEditClick = (resource: Tables<'resources'>) => {
+      setSelectedResource(resource);
+      setTitle(resource.title);
+      setDescription(resource.description || "");
+      setSubjectId(resource.subject_id);
+      setGrade(resource.grade);
+      setFileUrl(resource.file_url || "");
+      setUploadType(resource.file_url?.startsWith('http') ? 'url' : 'file');
+      setIsEditDialogOpen(true);
+    };
+
+    const handleCreateClick = () => {
+      resetResourceForm();
+      setIsCreateDialogOpen(true);
+    };
+
+    const handleSubmit = () => {
+      // Validation
+      if (!title.trim()) {
+        toast.error('Title is required');
+        return;
+      }
+      if (!subjectId) {
+        toast.error('Please select a subject');
+        return;
+      }
+      
+      // Check if this is a teacher's subject
+      if (!teacherSubjects?.find(s => s.id === subjectId)) {
+        toast.error('You can only create resources for your assigned subjects');
+        return;
+      }
+
+      if (uploadType === 'url' && !fileUrl.trim()) {
+        toast.error('Please provide a file URL');
+        return;
+      }
+      if (uploadType === 'file' && !selectedFile && !selectedResource) {
+        toast.error('Please select a file to upload');
+        return;
+      }
+      
+      createResourceMutation.mutate({ 
+        title, 
+        description, 
+        subject_id: subjectId, 
+        grade,
+        uploadType,
+        fileUrl,
+        selectedFile
+      });
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-end justify-between mb-4">
+          <div className="flex gap-4">
+            <div className="w-64">
+              <div className="flex flex-col space-y-1">
+                <span className="text-sm font-medium">Filter by Subject</span>
+                <Select value={selectedSubject || "all"} onValueChange={handleSubjectChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All My Subjects</SelectItem>
+                    {teacherSubjects?.map(subject => (
+                      <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <Button onClick={handleCreateClick}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Resource
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Resources {selectedSubject && teacherSubjects?.find(s => s.id === selectedSubject)?.name && `for ${teacherSubjects.find(s => s.id === selectedSubject)?.name}`}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingResources ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="h-4 w-4 bg-gray-200 rounded"></div>
+                    <div className="flex-1 space-y-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : resources && resources.length > 0 ? (
+              <div className="space-y-2">
+                {resources.map((resource) => (
+                  <div key={resource.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                    <div className="flex items-center space-x-3">
+                      {getFileIcon(resource.file_url || '')}
+                      <div>
+                        <div className="font-medium">{resource.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {teacherSubjects?.find(s => s.id === resource.subject_id)?.name} • Grade {resource.grade}
+                          {resource.description && ` • ${resource.description}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {resource.file_url && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={resource.file_url} target="_blank" rel="noopener noreferrer" title="View resource">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditClick(resource)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{resource.title}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteResourceMutation.mutate(resource.id)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                {selectedSubject ? (
+                  <p>No resources found for the selected subject.</p>
+                ) : (
+                  <p>No resources created yet. Click "Create Resource" to get started.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create Resource Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Resource</DialogTitle>
+              <DialogDescription>
+                Create a new resource for your subjects
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">
+                  Title
+                </Label>
+                <Input 
+                  id="title" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  className="col-span-3" 
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Input 
+                  id="description" 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="col-span-3" 
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="subject" className="text-right">
+                  Subject
+                </Label>
+                <Select value={subjectId} onValueChange={setSubjectId}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teacherSubjects?.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="grade" className="text-right">
+                  Grade
+                </Label>
+                <Input
+                  type="number"
+                  id="grade"
+                  value={grade.toString()}
+                  onChange={(e) => setGrade(Number(e.target.value))}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="uploadType" className="text-right">
+                  Upload Type
+                </Label>
+                <Select value={uploadType} onValueChange={(value: 'url' | 'file') => setUploadType(value)}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="url">External URL</SelectItem>
+                    <SelectItem value="file">Upload File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {uploadType === 'url' ? (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="fileUrl" className="text-right">
+                    File URL
+                  </Label>
+                  <Input 
+                    id="fileUrl" 
+                    value={fileUrl} 
+                    onChange={(e) => setFileUrl(e.target.value)} 
+                    className="col-span-3" 
+                    placeholder="https://example.com/document.pdf"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="file" className="text-right">
+                    Upload File
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="file" 
+                      type="file" 
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      className="cursor-pointer"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Supports PDF, Word documents, and images
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  resetResourceForm();
+                  setIsCreateDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit}
+                disabled={createResourceMutation.isPending}
+              >
+                {createResourceMutation.isPending ? "Creating..." : "Create Resource"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Resource Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Resource</DialogTitle>
+              <DialogDescription>
+                Edit the resource details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-title" className="text-right">
+                  Title
+                </Label>
+                <Input 
+                  id="edit-title" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  className="col-span-3" 
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-description" className="text-right">
+                  Description
+                </Label>
+                <Input 
+                  id="edit-description" 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="col-span-3" 
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-subject" className="text-right">
+                  Subject
+                </Label>
+                <Select value={subjectId} onValueChange={setSubjectId}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teacherSubjects?.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-grade" className="text-right">
+                  Grade
+                </Label>
+                <Input
+                  type="number"
+                  id="edit-grade"
+                  value={grade.toString()}
+                  onChange={(e) => setGrade(Number(e.target.value))}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-uploadType" className="text-right">
+                  Upload Type
+                </Label>
+                <Select value={uploadType} onValueChange={(value: 'url' | 'file') => setUploadType(value)}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="url">External URL</SelectItem>
+                    <SelectItem value="file">Upload File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {uploadType === 'url' ? (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-fileUrl" className="text-right">
+                    File URL
+                  </Label>
+                  <Input 
+                    id="edit-fileUrl" 
+                    value={fileUrl} 
+                    onChange={(e) => setFileUrl(e.target.value)} 
+                    className="col-span-3" 
+                    placeholder="https://example.com/document.pdf"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-file" className="text-right">
+                    Upload File
+                  </Label>
+                  <div className="col-span-3">
+                    <Input 
+                      id="edit-file" 
+                      type="file" 
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      className="cursor-pointer"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Supports PDF, Word documents, and images. Leave empty to keep current file.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  resetResourceForm();
+                  setIsEditDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit}
+                disabled={createResourceMutation.isPending}
+              >
+                {createResourceMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
@@ -739,7 +1208,7 @@ const TeacherDashboard = () => {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
           <TabsTrigger value="subjects">Subjects</TabsTrigger>
-          <TabsTrigger value="lessons">Lessons</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -860,14 +1329,14 @@ const TeacherDashboard = () => {
           <TeacherSubjectManagement />
         </TabsContent>
 
-        <TabsContent value="lessons" className="space-y-4">
+        <TabsContent value="resources" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Lesson Management</CardTitle>
-              <CardDescription>Create and manage your lessons</CardDescription>
+              <CardTitle>Resource Management</CardTitle>
+              <CardDescription>Create and manage resources for your subjects</CardDescription>
             </CardHeader>
             <CardContent>
-              <LessonManagement />
+              <TeacherResourceManagement />
             </CardContent>
           </Card>
         </TabsContent>
