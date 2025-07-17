@@ -47,9 +47,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import TopicList from "@/components/admin/TopicList";
-
-// Import existing components we'll reuse
-import UserManagementTable from "@/components/admin/UserManagementTable";
+import TeacherStudentManagement from "@/components/admin/TeacherStudentManagement";
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -211,51 +209,66 @@ const TeacherDashboard = () => {
     queryFn: async () => {
       if (!user) return null;
 
-      // Get subjects the teacher is assigned to
-      const { data: subjects, error: subjectsError } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('tenant_id', profile?.tenant_id);
+      try {
+        // Get subjects the teacher is assigned to
+        const { data: subjects, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('tenant_id', profile?.tenant_id);
 
-      if (subjectsError) throw subjectsError;
+        if (subjectsError) throw subjectsError;
 
-      // Get total students enrolled in teacher's subjects
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .select('user_id, subject_id, subjects(*)')
-        .eq('status', 'payment_approved')
-        .in('subject_id', subjects?.map(s => s.id) || []);
+        // Get total lessons created by teacher
+        const { data: lessons, error: lessonsError } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('tenant_id', profile?.tenant_id);
 
-      if (enrollmentsError) throw enrollmentsError;
+        if (lessonsError) throw lessonsError;
 
-      // Get total lessons created by teacher
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('tenant_id', profile?.tenant_id);
+        // Get total resources created by teacher
+        const { data: resources, error: resourcesError } = await supabase
+          .from('resources')
+          .select('*')
+          .eq('tenant_id', profile?.tenant_id);
 
-      if (lessonsError) throw lessonsError;
+        if (resourcesError) throw resourcesError;
 
-      // Get total resources created by teacher
-      const { data: resources, error: resourcesError } = await supabase
-        .from('resources')
-        .select('*')
-        .eq('tenant_id', profile?.tenant_id);
+        // Try to get enrollments, but handle access restrictions gracefully
+        let enrollments: { user_id: string; subject_id: string }[] = [];
+        let totalStudents = 0;
 
-      if (resourcesError) throw resourcesError;
+        try {
+          const { data: enrollmentData, error: enrollmentsError } = await supabase
+            .from('enrollments')
+            .select('user_id, subject_id')
+            .eq('status', 'payment_approved')
+            .in('subject_id', subjects?.map(s => s.id) || []);
 
-      const uniqueStudents = new Set(enrollments?.map(e => e.user_id) || []).size;
+          if (enrollmentsError) {
+            console.warn('Could not fetch enrollment data:', enrollmentsError);
+          } else {
+            enrollments = enrollmentData || [];
+            totalStudents = new Set(enrollments.map(e => e.user_id)).size;
+          }
+        } catch (error) {
+          console.warn('Enrollment access restricted for teacher role:', error);
+        }
 
-      return {
-        totalSubjects: subjects?.length || 0,
-        totalStudents: uniqueStudents,
-        totalLessons: lessons?.length || 0,
-        totalResources: resources?.length || 0,
-        subjects: subjects || [],
-        enrollments: enrollments || [],
-        recentLessons: lessons?.slice(-5) || [],
-        recentResources: resources?.slice(-5) || [],
-      };
+        return {
+          totalSubjects: subjects?.length || 0,
+          totalStudents: totalStudents,
+          totalLessons: lessons?.length || 0,
+          totalResources: resources?.length || 0,
+          subjects: subjects || [],
+          enrollments: enrollments,
+          recentLessons: lessons?.slice(-5) || [],
+          recentResources: resources?.slice(-5) || [],
+        };
+      } catch (error) {
+        console.error('Error fetching teacher stats:', error);
+        throw error;
+      }
     },
     enabled: !!user && !!profile?.tenant_id,
   });
@@ -1320,7 +1333,7 @@ const TeacherDashboard = () => {
               <CardDescription>Manage students enrolled in your subjects</CardDescription>
             </CardHeader>
             <CardContent>
-              <UserManagementTable />
+              <TeacherStudentManagement />
             </CardContent>
           </Card>
         </TabsContent>

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       class_schedules: {
@@ -491,6 +516,7 @@ export type Database = {
           full_name: string | null
           grade: number | null
           id: string
+          learner_category: Database["public"]["Enums"]["subject_category"]
           tenant_id: string
         }
         Insert: {
@@ -498,6 +524,7 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id: string
+          learner_category: Database["public"]["Enums"]["subject_category"]
           tenant_id: string
         }
         Update: {
@@ -505,6 +532,7 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id?: string
+          learner_category?: Database["public"]["Enums"]["subject_category"]
           tenant_id?: string
         }
         Relationships: [
@@ -1118,6 +1146,21 @@ export type Database = {
           tenants_with_stats: Json
         }[]
       }
+      get_teacher_students: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          banned_until: string
+          avatar_url: string
+          grade: number
+          subjects: Json
+          tenant_name: string
+        }[]
+      }
       get_user_activity: {
         Args: { p_user_id: string }
         Returns: {
@@ -1205,6 +1248,13 @@ export type Database = {
           target_user_id: string
           new_full_name: string
           new_grade: number
+        }
+        Returns: undefined
+      }
+      update_user_learner_category: {
+        Args: {
+          target_user_id: string
+          new_category: Database["public"]["Enums"]["subject_category"]
         }
         Returns: undefined
       }
@@ -1368,6 +1418,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [
