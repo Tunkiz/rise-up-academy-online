@@ -36,6 +36,7 @@ import SubjectManagement from "@/components/admin/SubjectManagement";
 import LessonManagement from "@/components/admin/LessonManagement";
 import PaymentApprovalTable from "@/components/admin/PaymentApprovalTable";
 import { FileText, ExternalLink, Upload } from "lucide-react";
+import { useCreateResource } from "@/hooks/useCreateResource";
 
 type Subject = Tables<'subjects'>;
 type Resource = Tables<'resources'>;
@@ -101,81 +102,7 @@ const AdminPage = () => {
     },
   });
 
-  const createResourceMutation = useMutation({
-    mutationFn: async (data: { 
-      title: string; 
-      description: string; 
-      subject_id: string; 
-      grade: number; 
-      uploadType: 'url' | 'file';
-      fileUrl?: string;
-      selectedFile?: File | null;
-    }) => {
-      if (!user) throw new Error('Not authenticated');
-      
-      // Get current user's tenant_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.tenant_id) {
-        throw new Error('User tenant not found');
-      }
-
-      let finalFileUrl = '';
-
-      // Handle file upload if file is selected
-      if (data.uploadType === 'file' && data.selectedFile) {
-        const fileExt = data.selectedFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `resources/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('resource_files')
-          .upload(filePath, data.selectedFile);
-
-        if (uploadError) {
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('resource_files')
-          .getPublicUrl(filePath);
-
-        finalFileUrl = publicUrl;
-      } else if (data.uploadType === 'url' && data.fileUrl) {
-        finalFileUrl = data.fileUrl;
-      }
-
-      const { error } = await supabase.from('resources').insert({
-        title: data.title,
-        description: data.description,
-        subject_id: data.subject_id,
-        grade: data.grade,
-        file_url: finalFileUrl,
-        tenant_id: profile.tenant_id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-resources'] });
-      toast.success('Resource created successfully!');
-      setTitle("");
-      setDescription("");
-      setSubjectId("");
-      setFileUrl("");
-      setSelectedFile(null);
-      setUploadType('url');
-      setGrade(9);
-      setOpen(false);
-    },
-    onError: (error) => {
-      toast.error(`Failed to create resource: ${error.message}`);
-    },
-  });
+  const createResourceMutation = useCreateResource();
 
   const deleteResourceMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -363,8 +290,19 @@ const AdminPage = () => {
                   subject_id: subjectId, 
                   grade,
                   uploadType,
-                  fileUrl,
+                  file_url: fileUrl,
                   selectedFile
+                }, {
+                  onSuccess: () => {
+                    setTitle('');
+                    setDescription('');
+                    setSubjectId('');
+                    setGrade(9);
+                    setFileUrl('');
+                    setSelectedFile(null);
+                    setUploadType('url');
+                    setOpen(false);
+                  }
                 });
               }}
               disabled={createResourceMutation.isPending}

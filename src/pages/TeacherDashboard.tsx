@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import TopicList from "@/components/admin/TopicList";
 import TeacherStudentManagement from "@/components/admin/TeacherStudentManagement";
+import { useCreateResource } from "@/hooks/useCreateResource";
+import { useUpdateResource } from "@/hooks/useUpdateResource";
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -688,81 +690,8 @@ const TeacherDashboard = () => {
     };
 
     // Create/Update resource mutation
-    const createResourceMutation = useMutation({
-      mutationFn: async (data: { 
-        title: string; 
-        description: string; 
-        subject_id: string; 
-        grade: number; 
-        uploadType: 'url' | 'file';
-        fileUrl?: string;
-        selectedFile?: File | null;
-      }) => {
-        if (!profile?.tenant_id) {
-          throw new Error('User tenant not found');
-        }
-
-        let finalFileUrl = '';
-
-        // Handle file upload if file is selected
-        if (data.uploadType === 'file' && data.selectedFile) {
-          const fileExt = data.selectedFile.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const filePath = `resources/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('resource_files')
-            .upload(filePath, data.selectedFile);
-
-          if (uploadError) {
-            throw new Error(`Upload failed: ${uploadError.message}`);
-          }
-
-          // Get the public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('resource_files')
-            .getPublicUrl(filePath);
-
-          finalFileUrl = publicUrl;
-        } else if (data.uploadType === 'url' && data.fileUrl) {
-          finalFileUrl = data.fileUrl;
-        }
-
-        const resourceData = {
-          title: data.title,
-          description: data.description,
-          subject_id: data.subject_id,
-          grade: data.grade,
-          file_url: finalFileUrl,
-          tenant_id: profile.tenant_id,
-        };
-
-        if (selectedResource) {
-          // Update existing resource
-          const { error } = await supabase
-            .from('resources')
-            .update(resourceData)
-            .eq('id', selectedResource.id);
-          if (error) throw error;
-        } else {
-          // Create new resource
-          const { error } = await supabase
-            .from('resources')
-            .insert(resourceData);
-          if (error) throw error;
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['teacher-resources'] });
-        toast.success(selectedResource ? 'Resource updated successfully!' : 'Resource created successfully!');
-        resetResourceForm();
-        setIsCreateDialogOpen(false);
-        setIsEditDialogOpen(false);
-      },
-      onError: (error) => {
-        toast.error(`Failed to ${selectedResource ? 'update' : 'create'} resource: ${error.message}`);
-      },
-    });
+    const createResourceMutation = useCreateResource();
+    const updateResourceMutation = useUpdateResource();
 
     // Delete resource mutation
     const deleteResourceMutation = useMutation({
@@ -825,15 +754,40 @@ const TeacherDashboard = () => {
         return;
       }
       
-      createResourceMutation.mutate({ 
-        title, 
-        description, 
-        subject_id: subjectId, 
-        grade,
-        uploadType,
-        fileUrl,
-        selectedFile
-      });
+      if (selectedResource) {
+        // Update existing resource
+        updateResourceMutation.mutate({ 
+          id: selectedResource.id,
+          title, 
+          description, 
+          subject_id: subjectId, 
+          grade,
+          uploadType,
+          file_url: fileUrl,
+          selectedFile
+        }, {
+          onSuccess: () => {
+            resetResourceForm();
+            setIsEditDialogOpen(false);
+          }
+        });
+      } else {
+        // Create new resource
+        createResourceMutation.mutate({ 
+          title, 
+          description, 
+          subject_id: subjectId, 
+          grade,
+          uploadType,
+          file_url: fileUrl,
+          selectedFile
+        }, {
+          onSuccess: () => {
+            resetResourceForm();
+            setIsCreateDialogOpen(false);
+          }
+        });
+      }
     };
 
     return (
@@ -1196,9 +1150,9 @@ const TeacherDashboard = () => {
               </Button>
               <Button 
                 onClick={handleSubmit}
-                disabled={createResourceMutation.isPending}
+                disabled={createResourceMutation.isPending || updateResourceMutation.isPending}
               >
-                {createResourceMutation.isPending ? "Saving..." : "Save Changes"}
+                {(createResourceMutation.isPending || updateResourceMutation.isPending) ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1,9 +1,9 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface CreateResourceData {
+interface UpdateResourceData {
+  id: string;
   title: string;
   description?: string;
   file_url?: string;
@@ -13,11 +13,11 @@ interface CreateResourceData {
   selectedFile?: File | null;
 }
 
-export function useCreateResource() {
+export function useUpdateResource() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateResourceData) => {
+    mutationFn: async (data: UpdateResourceData) => {
       // Get current user's tenant_id
       const { data: profile } = await supabase
         .from('profiles')
@@ -55,14 +55,14 @@ export function useCreateResource() {
 
       const { data: resource, error } = await supabase
         .from('resources')
-        .insert({
+        .update({
           title: data.title,
           description: data.description,
           file_url: finalFileUrl,
           subject_id: data.subject_id,
           grade: data.grade,
-          tenant_id: profile.tenant_id
         })
+        .eq('id', data.id)
         .select()
         .single();
 
@@ -70,12 +70,13 @@ export function useCreateResource() {
       return resource;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher-resources'] });
       queryClient.invalidateQueries({ queryKey: ['resources'] });
-      toast.success('Resource created successfully');
+      toast.success('Resource updated successfully');
     },
     onError: (error) => {
-      console.error('Error creating resource:', error);
-      toast.error('Failed to create resource');
+      console.error('Error updating resource:', error);
+      toast.error('Failed to update resource');
     },
   });
 }
