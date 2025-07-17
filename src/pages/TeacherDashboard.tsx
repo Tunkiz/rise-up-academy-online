@@ -232,7 +232,8 @@ const TeacherDashboard = () => {
         const { data: resources, error: resourcesError } = await supabase
           .from('resources')
           .select('*')
-          .eq('tenant_id', profile?.tenant_id);
+          .eq('tenant_id', profile?.tenant_id)
+          .eq('created_by', user?.id);
 
         if (resourcesError) throw resourcesError;
 
