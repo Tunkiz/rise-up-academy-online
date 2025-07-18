@@ -19,15 +19,59 @@ const Register = () => {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [grade, setGrade] = useState("");
     const [learnerCategory, setLearnerCategory] = useState("");
     const [loading, setLoading] = useState(false);
+    const [passwordError, setPasswordError] = useState("");
     const { toast } = useToast();
     const navigate = useNavigate();
+
+    // Validate passwords match
+    const validatePasswords = () => {
+        if (password && confirmPassword && password !== confirmPassword) {
+            setPasswordError("Passwords do not match");
+            return false;
+        } else {
+            setPasswordError("");
+            return true;
+        }
+    };
+
+    // Check password requirements
+    const validatePasswordStrength = (pwd: string) => {
+        if (pwd.length < 8) {
+            return "Password must be at least 8 characters long";
+        }
+        if (!/(?=.*[a-z])/.test(pwd)) {
+            return "Password must contain at least one lowercase letter";
+        }
+        if (!/(?=.*[A-Z])/.test(pwd)) {
+            return "Password must contain at least one uppercase letter";
+        }
+        if (!/(?=.*\d)/.test(pwd)) {
+            return "Password must contain at least one number";
+        }
+        return "";
+    };
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        
+        // Validate password strength
+        const strengthError = validatePasswordStrength(password);
+        if (strengthError) {
+            setPasswordError(strengthError);
+            setLoading(false);
+            return;
+        }
+
+        // Validate passwords match
+        if (!validatePasswords()) {
+            setLoading(false);
+            return;
+        }
         
         console.log("Registration attempt with:", { fullName, email, grade, learnerCategory });
         
@@ -62,11 +106,12 @@ const Register = () => {
                 });
                 navigate("/login");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Unexpected registration error:", error);
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
             toast({
                 title: "Error signing up",
-                description: error.message || "An unexpected error occurred",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {
@@ -113,8 +158,57 @@ const Register = () => {
                                 type="password" 
                                 required 
                                 value={password} 
-                                onChange={(e) => setPassword(e.target.value)} 
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (confirmPassword) {
+                                        validatePasswords();
+                                    }
+                                }} 
                             />
+                            {password && validatePasswordStrength(password) && (
+                                <p className="text-xs text-red-500">
+                                    {validatePasswordStrength(password)}
+                                </p>
+                            )}
+                            {!password && (
+                                <div className="text-xs text-muted-foreground">
+                                    <p>Password requirements:</p>
+                                    <ul className="list-disc list-inside ml-2 space-y-1">
+                                        <li>At least 8 characters</li>
+                                        <li>One uppercase letter</li>
+                                        <li>One lowercase letter</li>
+                                        <li>One number</li>
+                                    </ul>
+                                </div>
+                            )}
+                            {password && !validatePasswordStrength(password) && (
+                                <p className="text-xs text-green-600">
+                                    ✓ Password meets requirements
+                                </p>
+                            )}
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="confirm-password">Confirm Password</Label>
+                            <Input 
+                                id="confirm-password" 
+                                type="password" 
+                                required 
+                                value={confirmPassword} 
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    setTimeout(validatePasswords, 100);
+                                }} 
+                            />
+                            {passwordError && (
+                                <p className="text-xs text-red-500">
+                                    {passwordError}
+                                </p>
+                            )}
+                            {confirmPassword && password && !passwordError && (
+                                <p className="text-xs text-green-600">
+                                    ✓ Passwords match
+                                </p>
+                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="learner-category">Learning Level</Label>
@@ -147,7 +241,17 @@ const Register = () => {
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col">
-                        <Button className="w-full" type="submit" disabled={loading}>
+                        <Button 
+                            className="w-full" 
+                            type="submit" 
+                            disabled={
+                                loading || 
+                                passwordError !== "" || 
+                                validatePasswordStrength(password) !== "" ||
+                                !password ||
+                                !confirmPassword
+                            }
+                        >
                             {loading ? "Creating account..." : "Create Account"}
                         </Button>
                         <p className="mt-4 text-xs text-center text-muted-foreground">
