@@ -18,11 +18,18 @@ export function useCreateResource() {
 
   return useMutation({
     mutationFn: async (data: CreateResourceData) => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // Get current user's tenant_id
       const { data: profile } = await supabase
         .from('profiles')
         .select('tenant_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', user.id)
         .single();
 
       if (!profile?.tenant_id) {
@@ -61,7 +68,8 @@ export function useCreateResource() {
           file_url: finalFileUrl,
           subject_id: data.subject_id,
           grade: data.grade,
-          tenant_id: profile.tenant_id
+          tenant_id: profile.tenant_id,
+          created_by: user.id
         })
         .select()
         .single();
