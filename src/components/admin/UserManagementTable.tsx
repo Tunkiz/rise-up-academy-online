@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import { SuspendUserDialog } from "./SuspendUserDialog";
 import TeacherCategoriesManager from "./TeacherCategoriesManager";
+import { ResetPasswordDialog } from "./ResetPasswordDialog";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ const UserManagementTable = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [suspendingUser, setSuspendingUser] = useState<User | null>(null);
   const [managingCategoriesUser, setManagingCategoriesUser] = useState<User | null>(null);
+  const [resettingPasswordUser, setResettingPasswordUser] = useState<User | null>(null);
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
 
@@ -144,6 +146,9 @@ const UserManagementTable = () => {
                               Manage Categories
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onSelect={() => setResettingPasswordUser(user)}>
+                            Reset Password
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => setSuspendingUser(user)}
                             className={!isSuspended ? "text-destructive" : ""}
@@ -199,6 +204,15 @@ const UserManagementTable = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ResetPasswordDialog
+        user={resettingPasswordUser}
+        isOpen={!!resettingPasswordUser}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setResettingPasswordUser(null);
+          }
+        }}
+      />
     </>
   );
 };

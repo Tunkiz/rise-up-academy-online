@@ -23,6 +23,8 @@ import LessonPage from "./pages/LessonPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminUserProfilePage from "./pages/AdminUserProfilePage";
 import TutorNotes from "./pages/TutorNotes";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { TourProvider } from "./components/tour/TourProvider";
 import { TourGuide } from "./components/tour/TourGuide";
 import { RoleBasedRoute } from "./components/layout/RoleBasedRoute";
@@ -33,7 +35,7 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors
         if (error && typeof error === 'object' && 'status' in error) {
-          const status = (error as any).status;
+          const status = (error as { status: number }).status;
           if (status >= 400 && status < 500) {
             return false;
           }
@@ -125,6 +127,8 @@ const App = () => (
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <TourGuide />
