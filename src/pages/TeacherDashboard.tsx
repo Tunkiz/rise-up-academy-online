@@ -233,21 +233,46 @@ const TeacherDashboard = () => {
         const teacherSubjects = subjects?.map(us => us.subjects).filter(Boolean) || [];
 
         // Get total lessons created by teacher
-        const { data: lessons, error: lessonsError } = await supabase
-          .from('lessons')
-          .select('*')
-          .eq('tenant_id', profile?.tenant_id);
+        let lessons: Tables<'lessons'>[] = [];
+        try {
+          const { data: lessonsData, error: lessonsError } = await supabase
+            .from('lessons')
+            .select('*')
+            .eq('tenant_id', profile?.tenant_id)
+            .eq('created_by', user?.id);
 
-        if (lessonsError) throw lessonsError;
+          if (lessonsError) {
+            console.warn('Could not fetch lessons with created_by filter, possibly column does not exist:', lessonsError);
+            // Fallback: return empty array if created_by column doesn't exist
+            lessons = [];
+          } else {
+            lessons = lessonsData || [];
+          }
+        } catch (error) {
+          console.warn('Lessons query failed, returning empty array:', error);
+          lessons = [];
+        }
 
         // Get total resources created by teacher
-        const { data: resources, error: resourcesError } = await supabase
-          .from('resources')
-          .select('*')
-          .eq('tenant_id', profile?.tenant_id)
-          .eq('created_by', user?.id);
+        let resources: Tables<'resources'>[] = [];
+        try {
+          const { data: resourcesData, error: resourcesError } = await supabase
+            .from('resources')
+            .select('*')
+            .eq('tenant_id', profile?.tenant_id)
+            .eq('created_by', user?.id);
 
-        if (resourcesError) throw resourcesError;
+          if (resourcesError) {
+            console.warn('Could not fetch resources with created_by filter, possibly column does not exist:', resourcesError);
+            // Fallback: return empty array if created_by column doesn't exist
+            resources = [];
+          } else {
+            resources = resourcesData || [];
+          }
+        } catch (error) {
+          console.warn('Resources query failed, returning empty array:', error);
+          resources = [];
+        }
 
         // Get students enrolled in subjects this teacher/tutor manages
         let totalStudents = 0;

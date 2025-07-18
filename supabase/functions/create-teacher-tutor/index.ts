@@ -181,12 +181,8 @@ Deno.serve(async (req) => {
 
     const tenantName = tenantData?.name || 'Rise Up Academy'
 
-    // Send onboarding email - try custom email first, fallback to Supabase reset email
+    // Send onboarding email if RESEND_API_KEY is available
     let emailSent = false
-    let emailError: string | null = null
-    let usePasswordReset = false
-    
-    // Try to send custom branded email if RESEND_API_KEY is available
     if (RESEND_API_KEY) {
       try {
         const roleTitle = role === 'teacher' ? 'Teacher' : 'Tutor'
@@ -240,46 +236,11 @@ Deno.serve(async (req) => {
 
         if (emailResponse.ok) {
           emailSent = true
-          console.log('Custom email sent successfully to:', email)
         } else {
-          const errorText = await emailResponse.text()
-          console.error('Custom email sending failed:', errorText)
-          console.log('Falling back to Supabase password reset email')
-          usePasswordReset = true
+          console.error('Email sending failed:', await emailResponse.text())
         }
-      } catch (emailSendError) {
-        console.error('Custom email sending error:', emailSendError)
-        console.log('Falling back to Supabase password reset email')
-        usePasswordReset = true
-      }
-    } else {
-      console.warn('RESEND_API_KEY not configured - using Supabase password reset email')
-      usePasswordReset = true
-    }
-
-    // Fallback: Use Supabase's built-in password reset email
-    if (usePasswordReset && !emailSent) {
-      try {
-        const origin = req.headers.get('origin') || `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`
-        const resetUrl = `${origin}/reset-password`
-        
-        console.log('Sending password reset email to:', email, 'with redirect:', resetUrl)
-        
-        // Use resetPasswordForEmail which actually sends the email
-        const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-          redirectTo: resetUrl
-        })
-
-        if (resetError) {
-          console.error('Password reset email error:', resetError)
-          emailError = `Failed to send welcome email: ${resetError.message}`
-        } else {
-          emailSent = true
-          console.log('Password reset email sent successfully to:', email)
-        }
-      } catch (resetEmailError) {
-        console.error('Password reset email exception:', resetEmailError)
-        emailError = `Failed to send welcome email: ${resetEmailError.message}`
+      } catch (emailError) {
+        console.error('Email sending error:', emailError)
       }
     }
 
@@ -296,31 +257,13 @@ Deno.serve(async (req) => {
         }
       })
 
-    // Construct user-friendly message
-    const roleTitle = role === 'teacher' ? 'Teacher' : 'Tutor'
-    let statusMessage = `${roleTitle} created successfully`
-    
-    if (emailSent) {
-      if (usePasswordReset) {
-        statusMessage += ' and password reset email sent (please check email to set password)'
-      } else {
-        statusMessage += ' and welcome email sent with login details'
-      }
-    } else if (emailError) {
-      statusMessage += ` but email failed: ${emailError}`
-    } else {
-      statusMessage += ' but email not configured'
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: authData.user.id,
         email_sent: emailSent,
-        email_error: emailError,
-        temporary_password: usePasswordReset ? null : temporaryPassword, // Don't return password if using reset flow
-        message: statusMessage,
-        use_password_reset: usePasswordReset
+        temporary_password: temporaryPassword,
+        message: `${role === 'teacher' ? 'Teacher' : 'Tutor'} created successfully${emailSent ? ' and email sent' : ''}`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -21,22 +21,15 @@ const ForgotPassword = () => {
     try {
       // Determine the correct redirect URL based on environment
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      let redirectUrl;
-      
-      if (isDevelopment) {
-        // For development, try to detect the actual port being used
-        const currentPort = window.location.port || '8081';
-        redirectUrl = `http://localhost:${currentPort}/reset-password`;
-      } else {
-        redirectUrl = `${window.location.origin}/reset-password`;
-      }
+      const redirectUrl = isDevelopment 
+        ? `http://localhost:8080/reset-password`
+        : `${window.location.origin}/reset-password`;
 
       console.log('Sending password reset from forgot password page:', {
         email,
         redirectUrl,
         isDevelopment,
-        hostname: window.location.hostname,
-        port: window.location.port
+        hostname: window.location.hostname
       });
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
