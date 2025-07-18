@@ -40,11 +40,17 @@ export const ResetPasswordDialog = ({
 
       // Determine the correct redirect URL based on environment
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectUrl = isDevelopment 
-        ? `http://localhost:8080/reset-password`  // Use the correct dev port
-        : `${window.location.origin}/reset-password`;
+      let redirectUrl;
       
-      console.log('Environment:', { isDevelopment, hostname: window.location.hostname });
+      if (isDevelopment) {
+        // For development, try to detect the actual port being used
+        const currentPort = window.location.port || '8081';
+        redirectUrl = `http://localhost:${currentPort}/reset-password`;
+      } else {
+        redirectUrl = `${window.location.origin}/reset-password`;
+      }
+      
+      console.log('Environment:', { isDevelopment, hostname: window.location.hostname, port: window.location.port });
       console.log('Sending password reset to:', user.email, 'with redirect:', redirectUrl);
       console.log('Current origin:', window.location.origin);
       
