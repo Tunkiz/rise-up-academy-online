@@ -159,11 +159,11 @@ const AdminUserProfilePage = () => {
                   <Shield className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
                   <div>
                     <h3 className="font-medium text-muted-foreground">Role</h3>
-                    <p>
+                    <div>
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize text-base px-3 py-1">
                         {user.role}
                       </Badge>
-                    </p>
+                    </div>
                   </div>
                 </div>
 

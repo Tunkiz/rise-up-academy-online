@@ -1254,6 +1254,26 @@ export type Database = {
           average_quiz_score: number
         }[]
       }
+      get_student_quiz_attempts: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          score: number
+          passed: boolean
+          created_at: string
+          lesson_title: string
+          subject_name: string
+        }[]
+      }
+      get_student_lesson_completions: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          completed_at: string
+          lesson_title: string
+          subject_name: string
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

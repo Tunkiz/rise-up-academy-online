@@ -38,29 +38,13 @@ interface LessonCompletion {
 }
 
 const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
-  // Fetch quiz attempts with lesson and subject details
+  // Fetch quiz attempts with lesson and subject details using RPC
   const { data: quizAttempts, isLoading: quizLoading, error: quizError } = useQuery({
     queryKey: ['student-quiz-attempts', userId],
     queryFn: async (): Promise<QuizAttempt[]> => {
-      const { data, error } = await supabase
-        .from('quiz_attempts')
-        .select(`
-          id,
-          score,
-          passed,
-          created_at,
-          lessons!inner(
-            title,
-            topics!inner(
-              name,
-              subjects!inner(
-                name
-              )
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_student_quiz_attempts', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       
@@ -69,42 +53,28 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
         score: attempt.score,
         passed: attempt.passed,
         created_at: attempt.created_at,
-        lesson_title: attempt.lessons?.title || 'Unknown Lesson',
-        subject_name: attempt.lessons?.topics?.subjects?.name || 'Unknown Subject'
+        lesson_title: attempt.lesson_title,
+        subject_name: attempt.subject_name
       }));
     },
     enabled: !!userId,
   });
 
-  // Fetch lesson completions with lesson and subject details
+  // Fetch lesson completions with lesson and subject details using RPC
   const { data: lessonCompletions, isLoading: lessonLoading, error: lessonError } = useQuery({
     queryKey: ['student-lesson-completions', userId],
     queryFn: async (): Promise<LessonCompletion[]> => {
-      const { data, error } = await supabase
-        .from('lesson_completions')
-        .select(`
-          id,
-          completed_at,
-          lessons!inner(
-            title,
-            topics!inner(
-              name,
-              subjects!inner(
-                name
-              )
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_student_lesson_completions', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       
       return (data || []).map(completion => ({
         id: completion.id,
         completed_at: completion.completed_at,
-        lesson_title: completion.lessons?.title || 'Unknown Lesson',
-        subject_name: completion.lessons?.topics?.subjects?.name || 'Unknown Subject'
+        lesson_title: completion.lesson_title,
+        subject_name: completion.subject_name
       }));
     },
     enabled: !!userId,
@@ -149,22 +119,22 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
               <div className="flex items-center gap-3 p-4 border rounded-lg">
                 <Target className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Average Score</p>
-                  <p className="text-2xl font-bold">{calculateAverageScore().toFixed(1)}%</p>
+                  <div className="text-sm text-muted-foreground">Average Score</div>
+                  <div className="text-2xl font-bold">{calculateAverageScore().toFixed(1)}%</div>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-4 border rounded-lg">
                 <TrendingUp className="h-8 w-8 text-green-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Pass Rate</p>
-                  <p className="text-2xl font-bold">{getPassRate().toFixed(1)}%</p>
+                  <div className="text-sm text-muted-foreground">Pass Rate</div>
+                  <div className="text-2xl font-bold">{getPassRate().toFixed(1)}%</div>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-4 border rounded-lg">
                 <BookOpen className="h-8 w-8 text-purple-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Lessons</p>
-                  <p className="text-2xl font-bold">{lessonCompletions?.length || 0}</p>
+                  <div className="text-sm text-muted-foreground">Total Lessons</div>
+                  <div className="text-2xl font-bold">{lessonCompletions?.length || 0}</div>
                 </div>
               </div>
             </div>
@@ -230,9 +200,9 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
                       <Badge className={`${getScoreColor(attempt.score)} border font-semibold`}>
                         {attempt.score}%
                       </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {attempt.passed ? 'Passed' : 'Failed'}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -240,9 +210,9 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
             )}
             
             {!quizLoading && !quizError && (!quizAttempts || quizAttempts.length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-8">
+              <div className="text-sm text-muted-foreground text-center py-8">
                 No quiz attempts found for this student.
-              </p>
+              </div>
             )}
           </TabsContent>
 
@@ -289,10 +259,10 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
                     <div className="flex-1">
                       <p className="font-medium">{completion.lesson_title}</p>
                       <p className="text-sm text-muted-foreground">{completion.subject_name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         Completed on {format(new Date(completion.completed_at), 'PPP p')}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -300,9 +270,9 @@ const StudentAcademicDetails = ({ userId }: StudentAcademicDetailsProps) => {
             )}
             
             {!lessonLoading && !lessonError && (!lessonCompletions || lessonCompletions.length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-8">
+              <div className="text-sm text-muted-foreground text-center py-8">
                 No lesson completions found for this student.
-              </p>
+              </div>
             )}
           </TabsContent>
         </Tabs>
