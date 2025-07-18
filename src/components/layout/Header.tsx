@@ -24,19 +24,20 @@ const navLinks = [
   { to: "/study-planner", label: "Study Planner" },
   { to: "/resource-library", label: "Resource Library" },
   { to: "/admin", label: "Administration" },
+  { to: "/management", label: "Management" },
 ];
 
 // Helper function to filter navigation links based on user role
-const getFilteredNavLinks = (isAdmin: boolean, isTeacher: boolean) => {
-  // For admins only, show Dashboard and Administration
-  if (isAdmin && !isTeacher) {
+const getFilteredNavLinks = (isAdmin: boolean, isTeacher: boolean, userRole: string) => {
+  // For admins, show Dashboard and Administration (full admin panel)
+  if (isAdmin) {
     return navLinks.filter(link => link.to === "/dashboard" || link.to === "/admin");
   }
-  // For teachers, only show Dashboard (no admin access)
-  if (isTeacher) {
+  // For teachers and tutors, show Dashboard and Management (their own student management)
+  if (isTeacher || userRole === 'teacher' || userRole === 'tutor') {
     return navLinks.filter(link => link.to === "/dashboard");
   }
-  // For students and other roles, show all navigation links except Administration
+  // For students and other roles, show all navigation links except Administration and Management
   return navLinks.filter(link => link.to !== "/admin");
 };
 
@@ -57,11 +58,11 @@ const NavLinkItem = ({ to, label, onClick, id }: { to: string; label: string, on
 
 export function Header() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { user, isAdmin, isSuperAdmin, isTeacher } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isTeacher, userRole } = useAuth();
   const navigate = useNavigate();
 
   // Get filtered navigation links based on user role
-  const filteredNavLinks = getFilteredNavLinks(isAdmin, isTeacher);
+  const filteredNavLinks = getFilteredNavLinks(isAdmin, isTeacher, userRole);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

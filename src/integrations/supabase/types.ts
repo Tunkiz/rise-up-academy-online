@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       class_schedules: {
@@ -973,6 +998,33 @@ export type Database = {
           },
         ]
       }
+      user_activity_logs: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1053,6 +1105,20 @@ export type Database = {
       assign_super_admin_role: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      create_teacher_or_tutor: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_temporary_password: string
+          p_tenant_id: string
+        }
+        Returns: {
+          user_id: string
+          success: boolean
+          message: string
+        }[]
       }
       create_tenant: {
         Args: {
@@ -1186,6 +1252,26 @@ export type Database = {
           lessons_completed_count: number
           quizzes_attempted_count: number
           average_quiz_score: number
+        }[]
+      }
+      get_student_quiz_attempts: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          score: number
+          passed: boolean
+          created_at: string
+          lesson_title: string
+          subject_name: string
+        }[]
+      }
+      get_student_lesson_completions: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          completed_at: string
+          lesson_title: string
+          subject_name: string
         }[]
       }
       is_admin: {
@@ -1394,6 +1480,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [

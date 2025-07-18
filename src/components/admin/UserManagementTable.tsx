@@ -15,6 +15,14 @@ import { EditRoleDialog } from "./EditRoleDialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import { SuspendUserDialog } from "./SuspendUserDialog";
+import TeacherCategoriesManager from "./TeacherCategoriesManager";
+import { ResetPasswordDialog } from "./ResetPasswordDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Updated type to include tenant_name
 type User = {
@@ -26,13 +34,15 @@ type User = {
   banned_until: string | null;
   avatar_url: string | null;
   grade: number | null;
-  subjects: any;
+  subjects: unknown;
   tenant_name: string | null;
 };
 
 const UserManagementTable = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [suspendingUser, setSuspendingUser] = useState<User | null>(null);
+  const [managingCategoriesUser, setManagingCategoriesUser] = useState<User | null>(null);
+  const [resettingPasswordUser, setResettingPasswordUser] = useState<User | null>(null);
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
 
@@ -131,6 +141,14 @@ const UserManagementTable = () => {
                           <DropdownMenuItem onSelect={() => setEditingUser(user)}>
                             Edit Role
                           </DropdownMenuItem>
+                          {(user.role === 'teacher' || user.role === 'tutor') && (
+                            <DropdownMenuItem onSelect={() => setManagingCategoriesUser(user)}>
+                              Manage Categories
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onSelect={() => setResettingPasswordUser(user)}>
+                            Reset Password
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => setSuspendingUser(user)}
                             className={!isSuspended ? "text-destructive" : ""}
@@ -163,6 +181,35 @@ const UserManagementTable = () => {
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setSuspendingUser(null);
+          }
+        }}
+      />
+      <Dialog 
+        open={!!managingCategoriesUser} 
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setManagingCategoriesUser(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Teaching Categories</DialogTitle>
+          </DialogHeader>
+          {managingCategoriesUser && (
+            <TeacherCategoriesManager 
+              teacherId={managingCategoriesUser.id}
+              teacherName={managingCategoriesUser.full_name || managingCategoriesUser.email}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <ResetPasswordDialog
+        user={resettingPasswordUser}
+        isOpen={!!resettingPasswordUser}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setResettingPasswordUser(null);
           }
         }}
       />

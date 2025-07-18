@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthProvider';
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed';
 import UserStatsCard from '@/components/admin/UserStatsCard';
+import StudentAcademicDetails from '@/components/admin/StudentAcademicDetails';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tables, Database } from '@/integrations/supabase/types';
 import { EditRoleDialog } from '@/components/admin/EditRoleDialog';
@@ -29,13 +30,13 @@ type UserDetails = {
   banned_until: string | null;
   avatar_url: string | null;
   grade: number | null;
-  subjects: any;
+  subjects: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   tenant_name: string | null;
 };
 
 const AdminUserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userRole } = useAuth();
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
   const [isSuspendUserOpen, setIsSuspendUserOpen] = useState(false);
   const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
@@ -70,12 +71,31 @@ const AdminUserProfilePage = () => {
   const isSuspended = user?.banned_until && (user.banned_until.toLowerCase() === 'infinity' || new Date(user.banned_until) > new Date());
   const isOwnProfile = currentUser?.id === userId;
 
+  // Determine the back link based on user role
+  const getBackLink = () => {
+    if (userRole === 'admin') {
+      return '/admin';
+    } else if (userRole === 'teacher' || userRole === 'tutor') {
+      return '/management';
+    }
+    return '/dashboard';
+  };
+
+  const getBackLinkText = () => {
+    if (userRole === 'admin') {
+      return 'Back to Admin Panel';
+    } else if (userRole === 'teacher' || userRole === 'tutor') {
+      return 'Back to Management';
+    }
+    return 'Back to Dashboard';
+  };
+
   return (
     <div className="container py-10">
       <Button asChild variant="outline" className="mb-4">
-        <Link to="/admin">
+        <Link to={getBackLink()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Admin Panel
+          {getBackLinkText()}
         </Link>
       </Button>
       <div className="max-w-5xl mx-auto grid gap-6">
@@ -139,11 +159,11 @@ const AdminUserProfilePage = () => {
                   <Shield className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
                   <div>
                     <h3 className="font-medium text-muted-foreground">Role</h3>
-                    <p>
+                    <div>
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize text-base px-3 py-1">
                         {user.role}
                       </Badge>
-                    </p>
+                    </div>
                   </div>
                 </div>
 
@@ -217,6 +237,10 @@ const AdminUserProfilePage = () => {
             <UserStatsCard userId={user.id} />
             <RecentActivityFeed userId={user.id} />
           </div>
+        )}
+
+        {user && !isLoading && user.role === 'student' && (
+          <StudentAcademicDetails userId={user.id} />
         )}
       </div>
       {user && (

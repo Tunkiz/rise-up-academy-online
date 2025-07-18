@@ -35,6 +35,7 @@ import UserManagementTable from "@/components/admin/UserManagementTable";
 import SubjectManagement from "@/components/admin/SubjectManagement";
 import LessonManagement from "@/components/admin/LessonManagement";
 import PaymentApprovalTable from "@/components/admin/PaymentApprovalTable";
+import AddTeacherTutor from "@/components/admin/AddTeacherTutor";
 import { FileText, ExternalLink, Upload } from "lucide-react";
 import { useCreateResource } from "@/hooks/useCreateResource";
 
@@ -134,9 +135,10 @@ const AdminPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-        <TabsList className="grid grid-cols-4 w-full max-w-xl mx-auto">
+        <TabsList className="grid grid-cols-5 w-full max-w-2xl mx-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="add-staff">Add Staff</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="subjects">Subjects</TabsTrigger>
         </TabsList>
@@ -153,6 +155,21 @@ const AdminPage = () => {
             </CardHeader>
             <CardContent>
               <UserManagementTable />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="add-staff" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Teachers and Tutors</CardTitle>
+              <CardDescription>Create new teacher and tutor accounts</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <AddTeacherTutor onSuccess={() => {
+                // Optionally switch to users tab after success
+                // handleTabChange('users');
+              }} />
             </CardContent>
           </Card>
         </TabsContent>

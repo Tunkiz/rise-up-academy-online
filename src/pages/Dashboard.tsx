@@ -4,15 +4,15 @@ import TeacherDashboard from "./TeacherDashboard";
 import StudentDashboard from "./StudentDashboard";
 
 const Dashboard = () => {
-  const { isAdmin, isTeacher } = useAuth();
+  const { isAdmin, isTeacher, userRole } = useAuth();
 
   // Show AdminDashboard for admins only
   if (isAdmin) {
     return <AdminDashboard />;
   }
 
-  // Show TeacherDashboard for teachers
-  if (isTeacher) {
+  // Show TeacherDashboard for teachers and tutors
+  if (isTeacher || userRole === 'teacher' || userRole === 'tutor') {
     return <TeacherDashboard />;
   }
 

@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 
 interface RoleBasedRouteProps {
   children: ReactNode;
-  allowedRoles: ('admin' | 'teacher' | 'student')[];
+  allowedRoles: ('admin' | 'teacher' | 'tutor' | 'student')[];
   fallbackPath?: string;
 }
 
@@ -33,6 +33,8 @@ export const RoleBasedRoute = ({
   let defaultFallback = "/dashboard";
   if (userRole === 'student') {
     defaultFallback = "/learning-portal";
+  } else if (userRole === 'teacher' || userRole === 'tutor') {
+    defaultFallback = "/management";
   }
 
   // Redirect to fallback path if role is not allowed
