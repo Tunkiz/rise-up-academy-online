@@ -10,7 +10,7 @@ type AuthContextType = {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isTeacher: boolean;
-  userRole: 'admin' | 'teacher' | 'student';
+  userRole: 'admin' | 'teacher' | 'tutor' | 'student';
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isTeacher, setIsTeacher] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'teacher' | 'student'>('student');
+  const [userRole, setUserRole] = useState<'admin' | 'teacher' | 'tutor' | 'student'>('student');
 
   useEffect(() => {
     const checkRoles = async () => {
@@ -65,17 +65,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         let teacherStatus = false;
-        let finalUserRole: 'admin' | 'teacher' | 'student' = 'student';
+        let finalUserRole: 'admin' | 'teacher' | 'tutor' | 'student' = 'student';
 
         if (!userRoleError && userRoleData) {
-          teacherStatus = userRoleData.role === 'tutor';
-          console.log("Teacher status:", teacherStatus);
+          teacherStatus = userRoleData.role === 'tutor' || userRoleData.role === 'teacher';
+          console.log("Teacher status:", teacherStatus, "Role:", userRoleData.role);
           
           // Determine final user role
           if (superAdminData || adminData) {
             finalUserRole = 'admin';
-          } else if (teacherStatus) {
+          } else if (userRoleData.role === 'teacher') {
             finalUserRole = 'teacher';
+          } else if (userRoleData.role === 'tutor') {
+            finalUserRole = 'tutor';
           } else {
             finalUserRole = 'student';
           }

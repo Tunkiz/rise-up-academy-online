@@ -212,13 +212,25 @@ const TeacherDashboard = () => {
       if (!user) return null;
 
       try {
-        // Get subjects the teacher is assigned to
+        // Get subjects the teacher is enrolled in
         const { data: subjects, error: subjectsError } = await supabase
-          .from('subjects')
-          .select('*')
-          .eq('tenant_id', profile?.tenant_id);
+          .from('user_subjects')
+          .select(`
+            subjects (
+              id,
+              name,
+              category,
+              class_time,
+              teams_link,
+              tenant_id
+            )
+          `)
+          .eq('user_id', user.id);
 
         if (subjectsError) throw subjectsError;
+
+        // Extract the subject data from the join
+        const teacherSubjects = subjects?.map(us => us.subjects).filter(Boolean) || [];
 
         // Get total lessons created by teacher
         const { data: lessons, error: lessonsError } = await supabase
@@ -267,11 +279,11 @@ const TeacherDashboard = () => {
         }
 
         return {
-          totalSubjects: subjects?.length || 0,
+          totalSubjects: teacherSubjects?.length || 0,
           totalStudents: totalStudents,
           totalLessons: lessons?.length || 0,
           totalResources: resources?.length || 0,
-          subjects: subjects || [],
+          subjects: teacherSubjects || [],
           students: students,
           recentLessons: lessons?.slice(-5) || [],
           recentResources: resources?.slice(-5) || [],
@@ -291,14 +303,24 @@ const TeacherDashboard = () => {
       queryKey: ['teacher-subjects'],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from('subjects')
-          .select('*')
-          .eq('tenant_id', profile?.tenant_id)
-          .order('name');
+          .from('user_subjects')
+          .select(`
+            subjects (
+              id,
+              name,
+              category,
+              class_time,
+              teams_link,
+              tenant_id,
+              created_at
+            )
+          `)
+          .eq('user_id', user?.id)
+          .order('subjects(name)');
         if (error) throw error;
-        return data;
+        return data?.map(us => us.subjects).filter(Boolean) || [];
       },
-      enabled: !!profile?.tenant_id,
+      enabled: !!user?.id,
     });
 
     // Get subject categories for labeling
@@ -634,14 +656,24 @@ const TeacherDashboard = () => {
       queryKey: ['teacher-subjects-for-resources'],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from('subjects')
-          .select('*')
-          .eq('tenant_id', profile?.tenant_id)
-          .order('name');
+          .from('user_subjects')
+          .select(`
+            subjects (
+              id,
+              name,
+              category,
+              class_time,
+              teams_link,
+              tenant_id,
+              created_at
+            )
+          `)
+          .eq('user_id', user?.id)
+          .order('subjects(name)');
         if (error) throw error;
-        return data;
+        return data?.map(us => us.subjects).filter(Boolean) || [];
       },
-      enabled: !!profile?.tenant_id,
+      enabled: !!user?.id,
     });
 
     // Get resources filtered by teacher's subjects

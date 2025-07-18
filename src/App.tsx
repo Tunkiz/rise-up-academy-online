@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
+import TeacherDashboard from "./pages/TeacherDashboard";
 import SuperAdminPage from "./pages/SuperAdminPage";
 import SuperAdminDiagnosticPage from "./pages/SuperAdminDiagnosticPage";
 import SubjectDashboard from "./pages/SubjectDashboard";
@@ -103,14 +104,26 @@ const App = () => (
                   </RoleBasedRoute>
                 } />
                 
-                {/* Admin/Teacher-only routes */}
+                {/* Admin-only routes */}
                 <Route path="/admin" element={
-                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
+                  <RoleBasedRoute allowedRoles={['admin']}>
                     <AdminPage />
                   </RoleBasedRoute>
                 } />
                 <Route path="/admin/user/:userId" element={
-                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <AdminUserProfilePage />
+                  </RoleBasedRoute>
+                } />
+                
+                {/* Teacher/Tutor management routes */}
+                <Route path="/management" element={
+                  <RoleBasedRoute allowedRoles={['teacher', 'tutor']}>
+                    <TeacherDashboard />
+                  </RoleBasedRoute>
+                } />
+                <Route path="/management/user/:userId" element={
+                  <RoleBasedRoute allowedRoles={['teacher', 'tutor']}>
                     <AdminUserProfilePage />
                   </RoleBasedRoute>
                 } />
