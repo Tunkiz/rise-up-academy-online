@@ -38,14 +38,26 @@ export const ResetPasswordDialog = ({
     mutationFn: async () => {
       if (!user) return;
 
-      // Send password reset email via Supabase Auth
+      // Determine the correct redirect URL based on environment
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const redirectUrl = isDevelopment 
+        ? `http://localhost:8080/reset-password`  // Use the correct dev port
+        : `${window.location.origin}/reset-password`;
+      
+      console.log('Environment:', { isDevelopment, hostname: window.location.hostname });
+      console.log('Sending password reset to:', user.email, 'with redirect:', redirectUrl);
+      console.log('Current origin:', window.location.origin);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       });
 
       if (error) {
+        console.error('Password reset error:', error);
         throw new Error(error.message);
       }
+      
+      console.log('Password reset email sent successfully');
     },
     onSuccess: () => {
       toast({

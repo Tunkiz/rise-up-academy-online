@@ -15,7 +15,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
-import TeacherDashboard from "./pages/TeacherDashboard";
 import SuperAdminPage from "./pages/SuperAdminPage";
 import SuperAdminDiagnosticPage from "./pages/SuperAdminDiagnosticPage";
 import SubjectDashboard from "./pages/SubjectDashboard";
@@ -24,8 +23,6 @@ import LessonPage from "./pages/LessonPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminUserProfilePage from "./pages/AdminUserProfilePage";
 import TutorNotes from "./pages/TutorNotes";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import { TourProvider } from "./components/tour/TourProvider";
 import { TourGuide } from "./components/tour/TourGuide";
 import { RoleBasedRoute } from "./components/layout/RoleBasedRoute";
@@ -36,7 +33,7 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors
         if (error && typeof error === 'object' && 'status' in error) {
-          const status = (error as { status: number }).status;
+          const status = (error as any).status;
           if (status >= 400 && status < 500) {
             return false;
           }
@@ -104,26 +101,14 @@ const App = () => (
                   </RoleBasedRoute>
                 } />
                 
-                {/* Admin-only routes */}
+                {/* Admin/Teacher-only routes */}
                 <Route path="/admin" element={
-                  <RoleBasedRoute allowedRoles={['admin']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
                     <AdminPage />
                   </RoleBasedRoute>
                 } />
                 <Route path="/admin/user/:userId" element={
-                  <RoleBasedRoute allowedRoles={['admin']}>
-                    <AdminUserProfilePage />
-                  </RoleBasedRoute>
-                } />
-                
-                {/* Teacher/Tutor management routes */}
-                <Route path="/management" element={
-                  <RoleBasedRoute allowedRoles={['teacher', 'tutor']}>
-                    <TeacherDashboard />
-                  </RoleBasedRoute>
-                } />
-                <Route path="/management/user/:userId" element={
-                  <RoleBasedRoute allowedRoles={['teacher', 'tutor']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
                     <AdminUserProfilePage />
                   </RoleBasedRoute>
                 } />
@@ -140,8 +125,6 @@ const App = () => (
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <TourGuide />

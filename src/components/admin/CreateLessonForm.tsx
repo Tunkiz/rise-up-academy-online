@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,6 +107,7 @@ interface CreateLessonFormProps {
 }
 
 export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated, initialTopicId, initialSubjectId }: CreateLessonFormProps) => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedLessonSubjectId, setSelectedLessonSubjectId] = useState<string | null>(null);
 
@@ -225,6 +227,7 @@ export const CreateLessonForm = ({ subjects, isLoadingSubjects, onLessonCreated,
         grade: grade && grade !== 'all' ? parseInt(grade, 10) : null,
         due_date: due_date ? due_date.toISOString() : null,
         tenant_id: profile.tenant_id,
+        created_by: user?.id,
       };
 
       const { data: newLesson, error } = await supabase.from('lessons').insert(lessonData).select('id').single();

@@ -329,6 +329,7 @@ export type Database = {
         Row: {
           attachment_url: string | null
           content: string | null
+          created_by: string | null
           description: string | null
           due_date: string | null
           duration_minutes: number | null
@@ -345,6 +346,7 @@ export type Database = {
         Insert: {
           attachment_url?: string | null
           content?: string | null
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           duration_minutes?: number | null
@@ -361,6 +363,7 @@ export type Database = {
         Update: {
           attachment_url?: string | null
           content?: string | null
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           duration_minutes?: number | null
