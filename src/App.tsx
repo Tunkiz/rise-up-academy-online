@@ -13,6 +13,7 @@ import StudyPlanner from "./pages/StudyPlanner";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "./contexts/AuthProvider";
 import AdminPage from "./pages/Admin";
 import SuperAdminPage from "./pages/SuperAdminPage";
@@ -125,6 +126,7 @@ const App = () => (
               </Route>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <TourGuide />

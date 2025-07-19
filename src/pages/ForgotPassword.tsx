@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Mail } from "lucide-react";
+import { getPasswordResetRedirectUrl, logEnvironmentInfo } from "@/lib/auth-utils";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -19,17 +20,14 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      // Determine the correct redirect URL based on environment
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectUrl = isDevelopment 
-        ? `http://localhost:8080/reset-password`
-        : `${window.location.origin}/reset-password`;
-
+      // Get the correct redirect URL
+      const redirectUrl = getPasswordResetRedirectUrl();
+      
+      // Log environment info for debugging
+      logEnvironmentInfo();
       console.log('Sending password reset from forgot password page:', {
         email,
-        redirectUrl,
-        isDevelopment,
-        hostname: window.location.hostname
+        redirectUrl
       });
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
