@@ -10,32 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
@@ -519,7 +494,9 @@ export type Database = {
           full_name: string | null
           grade: number | null
           id: string
-          learner_category: Database["public"]["Enums"]["subject_category"]
+          learner_category:
+            | Database["public"]["Enums"]["subject_category"]
+            | null
           tenant_id: string
         }
         Insert: {
@@ -527,7 +504,9 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id: string
-          learner_category: Database["public"]["Enums"]["subject_category"]
+          learner_category?:
+            | Database["public"]["Enums"]["subject_category"]
+            | null
           tenant_id: string
         }
         Update: {
@@ -535,7 +514,9 @@ export type Database = {
           full_name?: string | null
           grade?: number | null
           id?: string
-          learner_category?: Database["public"]["Enums"]["subject_category"]
+          learner_category?:
+            | Database["public"]["Enums"]["subject_category"]
+            | null
           tenant_id?: string
         }
         Relationships: [
@@ -862,9 +843,32 @@ export type Database = {
           },
         ]
       }
+      subject_grades: {
+        Row: {
+          created_at: string
+          grade: number
+          id: string
+          subject_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          grade: number
+          id?: string
+          subject_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number
+          id?: string
+          subject_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       subjects: {
         Row: {
-          category: Database["public"]["Enums"]["subject_category"]
           class_time: string | null
           created_at: string
           id: string
@@ -874,7 +878,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
           created_at?: string
           id?: string
@@ -884,7 +887,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["subject_category"]
           class_time?: string | null
           created_at?: string
           id?: string
@@ -902,6 +904,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      teacher_grades: {
+        Row: {
+          created_at: string
+          grade: number
+          id: string
+          teacher_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          grade: number
+          id?: string
+          teacher_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number
+          id?: string
+          teacher_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
       }
       tenants: {
         Row: {
@@ -1175,6 +1201,26 @@ export type Database = {
           title: string
         }[]
       }
+      get_student_lesson_completions: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          completed_at: string
+          lesson_title: string
+          subject_name: string
+        }[]
+      }
+      get_student_quiz_attempts: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          score: number
+          passed: boolean
+          created_at: string
+          lesson_title: string
+          subject_name: string
+        }[]
+      }
       get_subject_categories: {
         Args: { p_subject_id: string }
         Returns: {
@@ -1229,6 +1275,17 @@ export type Database = {
           tenant_name: string
         }[]
       }
+      get_user_details_debug: {
+        Args: { p_user_id: string }
+        Returns: {
+          debug_info: string
+          user_found: boolean
+          current_user_role: string
+          target_user_role: string
+          same_tenant: boolean
+          is_teacher_student: boolean
+        }[]
+      }
       get_user_learning_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -1255,26 +1312,6 @@ export type Database = {
           lessons_completed_count: number
           quizzes_attempted_count: number
           average_quiz_score: number
-        }[]
-      }
-      get_student_quiz_attempts: {
-        Args: { p_user_id: string }
-        Returns: {
-          id: string
-          score: number
-          passed: boolean
-          created_at: string
-          lesson_title: string
-          subject_name: string
-        }[]
-      }
-      get_student_lesson_completions: {
-        Args: { p_user_id: string }
-        Returns: {
-          id: string
-          completed_at: string
-          lesson_title: string
-          subject_name: string
         }[]
       }
       is_admin: {
@@ -1306,6 +1343,15 @@ export type Database = {
           p_categories: Database["public"]["Enums"]["subject_category"][]
         }
         Returns: undefined
+      }
+      test_get_teacher_students: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          debug_info: string
+          student_count: number
+          teacher_subjects: string[]
+          student_details: Json
+        }[]
       }
       update_user_details_by_admin: {
         Args: {
@@ -1483,9 +1529,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
