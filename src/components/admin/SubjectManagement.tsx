@@ -135,8 +135,7 @@ const SubjectManagement = () => {
         .from('subjects')
         .insert({ 
           name: values.name,
-          tenant_id: profile.tenant_id,
-          category: 'national_senior' // Default category, will be overridden by subject_categories
+          tenant_id: profile.tenant_id
         })
         .select()
         .single();
@@ -219,14 +218,11 @@ const SubjectManagement = () => {
     subjects?.forEach(subject => {
       const categories = getSubjectCategories(subject.id);
       
-      if (categories.length === 0) {
-        // If no categories found in junction table, check legacy category field
-        const legacyCategory = subject.category;
-        if (legacyCategory) {
-          if (!groups[legacyCategory]) groups[legacyCategory] = [];
-          groups[legacyCategory].push({ subject, categories: [legacyCategory] });
-        }
-      } else {
+        if (categories.length === 0) {
+          // If no categories found, add to uncategorized
+          if (!groups['uncategorized']) groups['uncategorized'] = [];
+          groups['uncategorized'].push({ subject, categories: [] });
+        } else {
         // Add to each category group
         categories.forEach(category => {
           if (!groups[category]) groups[category] = [];

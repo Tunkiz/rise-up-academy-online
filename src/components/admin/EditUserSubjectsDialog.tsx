@@ -38,15 +38,28 @@ const categoryDisplayNames: Record<string, string> = {
   senior_phase: 'Senior Phase'
 };
 
-// Group subjects by category
-const groupSubjectsByCategory = (subjects: Subject[]) => {
-  return subjects.reduce((acc, subject) => {
-    if (!acc[subject.category]) {
-      acc[subject.category] = [];
+// Group subjects by category using subject_categories table
+const groupSubjectsByCategory = (subjects: Subject[], subjectCategories: any[]) => {
+  const groups: Record<string, Subject[]> = {};
+  
+  subjects.forEach(subject => {
+    const categories = subjectCategories
+      ?.filter(sc => sc.subject_id === subject.id)
+      .map(sc => sc.category) || [];
+      
+    if (categories.length === 0) {
+      // Handle subjects without categories
+      if (!groups['uncategorized']) groups['uncategorized'] = [];
+      groups['uncategorized'].push(subject);
+    } else {
+      categories.forEach(category => {
+        if (!groups[category]) groups[category] = [];
+        groups[category].push(subject);
+      });
     }
-    acc[subject.category].push(subject);
-    return acc;
-  }, {} as Record<string, Subject[]>);
+  });
+  
+  return groups;
 };
 
 const editSubjectsSchema = z.object({
@@ -93,10 +106,20 @@ export const EditUserSubjectsDialog: React.FC<EditUserSubjectsDialogProps> = ({ 
     },
   });
 
+  // Get subject categories
+  const { data: subjectCategories } = useQuery({
+    queryKey: ['subject-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('subject_categories').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Group subjects by category
   const groupedSubjects = React.useMemo(() => {
-    return groupSubjectsByCategory(allSubjects || []);
-  }, [allSubjects]);
+    return groupSubjectsByCategory(allSubjects || [], subjectCategories || []);
+  }, [allSubjects, subjectCategories]);
 
   // Get currently enrolled categories
   const enrolledCategories = React.useMemo(() => {

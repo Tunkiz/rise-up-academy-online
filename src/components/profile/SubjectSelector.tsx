@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,15 +20,28 @@ const categoryDisplayNames: Record<string, string> = {
   senior_phase: 'Senior Phase'
 };
 
-// Group subjects by category
-const groupSubjectsByCategory = (subjects: Subject[]) => {
-  return subjects.reduce((acc, subject) => {
-    if (!acc[subject.category]) {
-      acc[subject.category] = [];
+// Group subjects by category using subject_categories table
+const groupSubjectsByCategory = (subjects: Subject[], subjectCategories: any[]) => {
+  const groups: Record<string, Subject[]> = {};
+  
+  subjects.forEach(subject => {
+    const categories = subjectCategories
+      ?.filter(sc => sc.subject_id === subject.id)
+      .map(sc => sc.category) || [];
+      
+    if (categories.length === 0) {
+      // Handle subjects without categories
+      if (!groups['uncategorized']) groups['uncategorized'] = [];
+      groups['uncategorized'].push(subject);
+    } else {
+      categories.forEach(category => {
+        if (!groups[category]) groups[category] = [];
+        groups[category].push(subject);
+      });
     }
-    acc[subject.category].push(subject);
-    return acc;
-  }, {} as Record<string, Subject[]>);
+  });
+  
+  return groups;
 };
 
 const SubjectSelector: React.FC = () => {
@@ -73,6 +85,16 @@ const SubjectSelector: React.FC = () => {
         },
     });
 
+    // Get subject categories
+    const { data: subjectCategories } = useQuery({
+        queryKey: ['subject-categories'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('subject_categories').select('*');
+            if (error) throw error;
+            return data;
+        },
+    });
+
     const { data: userSubjects, isLoading: isLoadingUserSubjects } = useQuery<UserSubject[]>({
         queryKey: ['user_subjects', user?.id],
         queryFn: async () => {
@@ -85,7 +107,7 @@ const SubjectSelector: React.FC = () => {
     });
     
     const userSubjectIds = React.useMemo(() => new Set(userSubjects?.map(us => us.subject_id)), [userSubjects]);
-    const groupedSubjects = React.useMemo(() => groupSubjectsByCategory(allSubjects || []), [allSubjects]);
+    const groupedSubjects = React.useMemo(() => groupSubjectsByCategory(allSubjects || [], subjectCategories || []), [allSubjects, subjectCategories]);
     
     // Get categories that have enrolled subjects
     const enrolledCategories = React.useMemo(() => {
@@ -174,17 +196,24 @@ const SubjectSelector: React.FC = () => {
         const subject = allSubjects?.find(s => s.id === subjectId);
         if (!subject) return;
         
+        // Get categories for this subject
+        const subjectCats = subjectCategories
+          ?.filter(sc => sc.subject_id === subject.id)
+          .map(sc => sc.category) || [];
+        
         // For non-admin users, prevent enrollment in multiple categories
         if (isSelected && !isAdmin && enrolledCategories.size > 0) {
             const enrolledCategory = Array.from(enrolledCategories)[0];
-            if (subject.category !== enrolledCategory) {
+            if (!subjectCats.includes(enrolledCategory as 'matric_amended' | 'national_senior' | 'senior_phase')) {
                 toast.error('You can only enroll in subjects from one category. Please contact an administrator to change your category.');
                 return;
             }
         }
         
         subjectMutation.mutate({ subjectId, isSelected });
-    };    if (isLoadingAllSubjects || isLoadingUserSubjects || isLoadingRole) {
+    };
+    
+    if (isLoadingAllSubjects || isLoadingUserSubjects || isLoadingRole) {
         return (
             <div className="space-y-2">
                 <Skeleton className="h-8 w-1/3" />

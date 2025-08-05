@@ -43,7 +43,7 @@ const ProfilePage = () => {
     enabled: !!user,
   });
 
-  // Get user's enrolled subjects with categories
+  // Get user's enrolled subjects with their categories
   const { data: userSubjectsWithCategories } = useQuery({
     queryKey: ['user-subjects-with-categories', user?.id],
     queryFn: async () => {
@@ -53,8 +53,7 @@ const ProfilePage = () => {
         .select(`
           subjects (
             id,
-            name,
-            category
+            name
           )
         `)
         .eq('user_id', user.id);
@@ -68,16 +67,29 @@ const ProfilePage = () => {
     enabled: !!user,
   });
 
+  // Get subject categories
+  const { data: subjectCategories } = useQuery({
+    queryKey: ['subject-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('subject_categories').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const enrolledCategories = React.useMemo(() => {
-    if (!userSubjectsWithCategories) return [];
+    if (!userSubjectsWithCategories || !subjectCategories) return [];
     const categories = new Set<string>();
     userSubjectsWithCategories.forEach(us => {
-      if (us.subjects?.category) {
-        categories.add(us.subjects.category);
+      if (us.subjects) {
+        const subjectCats = subjectCategories
+          .filter(sc => sc.subject_id === us.subjects.id)
+          .map(sc => sc.category);
+        subjectCats.forEach(cat => categories.add(cat));
       }
     });
     return Array.from(categories);
-  }, [userSubjectsWithCategories]);
+  }, [userSubjectsWithCategories, subjectCategories]);
 
   const categoryDisplayNames: Record<string, string> = {
     matric_amended: 'Matric Amended',
