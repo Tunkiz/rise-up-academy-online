@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "./StatCard";
-import { Users, Book, FileText, CheckCircle, HelpCircle, BarChart3 } from "lucide-react";
+import { Users, Book, FileText, CheckCircle, HelpCircle, BarChart3, GraduationCap, UserCog } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +38,32 @@ const AdminDashboard = () => {
       }
       return data;
     },
+  });
+
+  // Get teacher and tutor counts
+  const { data: staffCounts, isLoading: isLoadingStaff } = useQuery({
+    queryKey: ['staff_counts'],
+    queryFn: async () => {
+      const { data: teacherData, error: teacherError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'teacher');
+      
+      const { data: tutorData, error: tutorError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'tutor');
+
+      if (teacherError) throw teacherError;
+      if (tutorError) throw tutorError;
+
+      return {
+        teachers: teacherData?.length || 0,
+        tutors: tutorData?.length || 0,
+        total: (teacherData?.length || 0) + (tutorData?.length || 0)
+      };
+    },
+    enabled: !isLoadingSuperAdmin && !isSuperAdmin,
   });
 
   const { data, isLoading, error } = useQuery({
@@ -101,8 +127,13 @@ const AdminDashboard = () => {
         <StatCard title="Total Subjects" value={data?.total_subjects_count ?? 0} icon={Book} isLoading={isLoading} />
         <StatCard title="Total Lessons" value={data?.total_lessons_count ?? 0} icon={FileText} isLoading={isLoading} />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total Teachers & Tutors" value={staffCounts?.total ?? 0} icon={GraduationCap} isLoading={isLoadingStaff} />
+        <StatCard title="Teachers" value={staffCounts?.teachers ?? 0} icon={UserCog} isLoading={isLoadingStaff} />
+        <StatCard title="Tutors" value={staffCounts?.tutors ?? 0} icon={UserCog} isLoading={isLoadingStaff} />
         <StatCard title="Total Lessons Completed" value={data?.total_lessons_completed ?? 0} icon={CheckCircle} isLoading={isLoading} />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
         <StatCard title="Total Quizzes Attempted" value={data?.total_quizzes_attempted ?? 0} icon={HelpCircle} isLoading={isLoading} />
       </div>
       <Card>
