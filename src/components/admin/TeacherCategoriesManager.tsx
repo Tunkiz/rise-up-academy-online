@@ -31,13 +31,13 @@ const TeacherCategoriesManager = ({ teacherId, teacherName }: TeacherCategoriesM
   const { data: currentCategories, isLoading } = useQuery({
     queryKey: ['teacher-categories', teacherId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('teacher_categories')
         .select('category')
         .eq('teacher_id', teacherId);
       
       if (error) throw error;
-      return data.map(item => item.category as SubjectCategory);
+      return (data || []).map((item: any) => item.category as SubjectCategory);
     },
     enabled: !!teacherId,
   });
@@ -52,7 +52,7 @@ const TeacherCategoriesManager = ({ teacherId, teacherName }: TeacherCategoriesM
   const updateCategoriesMutation = useMutation({
     mutationFn: async (categories: SubjectCategory[]) => {
       // First, remove all existing categories for this teacher
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('teacher_categories')
         .delete()
         .eq('teacher_id', teacherId);
@@ -61,10 +61,10 @@ const TeacherCategoriesManager = ({ teacherId, teacherName }: TeacherCategoriesM
 
       // Then, insert the new categories
       if (categories.length > 0) {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
           .from('teacher_categories')
           .insert(
-            categories.map(category => ({
+            categories.map((category) => ({
               teacher_id: teacherId,
               category,
             }))

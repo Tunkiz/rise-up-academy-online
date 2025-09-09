@@ -219,10 +219,11 @@ const TeacherDashboard = () => {
             subjects (
               id,
               name,
-              category,
               class_time,
               teams_link,
-              tenant_id
+              tenant_id,
+              created_at,
+              updated_at
             )
           `)
           .eq('user_id', user.id);
@@ -333,11 +334,11 @@ const TeacherDashboard = () => {
             subjects (
               id,
               name,
-              category,
               class_time,
               teams_link,
               tenant_id,
-              created_at
+              created_at,
+              updated_at
             )
           `)
           .eq('user_id', user?.id)
@@ -385,12 +386,7 @@ const TeacherDashboard = () => {
         const categories = getSubjectCategories(subject.id);
         
         if (categories.length === 0) {
-          // If no categories found in junction table, check legacy category field
-          const legacyCategory = subject.category;
-          if (legacyCategory) {
-            if (!groups[legacyCategory]) groups[legacyCategory] = [];
-            groups[legacyCategory].push({ subject, categories: [legacyCategory] });
-          }
+          // No categories found in junction table; skipping subject
         } else {
           // Add to each category group
           categories.forEach(category => {
@@ -686,7 +682,6 @@ const TeacherDashboard = () => {
             subjects (
               id,
               name,
-              category,
               class_time,
               teams_link,
               tenant_id,
