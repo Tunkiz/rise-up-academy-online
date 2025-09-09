@@ -75,8 +75,8 @@ const AdminPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Get the tab from URL parameters, default to "dashboard"
-  const activeTab = searchParams.get('tab') || 'dashboard';
+  // Get the tab from URL parameters, default to "users"
+  const activeTab = searchParams.get('tab') || 'users';
 
   // Handle tab changes
   const handleTabChange = (newTab: string) => {
@@ -135,17 +135,12 @@ const AdminPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-        <TabsList className="grid grid-cols-5 w-full max-w-2xl mx-auto">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="add-staff">Add Staff</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="subjects">Subjects</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="dashboard" className="space-y-4">
-          <AdminDashboard />
-        </TabsContent>
         
         <TabsContent value="users" className="space-y-4">
           <Card>
