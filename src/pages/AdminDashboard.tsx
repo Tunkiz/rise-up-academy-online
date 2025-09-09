@@ -8,7 +8,8 @@ import {
   BarChart3,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  UserCog
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +74,32 @@ const AdminDashboard = () => {
         totalSubjects: totalSubjects || 0,
         totalLessons: totalLessons || 0,
         activeStudents: activeStudents || 0,
+      };
+    },
+    enabled: !!user && (isAdmin || isTeacher),
+  });
+
+  // Get teacher and tutor counts
+  const { data: staffCounts, isLoading: isLoadingStaff } = useQuery({
+    queryKey: ['staff_counts'],
+    queryFn: async () => {
+      const { data: teacherData, error: teacherError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'teacher');
+      
+      const { data: tutorData, error: tutorError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'tutor');
+
+      if (teacherError) throw teacherError;
+      if (tutorError) throw tutorError;
+
+      return {
+        teachers: teacherData?.length || 0,
+        tutors: tutorData?.length || 0,
+        total: (teacherData?.length || 0) + (tutorData?.length || 0)
       };
     },
     enabled: !!user && (isAdmin || isTeacher),
@@ -231,6 +258,60 @@ const AdminDashboard = () => {
                 />
               </>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Staff Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Teachers & Tutors</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStaff ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{staffCounts?.total || 0}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Teaching staff members
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Teachers</CardTitle>
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStaff ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{staffCounts?.teachers || 0}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Certified teachers
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tutors</CardTitle>
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingStaff ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{staffCounts?.tutors || 0}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Support tutors
+            </p>
           </CardContent>
         </Card>
       </div>
