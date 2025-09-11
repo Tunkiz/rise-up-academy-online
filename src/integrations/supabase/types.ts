@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -1126,8 +1126,8 @@ export type Database = {
     Functions: {
       add_subject_category: {
         Args: {
-          p_subject_id: string
           p_category: Database["public"]["Enums"]["subject_category"]
+          p_subject_id: string
         }
         Returns: undefined
       }
@@ -1144,48 +1144,48 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: {
-          user_id: string
-          success: boolean
           message: string
+          success: boolean
+          user_id: string
         }[]
       }
       create_tenant: {
         Args: {
-          tenant_name: string
-          tenant_domain: string
           admin_email: string
-          admin_password: string
           admin_full_name: string
+          admin_password: string
+          tenant_domain: string
+          tenant_name: string
         }
         Returns: {
-          tenant_id: string
           admin_user_id: string
+          tenant_id: string
         }[]
       }
       get_admin_dashboard_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          total_users_count: number
-          new_users_last_30_days: number
-          total_subjects_count: number
-          total_lessons_count: number
-          total_resources_count: number
-          total_lessons_completed: number
-          total_quizzes_attempted: number
           most_popular_subjects: Json
+          new_users_last_30_days: number
+          total_lessons_completed: number
+          total_lessons_count: number
+          total_quizzes_attempted: number
+          total_resources_count: number
+          total_subjects_count: number
+          total_users_count: number
         }[]
       }
       get_all_users: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          full_name: string
-          email: string
-          role: Database["public"]["Enums"]["app_role"]
-          created_at: string
-          banned_until: string
           avatar_url: string
+          banned_until: string
+          created_at: string
+          email: string
+          full_name: string
           grade: number
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
           subjects: Json
           tenant_name: string
         }[]
@@ -1204,8 +1204,8 @@ export type Database = {
       get_student_lesson_completions: {
         Args: { p_user_id: string }
         Returns: {
-          id: string
           completed_at: string
+          id: string
           lesson_title: string
           subject_name: string
         }[]
@@ -1213,11 +1213,11 @@ export type Database = {
       get_student_quiz_attempts: {
         Args: { p_user_id: string }
         Returns: {
-          id: string
-          score: number
-          passed: boolean
           created_at: string
+          id: string
           lesson_title: string
+          passed: boolean
+          score: number
           subject_name: string
         }[]
       }
@@ -1230,23 +1230,23 @@ export type Database = {
       get_super_admin_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
+          tenants_with_stats: Json
+          total_active_users_last_30_days: number
           total_tenants_count: number
           total_users_across_all_tenants: number
-          total_active_users_last_30_days: number
-          tenants_with_stats: Json
         }[]
       }
       get_teacher_students: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          full_name: string
-          email: string
-          role: Database["public"]["Enums"]["app_role"]
-          created_at: string
-          banned_until: string
           avatar_url: string
+          banned_until: string
+          created_at: string
+          email: string
+          full_name: string
           grade: number
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
           subjects: Json
           tenant_name: string
         }[]
@@ -1254,23 +1254,23 @@ export type Database = {
       get_user_activity: {
         Args: { p_user_id: string }
         Returns: {
-          id: string
           activity: string
           course: string
           date: string
+          id: string
         }[]
       }
       get_user_details: {
         Args: { p_user_id: string }
         Returns: {
-          id: string
-          full_name: string
-          email: string
-          role: Database["public"]["Enums"]["app_role"]
-          created_at: string
-          banned_until: string
           avatar_url: string
+          banned_until: string
+          created_at: string
+          email: string
+          full_name: string
           grade: number
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
           subjects: Json
           tenant_name: string
         }[]
@@ -1278,40 +1278,40 @@ export type Database = {
       get_user_details_debug: {
         Args: { p_user_id: string }
         Returns: {
-          debug_info: string
-          user_found: boolean
           current_user_role: string
-          target_user_role: string
-          same_tenant: boolean
+          debug_info: string
           is_teacher_student: boolean
+          same_tenant: boolean
+          target_user_role: string
+          user_found: boolean
         }[]
       }
       get_user_learning_stats: {
         Args: { p_user_id: string }
         Returns: {
+          active_subjects: number
           lessons_completed: number
           total_study_hours: number
-          active_subjects: number
         }[]
       }
       get_user_lesson_deadlines: {
         Args: { p_user_id: string }
         Returns: {
-          id: string
-          title: string
           due_date: string
+          id: string
           lesson_type: string
-          subject_name: string
-          topic_id: string
           subject_id: string
+          subject_name: string
+          title: string
+          topic_id: string
         }[]
       }
       get_user_stats: {
         Args: { p_user_id: string }
         Returns: {
+          average_quiz_score: number
           lessons_completed_count: number
           quizzes_attempted_count: number
-          average_quiz_score: number
         }[]
       }
       is_admin: {
@@ -1327,20 +1327,20 @@ export type Database = {
         Returns: boolean
       }
       manage_user_suspension: {
-        Args: { target_user_id: string; action: string }
+        Args: { action: string; target_user_id: string }
         Returns: undefined
       }
       remove_subject_category: {
         Args: {
-          p_subject_id: string
           p_category: Database["public"]["Enums"]["subject_category"]
+          p_subject_id: string
         }
         Returns: undefined
       }
       set_subject_categories: {
         Args: {
-          p_subject_id: string
           p_categories: Database["public"]["Enums"]["subject_category"][]
+          p_subject_id: string
         }
         Returns: undefined
       }
@@ -1349,34 +1349,34 @@ export type Database = {
         Returns: {
           debug_info: string
           student_count: number
-          teacher_subjects: string[]
           student_details: Json
+          teacher_subjects: string[]
         }[]
       }
       update_user_details_by_admin: {
         Args: {
-          target_user_id: string
           new_full_name: string
           new_grade: number
+          target_user_id: string
         }
         Returns: undefined
       }
       update_user_learner_category: {
         Args: {
-          target_user_id: string
           new_category: Database["public"]["Enums"]["subject_category"]
+          target_user_id: string
         }
         Returns: undefined
       }
       update_user_role: {
         Args: {
-          target_user_id: string
           new_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
         }
         Returns: undefined
       }
       update_user_subjects_by_admin: {
-        Args: { target_user_id: string; new_subject_ids: string[] }
+        Args: { new_subject_ids: string[]; target_user_id: string }
         Returns: undefined
       }
     }
