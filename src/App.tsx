@@ -110,7 +110,7 @@ const App = () => (
                   </RoleBasedRoute>
                 } />
                 <Route path="/admin/user/:userId" element={
-                  <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'teacher', 'tutor']}>
                     <AdminUserProfilePage />
                   </RoleBasedRoute>
                 } />
