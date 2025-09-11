@@ -76,7 +76,7 @@ const AdminUserProfilePage = () => {
     if (userRole === 'admin') {
       return '/admin';
     } else if (userRole === 'teacher' || userRole === 'tutor') {
-      return '/management';
+      return '/admin';
     }
     return '/dashboard';
   };

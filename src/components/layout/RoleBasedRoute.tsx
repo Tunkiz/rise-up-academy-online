@@ -34,7 +34,7 @@ export const RoleBasedRoute = ({
   if (userRole === 'student') {
     defaultFallback = "/learning-portal";
   } else if (userRole === 'teacher' || userRole === 'tutor') {
-    defaultFallback = "/management";
+    defaultFallback = "/admin";
   }
 
   // Redirect to fallback path if role is not allowed

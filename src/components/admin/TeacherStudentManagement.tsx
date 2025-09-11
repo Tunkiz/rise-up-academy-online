@@ -140,7 +140,7 @@ const TeacherStudentManagement = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => navigate(`/management/user/${student.id}`)}>
+                    <DropdownMenuItem onSelect={() => navigate(`/admin/user/${student.id}`)}>
                       View Profile
                     </DropdownMenuItem>
                   </DropdownMenuContent>
